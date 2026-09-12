@@ -27,12 +27,18 @@ Drawable Entities  ───►  Scene Graph  ───►  OpenCVRenderer  ─�
 
 ## Installation
 
-Requires Python 3.12+, NumPy, and OpenCV:
+Install via pip from PyPI:
 
 ```bash
-git clone https://github.com/your-username/DrawCV.git
-cd DrawCV
-pip install -e .
+pip install pydrawcv
+```
+
+Or install from source for development:
+
+```bash
+git clone https://github.com/nuhyamin1/drawcv.git
+cd drawcv
+pip install -e ".[dev]"
 ```
 
 ---

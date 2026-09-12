@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "drawcv"
+name = "pydrawcv"
 version = "0.1.0"
 description = "A highly manipulable 2D retained-mode drawing library built on OpenCV and NumPy."
 readme = "README.md"
@@ -14,11 +14,30 @@ dependencies = [
     "numpy>=1.26.0",
     "opencv-python>=4.8.0",
 ]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Scientific/Engineering :: Image Processing",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/nuhyamin1/drawcv"
+Repository = "https://github.com/nuhyamin1/drawcv"
+Issues = "https://github.com/nuhyamin1/drawcv/issues"
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0.0",
 ]
+
+[tool.setuptools.packages.find]
+include = ["drawcv*"]
+exclude = ["tests*", "demo*", "examples*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
