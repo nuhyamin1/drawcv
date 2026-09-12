@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "drawcv"
+version = "0.1.0"
+description = "A highly manipulable 2D retained-mode drawing library built on OpenCV and NumPy."
+readme = "README.md"
+authors = [{ name = "DrawCV Contributors" }]
+license = { text = "MIT" }
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=1.26.0",
+    "opencv-python>=4.8.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
