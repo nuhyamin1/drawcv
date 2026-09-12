@@ -38,3 +38,11 @@ class FillStyle:
         super().__setattr__(name, value)
         if getattr(self, "_initialized", False):
             self._validate()
+
+    def copy(self) -> FillStyle:
+        """Return an independent copy of this FillStyle."""
+        return FillStyle(
+            enabled=self.enabled,
+            color=self.color.copy(),
+            opacity=self.opacity,
+        )

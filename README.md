@@ -136,6 +136,31 @@ canvas.save("output.png")
 - **Declarative Relative Positioning**: `align_left`, `align_right`, `align_top`, `align_bottom`, `align_center_x`, `align_center_y`, `align_centers`, `place_above`, `place_below`, `place_left_of`, `place_right_of` (with default `gap=20.0`), `distribute_horizontally`, `distribute_vertically`.
 - **Authoritative Scene Registry & Query**: Fast $O(1)$ lookup via `scene.get(id)` across layers and groups, collision prevention, `find_by_name`, `find_by_tag`, `find_by_type`, `find_by_metadata`, and predicate searches.
 
+### Freehand Engine (Phase 5)
+- **`StrokePoint`**: Immutable frozen point holding coordinates with physical capture metadata (`pressure`, `timestamp`, `velocity`).
+- **`FreehandStroke`**: Retained-mode freehand stroke retaining authoritative raw sampled input points without mutation.
+- **Modular Path Processing Pipeline**:
+  - **RDP Simplification (`rdp_simplify`)**: Noise and redundant point reduction while preserving salient corners and all metadata.
+  - **Chaikin Smoothing (`chaikin_smooth`)**: Iterative corner-cutting curve refinement with open endpoint preservation.
+  - **Catmull-Rom Spline (`catmull_rom_spline`)**: $C^1$-continuous cubic spline passing exactly through control points with centripetal parameterization ($\alpha=0.5$).
+  - **Linear Metadata Interpolation**: Clamped linear interpolation for pressure $[0.0, 1.0]$ and timestamps preventing overshoot and preserving physical monotonicity.
+- **Variable-Width Contour Rasterization**: Segment-normal tapered quadrilateral ribbons with circular joint/cap discs for stylus calligraphy (pressure-sensitive) and fountain pen flick dynamics (velocity-sensitive).
+
+### Compositing & Effects (Phase 6)
+- **Isolated Offscreen Surfaces**: Eliminates overlapping-geometry opacity accumulation by rasterizing translucent groups and layers to isolated premultiplied float32 BGRA buffers.
+- **Single-Application Opacity Boundary**: Ancestor opacity is withheld during isolated subtree rendering and applied strictly once at the compositing boundary.
+- **Premultiplied Alpha Pipeline**: Mathematically rigorous blending ($C_{\text{out}} = C_s + C_d(1 - \alpha_s)$, $\alpha_{\text{out}} = \alpha_s + \alpha_d(1 - \alpha_s)$) with 4-channel synchronous scaling across B, G, R, and A to prevent color fringing.
+- **Effects**:
+  - `BlurEffect`: Content blur (`BlurType.GAUSSIAN`, `BlurType.BOX`) executed on premultiplied intermediates without boundary halos.
+  - `ShadowEffect`: Cast shadows with signed asymmetric offsets (`offset_x`, `offset_y`), blur radius, and shadow color, rendered behind base geometry.
+  - **Effect-Inflated Buffers**: Asymmetric buffer expansion accommodating signed shadow offsets and blur penumbras.
+- **Clipping & Masking**:
+  - `ClipRect` & `ClipPath`: Vector stencils applied as the final post-effects clipping boundary.
+  - `Mask`: Grayscale luminance/alpha masks with `MaskMapping.FIT_BOUNDS` mapped against pre-effect visual bounds.
+- **New Retained Primitives**:
+  - `ImageObject`: Raster images supporting BGR and BGRA, source cropping, target sizing, affine warps, and alpha compositing.
+  - `Text`: Typography with font families (`FontFamily.SANS_SERIF`, `SERIF`, `MONOSPACE`, `SCRIPT`), alignments (`LEFT`, `CENTER`, `RIGHT`), and background plates with optional `background_radius`.
+
 ---
 
 ## Running Tests & Demos
@@ -153,6 +178,8 @@ python examples/phase1_demo.py
 python examples/phase2_demo.py
 python examples/phase3_demo.py
 python examples/phase4_demo.py
+python examples/phase5_demo.py
+python examples/phase6_demo.py
 ```
 
 Generated outputs will be saved to `examples/output/`.
@@ -165,7 +192,9 @@ Generated outputs will be saved to `examples/output/`.
 - [x] **Phase 2 — Manipulation**: Full affine transform rendering (rotation, non-uniform scaling), object cloning, hit testing.
 - [x] **Phase 3 — Advanced Geometry**: Ellipse, Arc, Polygon, Polyline, Arrow, Bézier curves, General Path, RoundedRectangle.
 - [x] **Phase 4 — Scene System**: Semantic Groups, Rendering Layers, Selection models, Relative positioning utilities, Centralized scene registry.
-- [ ] **Phase 5 — Freehand Engine**: FreehandStroke, StrokePoint, Chaikin smoothing, Ramer-Douglas-Peucker simplification, Catmull-Rom interpolation, pressure-sensitive width.
-- [ ] **Phase 6 — Compositing & Effects**: Grayscale masks, clipping rectangles, clipping paths, ImageObject, blur, drop shadows, isolated group/layer offscreen compositing.
+- [x] **Phase 5 — Freehand Engine**: FreehandStroke, StrokePoint, Chaikin smoothing, Ramer-Douglas-Peucker simplification, Catmull-Rom interpolation, pressure and velocity sensitive variable width.
+- [x] **Phase 6 — Compositing & Effects**: Grayscale masks, clipping rectangles, clipping paths, ImageObject, Text, blur, drop shadows, isolated group/layer offscreen compositing.
 - [ ] **Phase 7 — Persistence & History**: JSON serialization/deserialization with format versioning, command-based Undo/Redo.
 - [ ] **Phase 8 — Temporal Drawing**: Timing metadata, path-length-based progressive rendering (`render_progress`), easing functions, video/frame rendering.
+
+

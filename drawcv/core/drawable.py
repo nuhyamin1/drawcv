@@ -30,6 +30,9 @@ class Drawable(ABC):
     tags: set[str] = field(default_factory=set)
     metadata: dict[str, Any] = field(default_factory=dict)
     transform: Transform = field(default_factory=Transform)
+    clip: Any | None = field(default=None)
+    mask: Any | None = field(default=None)
+    effects: list[Any] = field(default_factory=list)
     _parent: Any | None = field(default=None, repr=False, compare=False)
     _layer: Any | None = field(default=None, repr=False, compare=False)
     _scene: Any | None = field(default=None, repr=False, compare=False)
@@ -58,10 +61,37 @@ class Drawable(ABC):
             raise ValidationError("Drawable 'metadata' must be a dict")
         if not isinstance(self.transform, Transform):
             raise ValidationError("Drawable 'transform' must be a Transform instance")
+        if not isinstance(self.effects, list):
+            raise ValidationError("Drawable 'effects' must be a list")
 
     # -------------------------------------------------------------------------
     # Bounds Hierarchy
     # -------------------------------------------------------------------------
+
+    def get_effect_bounds(self) -> BoundingBox:
+        """Calculate authoritative world-space visual bounds inflated by attached post-processing effects."""
+        base_bounds = self.get_bounds()
+        if not self.effects:
+            return base_bounds
+
+        left_pad = 0.0
+        right_pad = 0.0
+        top_pad = 0.0
+        bottom_pad = 0.0
+        for eff in self.effects:
+            if hasattr(eff, "get_padding"):
+                lp, rp, tp, bp = eff.get_padding()
+                left_pad = max(left_pad, lp)
+                right_pad = max(right_pad, rp)
+                top_pad = max(top_pad, tp)
+                bottom_pad = max(bottom_pad, bp)
+
+        return BoundingBox(
+            base_bounds.left - left_pad,
+            base_bounds.top - top_pad,
+            base_bounds.width + left_pad + right_pad,
+            base_bounds.height + top_pad + bottom_pad,
+        )
 
     @abstractmethod
     def get_geometry_bounds(self) -> BoundingBox:

@@ -49,3 +49,43 @@ class ArrowHeadStyle(Enum):
     OPEN = "open"          # V-stroke open head
     DIAMOND = "diamond"    # Four-vertex diamond marker
     CIRCLE = "circle"      # Circular terminal marker
+
+
+class FontFamily(Enum):
+    """Renderer-independent typography font faces (mapped to Hershey or system fonts)."""
+    SIMPLEX = "simplex"
+    PLAIN = "plain"
+    DUPLEX = "duplex"
+    COMPLEX = "complex"
+    TRIPLEX = "triplex"
+    COMPLEX_SMALL = "complex_small"
+    SCRIPT_SIMPLEX = "script_simplex"
+    SCRIPT_COMPLEX = "script_complex"
+
+
+class ImageInterpolation(Enum):
+    """Resampling interpolation filters for raster images."""
+    NEAREST = "nearest"
+    LINEAR = "linear"
+    CUBIC = "cubic"
+    AREA = "area"
+    LANCZOS = "lanczos"
+
+
+class BlurType(Enum):
+    """Spatial blur kernel algorithms."""
+    GAUSSIAN = "gaussian"
+    BOX = "box"
+
+
+class TextAlignment(Enum):
+    """Horizontal text baseline alignment relative to anchor position."""
+    LEFT = "left"
+    CENTER = "center"
+    RIGHT = "right"
+
+
+class MaskMapping(Enum):
+    """Coordinate mapping mode for grayscale masks."""
+    FIT_BOUNDS = "fit_bounds"  # Stretches mask bilinearly over entity's pre-effect bounds
+    ABSOLUTE = "absolute"      # Aligns mask 1:1 with entity local origin

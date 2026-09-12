@@ -51,6 +51,9 @@ class Scene:
         visible: bool = True,
         locked: bool = False,
         opacity: float = 1.0,
+        clip: Any | None = None,
+        mask: Any | None = None,
+        effects: list[Any] | None = None,
     ) -> Layer:
         """Create and register a new rendering Layer."""
         if not isinstance(name, str) or not name.strip():
@@ -72,6 +75,9 @@ class Scene:
             opacity=opacity,
             z_order=resolved_z,
             scene=self,
+            clip=clip,
+            mask=mask,
+            effects=effects,
         )
         self._layers[clean_name] = layer
         self._layer_order.append(clean_name)

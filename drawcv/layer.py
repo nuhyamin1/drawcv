@@ -3,6 +3,7 @@
 from __future__ import annotations
 from typing import Any, Iterator, TypeVar
 
+from drawcv.core.bounds import BoundingBox
 from drawcv.core.drawable import Drawable
 from drawcv.core.exceptions import ObjectNotFoundError, ValidationError
 
@@ -25,17 +26,23 @@ class Layer:
         opacity: float = 1.0,
         z_order: int = 0,
         scene: Any | None = None,
+        clip: Any | None = None,
+        mask: Any | None = None,
+        effects: list[Any] | None = None,
     ):
-        self._validate_params(name, visible, locked, opacity, z_order)
+        self._validate_params(name, visible, locked, opacity, z_order, effects)
         self.name = name
         self.visible = visible
         self.locked = locked
         self.opacity = float(opacity)
         self.z_order = z_order
+        self.clip = clip
+        self.mask = mask
+        self.effects: list[Any] = list(effects) if effects is not None else []
         self._scene: Any | None = scene
         self._objects: list[Drawable] = []
 
-    def _validate_params(self, name: str, visible: bool, locked: bool, opacity: float, z_order: int):
+    def _validate_params(self, name: str, visible: bool, locked: bool, opacity: float, z_order: int, effects: Any | None = None):
         if not isinstance(name, str) or not name.strip():
             raise ValidationError("Layer name must be a non-empty string")
         if not isinstance(visible, bool):
@@ -48,6 +55,55 @@ class Layer:
             raise ValidationError(f"Layer opacity must be in range [0.0, 1.0], got {opacity}")
         if not isinstance(z_order, int) or isinstance(z_order, bool):
             raise ValidationError("Layer z_order must be an integer")
+        if effects is not None and not isinstance(effects, list):
+            raise ValidationError("Layer effects must be a list")
+
+    # -------------------------------------------------------------------------
+    # Bounds Hierarchy
+    # -------------------------------------------------------------------------
+
+    def get_bounds(self) -> BoundingBox:
+        """World-space visual AABB enclosing all contained objects."""
+        if not self._objects:
+            return BoundingBox(0.0, 0.0, 0.0, 0.0)
+        union_box: BoundingBox | None = None
+        for obj in self._objects:
+            ob = obj.get_bounds()
+            union_box = ob if union_box is None else union_box.union(ob)
+        return union_box if union_box is not None else BoundingBox(0.0, 0.0, 0.0, 0.0)
+
+    def get_effect_bounds(self) -> BoundingBox:
+        """World-space visual AABB enclosing all contained objects (with child effects) and layer-level effects."""
+        if not self._objects:
+            base_bounds = BoundingBox(0.0, 0.0, 0.0, 0.0)
+        else:
+            union_box: BoundingBox | None = None
+            for obj in self._objects:
+                ob = obj.get_effect_bounds()
+                union_box = ob if union_box is None else union_box.union(ob)
+            base_bounds = union_box if union_box is not None else BoundingBox(0.0, 0.0, 0.0, 0.0)
+
+        if not self.effects:
+            return base_bounds
+
+        left_pad = 0.0
+        right_pad = 0.0
+        top_pad = 0.0
+        bottom_pad = 0.0
+        for eff in self.effects:
+            if hasattr(eff, "get_padding"):
+                lp, rp, tp, bp = eff.get_padding()
+                left_pad = max(left_pad, lp)
+                right_pad = max(right_pad, rp)
+                top_pad = max(top_pad, tp)
+                bottom_pad = max(bottom_pad, bp)
+
+        return BoundingBox(
+            base_bounds.left - left_pad,
+            base_bounds.top - top_pad,
+            base_bounds.width + left_pad + right_pad,
+            base_bounds.height + top_pad + bottom_pad,
+        )
 
     # -------------------------------------------------------------------------
     # Object Management & Invariants

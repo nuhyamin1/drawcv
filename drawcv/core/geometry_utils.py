@@ -5,7 +5,7 @@ import math
 import cv2
 import numpy as np
 
-from drawcv.core.enums import ArcClosure, FillRule
+from drawcv.core.enums import ArcClosure, FillRule, FontFamily
 from drawcv.core.exceptions import ValidationError
 from drawcv.core.geometry import Point
 
@@ -457,4 +457,40 @@ def evaluate_fill_rule_mask(
     if scale > 1:
         return cv2.resize(topological_mask, (width, height), interpolation=cv2.INTER_AREA)
     return topological_mask
+
+
+_FONT_FAMILY_TO_CV = {
+    FontFamily.SIMPLEX: cv2.FONT_HERSHEY_SIMPLEX,
+    FontFamily.PLAIN: cv2.FONT_HERSHEY_PLAIN,
+    FontFamily.DUPLEX: cv2.FONT_HERSHEY_DUPLEX,
+    FontFamily.COMPLEX: cv2.FONT_HERSHEY_COMPLEX,
+    FontFamily.TRIPLEX: cv2.FONT_HERSHEY_TRIPLEX,
+    FontFamily.COMPLEX_SMALL: cv2.FONT_HERSHEY_COMPLEX_SMALL,
+    FontFamily.SCRIPT_SIMPLEX: cv2.FONT_HERSHEY_SCRIPT_SIMPLEX,
+    FontFamily.SCRIPT_COMPLEX: cv2.FONT_HERSHEY_SCRIPT_COMPLEX,
+}
+
+
+def measure_text_size(
+    text: str,
+    font_family: FontFamily | str = FontFamily.SIMPLEX,
+    font_scale: float = 1.0,
+    thickness: int = 1,
+) -> tuple[int, int, int]:
+    """Measure text bounding dimensions using font metrics.
+    
+    Returns:
+        tuple[int, int, int]: (width, height, baseline) in pixels.
+    """
+    if isinstance(font_family, str):
+        try:
+            font_family = FontFamily(font_family.strip().lower())
+        except ValueError:
+            font_family = FontFamily.SIMPLEX
+    elif not isinstance(font_family, FontFamily):
+        font_family = FontFamily.SIMPLEX
+
+    font_face = _FONT_FAMILY_TO_CV.get(font_family, cv2.FONT_HERSHEY_SIMPLEX)
+    (w, h), baseline = cv2.getTextSize(text, font_face, float(font_scale), max(1, int(thickness)))
+    return int(w), int(h), int(baseline)
 

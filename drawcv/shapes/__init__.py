@@ -5,6 +5,9 @@ from drawcv.shapes.arrow import Arrow
 from drawcv.shapes.bezier import BezierCurve
 from drawcv.shapes.circle import Circle
 from drawcv.shapes.ellipse import Ellipse
+from drawcv.shapes.freehand import FreehandStroke
+from drawcv.core.geometry import StrokePoint
+from drawcv.shapes.image import ImageObject
 from drawcv.shapes.line import Line
 from drawcv.shapes.path import (
     Close,
@@ -20,6 +23,7 @@ from drawcv.shapes.polygon import Polygon
 from drawcv.shapes.polyline import Polyline
 from drawcv.shapes.rectangle import Rectangle
 from drawcv.shapes.rounded_rectangle import RoundedRectangle
+from drawcv.shapes.text import Text
 
 __all__ = [
     "Arc",
@@ -29,6 +33,8 @@ __all__ = [
     "Close",
     "CubicTo",
     "Ellipse",
+    "FreehandStroke",
+    "ImageObject",
     "Line",
     "LineTo",
     "MoveTo",
@@ -39,6 +45,8 @@ __all__ = [
     "QuadraticTo",
     "Rectangle",
     "RoundedRectangle",
+    "StrokePoint",
     "Subpath",
+    "Text",
 ]
 

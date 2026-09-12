@@ -155,6 +155,10 @@ class Color:
         """Return a copy of this color with a new alpha value."""
         return Color(self.r, self.g, self.b, a)
 
+    def copy(self) -> Color:
+        """Return a copy of this color."""
+        return Color(self.r, self.g, self.b, self.a)
+
     def __repr__(self) -> str:
         if self.a < 1.0:
             return f"Color(r={self.r}, g={self.g}, b={self.b}, a={self.a:.2f})"

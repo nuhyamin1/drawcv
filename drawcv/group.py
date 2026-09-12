@@ -34,6 +34,9 @@ class Group(Drawable):
         tags: set[str] | None = None,
         metadata: dict[str, Any] | None = None,
         transform: Transform | None = None,
+        clip: Any | None = None,
+        mask: Any | None = None,
+        effects: list[Any] | None = None,
     ):
         super_kwargs: dict[str, Any] = {
             "name": name,
@@ -41,6 +44,8 @@ class Group(Drawable):
             "locked": locked,
             "opacity": opacity,
             "z_index": z_index,
+            "clip": clip,
+            "mask": mask,
         }
         if id is not None:
             super_kwargs["id"] = id
@@ -50,6 +55,8 @@ class Group(Drawable):
             super_kwargs["metadata"] = metadata
         if transform is not None:
             super_kwargs["transform"] = transform
+        if effects is not None:
+            super_kwargs["effects"] = effects
 
         super().__init__(**super_kwargs)
         self._children: list[Drawable] = []
@@ -219,6 +226,39 @@ class Group(Drawable):
 
         return union_box if union_box is not None else BoundingBox(0.0, 0.0, 0.0, 0.0)
 
+    def get_effect_bounds(self) -> BoundingBox:
+        """Calculate authoritative world-space visual bounds enclosing all children (with child effects) and group effects."""
+        if not self._children:
+            base_bounds = self.get_bounds()
+        else:
+            union_box: BoundingBox | None = None
+            for child in self._children:
+                cb = child.get_effect_bounds()
+                union_box = cb if union_box is None else union_box.union(cb)
+            base_bounds = union_box if union_box is not None else self.get_bounds()
+
+        if not self.effects:
+            return base_bounds
+
+        left_pad = 0.0
+        right_pad = 0.0
+        top_pad = 0.0
+        bottom_pad = 0.0
+        for eff in self.effects:
+            if hasattr(eff, "get_padding"):
+                lp, rp, tp, bp = eff.get_padding()
+                left_pad = max(left_pad, lp)
+                right_pad = max(right_pad, rp)
+                top_pad = max(top_pad, tp)
+                bottom_pad = max(bottom_pad, bp)
+
+        return BoundingBox(
+            base_bounds.left - left_pad,
+            base_bounds.top - top_pad,
+            base_bounds.width + left_pad + right_pad,
+            base_bounds.height + top_pad + bottom_pad,
+        )
+
     # -------------------------------------------------------------------------
     # Anchors, Hit-Testing & Cloning
     # -------------------------------------------------------------------------
@@ -277,6 +317,9 @@ class Group(Drawable):
             tags=set(self.tags),
             metadata=copy.deepcopy(self.metadata),
             transform=copy.deepcopy(self.transform),
+            clip=copy.deepcopy(self.clip),
+            mask=copy.deepcopy(self.mask),
+            effects=copy.deepcopy(self.effects),
         )
 
         for child in self._children:

@@ -54,3 +54,14 @@ class StrokeStyle:
         super().__setattr__(name, value)
         if getattr(self, "_initialized", False):
             self._validate()
+
+    def copy(self) -> StrokeStyle:
+        """Return an independent copy of this StrokeStyle."""
+        return StrokeStyle(
+            color=self.color.copy(),
+            width=self.width,
+            opacity=self.opacity,
+            line_type=self.line_type,
+            cap_style=self.cap_style,
+            join_style=self.join_style,
+        )
