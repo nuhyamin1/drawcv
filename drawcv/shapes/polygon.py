@@ -126,3 +126,49 @@ class Polygon(Drawable):
 
         local_pt = self.to_local(world_point)
         return point_in_polygon(local_pt, self.vertices, include_boundary=True)
+
+    def _get_shape_state(self) -> dict[str, Any]:
+        return {
+            "vertices": [p.copy() for p in self.vertices],
+            "stroke": self.stroke.copy() if self.stroke else None,
+            "fill": self.fill.copy() if self.fill else None,
+        }
+
+    def _apply_shape_state(self, state: dict[str, Any]) -> None:
+        if "vertices" in state:
+            self.vertices = [
+                p.copy() if isinstance(p, Point) else Point.from_dict(p)
+                for p in state["vertices"]
+            ]
+        if "stroke" in state:
+            st = state["stroke"]
+            self.stroke = st.copy() if isinstance(st, StrokeStyle) else (StrokeStyle.from_dict(st) if st else None)
+        if "fill" in state:
+            fi = state["fill"]
+            self.fill = fi.copy() if isinstance(fi, FillStyle) else (FillStyle.from_dict(fi) if fi else None)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain JSON-compatible dictionary representation."""
+        res = self._base_to_dict()
+        res.update({
+            "type": "polygon",
+            "vertices": [p.to_dict() for p in self.vertices],
+            "stroke": self.stroke.to_dict() if self.stroke else None,
+            "fill": self.fill.to_dict() if self.fill else None,
+        })
+        return res
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Polygon:
+        """Construct a Polygon from dictionary representation."""
+        base_kwargs = cls._base_from_dict(data)
+        vertices = [Point.from_dict(p) for p in data.get("vertices", [])]
+        stroke = StrokeStyle.from_dict(data["stroke"]) if data.get("stroke") is not None else None
+        fill = FillStyle.from_dict(data["fill"]) if data.get("fill") is not None else None
+        return cls(
+            vertices=vertices,
+            stroke=stroke,
+            fill=fill,
+            **base_kwargs,
+        )
+

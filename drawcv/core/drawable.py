@@ -357,6 +357,127 @@ class Drawable(ABC):
         cloned._scene = None
         return cloned
 
+    # -------------------------------------------------------------------------
+    # In-Place Semantic State Capture & Restoration (Live Identity Preservation)
+    # -------------------------------------------------------------------------
+
+    def _get_shape_state(self) -> dict[str, Any]:
+        """Override in subclasses to return dictionary of shape-specific fields."""
+        return {}
+
+    def _apply_shape_state(self, state: dict[str, Any]) -> None:
+        """Override in subclasses to apply shape-specific fields in-place."""
+        pass
+
+    def _get_semantic_state(self) -> dict[str, Any]:
+        """Capture authoritative semantic state snapshot for in-place undo/redo."""
+        state = {
+            "id": self.id,
+            "name": self.name,
+            "visible": self.visible,
+            "locked": self.locked,
+            "opacity": float(self.opacity),
+            "z_index": int(self.z_index),
+            "tags": sorted(list(self.tags)),
+            "metadata": copy.deepcopy(self.metadata),
+            "transform": self.transform.copy(),
+            "clip": copy.deepcopy(self.clip),
+            "mask": copy.deepcopy(self.mask),
+            "effects": [copy.deepcopy(e) for e in self.effects],
+        }
+        state.update(self._get_shape_state())
+        return state
+
+    def _apply_semantic_state(self, state: dict[str, Any]) -> None:
+        """Apply state snapshot in-place to preserve live object identity."""
+        self.name = state.get("name")
+        self.visible = bool(state.get("visible", True))
+        self.locked = bool(state.get("locked", False))
+        self.opacity = float(state.get("opacity", 1.0))
+        self.z_index = int(state.get("z_index", 0))
+        self.tags = set(state.get("tags", []))
+        self.metadata = copy.deepcopy(state.get("metadata", {}))
+
+        tf_val = state.get("transform")
+        if isinstance(tf_val, Transform):
+            self.transform = tf_val.copy()
+        elif isinstance(tf_val, dict):
+            self.transform = Transform.from_dict(tf_val)
+
+        clip_val = state.get("clip")
+        self.clip = copy.deepcopy(clip_val)
+
+        mask_val = state.get("mask")
+        self.mask = copy.deepcopy(mask_val)
+
+        effs = state.get("effects", [])
+        self.effects = [copy.deepcopy(e) for e in effs]
+
+        self._apply_shape_state(state)
+
+    # -------------------------------------------------------------------------
+    # Serialization Helpers
+    # -------------------------------------------------------------------------
+
+    def _base_to_dict(self) -> dict[str, Any]:
+        """Serialize common retained-mode attributes to plain JSON-compatible primitives."""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "visible": bool(self.visible),
+            "locked": bool(self.locked),
+            "opacity": float(self.opacity),
+            "z_index": int(self.z_index),
+            "tags": sorted(list(self.tags)),
+            "metadata": copy.deepcopy(self.metadata),
+            "transform": self.transform.to_dict(),
+            "clip": self.clip.to_dict() if self.clip is not None else None,
+            "mask": self.mask.to_dict() if self.mask is not None else None,
+            "effects": [e.to_dict() for e in self.effects],
+        }
+
+    @classmethod
+    def _base_from_dict(cls, data: dict[str, Any]) -> dict[str, Any]:
+        """Parse common retained-mode attributes from serialized data dictionary."""
+        from drawcv.effects import clip_from_dict, effect_from_dict, Mask
+
+        clip_val = clip_from_dict(data.get("clip"))
+        mask_val = Mask.from_dict(data.get("mask"))
+        effs = [effect_from_dict(e) for e in data.get("effects", [])]
+        tf_val = Transform.from_dict(data.get("transform"))
+
+        return {
+            "id": data.get("id", str(uuid.uuid4())),
+            "name": data.get("name"),
+            "visible": bool(data.get("visible", True)),
+            "locked": bool(data.get("locked", False)),
+            "opacity": float(data.get("opacity", 1.0)),
+            "z_index": int(data.get("z_index", 0)),
+            "tags": set(data.get("tags", [])),
+            "metadata": copy.deepcopy(data.get("metadata", {})),
+            "transform": tf_val,
+            "clip": clip_val,
+            "mask": mask_val,
+            "effects": effs,
+        }
+
+    @abstractmethod
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain JSON-compatible dictionary representation."""
+        pass
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Drawable:
+        """Construct a Drawable from dictionary representation by dispatching to registered type."""
+        from drawcv.serialization.registry import get_drawable_deserializer
+        if not isinstance(data, dict):
+            raise ValidationError(f"Drawable data must be a dict, got {type(data).__name__}")
+        drawable_type = data.get("type")
+        if not drawable_type:
+            raise ValidationError("Drawable data dictionary missing required 'type' field")
+        deserializer = get_drawable_deserializer(drawable_type)
+        return deserializer(data)
+
     def __eq__(self, other: object) -> bool:
         if isinstance(other, Drawable):
             return self.id == other.id
@@ -364,3 +485,4 @@ class Drawable(ABC):
 
     def __hash__(self) -> int:
         return hash(self.id)
+

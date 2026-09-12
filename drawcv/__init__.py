@@ -19,11 +19,35 @@ from drawcv.core.enums import (
 )
 from drawcv.core.exceptions import (
     DrawCVError,
+    InvalidFormatError,
     ObjectNotFoundError,
     RenderError,
+    SerializationError,
+    UnknownDrawableTypeError,
+    UnsupportedVersionError,
     ValidationError,
 )
 from drawcv.core.geometry import Point, StrokePoint
+from drawcv.history import (
+    AddObjectCommand,
+    Command,
+    CompoundCommand,
+    GroupCommand,
+    HistoryManager,
+    RemoveObjectCommand,
+    ReorderCommand,
+    StateEditCommand,
+    TransformCommand,
+    UngroupCommand,
+)
+from drawcv.serialization import (
+    CURRENT_FORMAT_IDENTIFIER,
+    CURRENT_SCHEMA_VERSION,
+    SchemaMigrator,
+    from_json,
+    register_drawable_type,
+    to_json,
+)
 from drawcv.core.path_processing import (
     catmull_rom_spline,
     chaikin_smooth,
@@ -82,9 +106,10 @@ from drawcv.shapes.text import Text
 from drawcv.styles.fill import FillStyle
 from drawcv.styles.stroke import StrokeStyle
 
-__version__ = "0.6.0"
+__version__ = "0.7.0"
 
 __all__ = [
+    "AddObjectCommand",
     "align_bottom",
     "align_center_x",
     "align_center_y",
@@ -109,8 +134,12 @@ __all__ = [
     "ClipRect",
     "Close",
     "Color",
+    "Command",
+    "CompoundCommand",
     "compute_path_length",
     "CubicTo",
+    "CURRENT_FORMAT_IDENTIFIER",
+    "CURRENT_SCHEMA_VERSION",
     "distribute_horizontally",
     "distribute_vertically",
     "Drawable",
@@ -121,9 +150,13 @@ __all__ = [
     "FillStyle",
     "FontFamily",
     "FreehandStroke",
+    "from_json",
     "Group",
+    "GroupCommand",
+    "HistoryManager",
     "ImageInterpolation",
     "ImageObject",
+    "InvalidFormatError",
     "JoinStyle",
     "Layer",
     "Line",
@@ -146,16 +179,27 @@ __all__ = [
     "QuadraticTo",
     "rdp_simplify",
     "Rectangle",
+    "register_drawable_type",
+    "RemoveObjectCommand",
     "RenderError",
+    "ReorderCommand",
     "RoundedRectangle",
     "Scene",
+    "SchemaMigrator",
     "Selection",
+    "SerializationError",
     "ShadowEffect",
+    "StateEditCommand",
     "StrokePoint",
     "StrokeStyle",
     "Subpath",
     "Text",
     "TextAlignment",
+    "to_json",
     "Transform",
+    "TransformCommand",
+    "UngroupCommand",
+    "UnknownDrawableTypeError",
+    "UnsupportedVersionError",
     "ValidationError",
 ]

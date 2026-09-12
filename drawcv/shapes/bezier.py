@@ -152,3 +152,58 @@ class BezierCurve(Drawable):
                 return True
 
         return False
+
+    def _get_shape_state(self) -> dict[str, Any]:
+        return {
+            "p0": self.p0.copy(),
+            "p1": self.p1.copy(),
+            "p2": self.p2.copy(),
+            "p3": self.p3.copy() if self.p3 is not None else None,
+            "stroke": self.stroke.copy() if self.stroke else None,
+        }
+
+    def _apply_shape_state(self, state: dict[str, Any]) -> None:
+        if "p0" in state:
+            self.p0 = state["p0"].copy() if isinstance(state["p0"], Point) else Point.from_dict(state["p0"])
+        if "p1" in state:
+            self.p1 = state["p1"].copy() if isinstance(state["p1"], Point) else Point.from_dict(state["p1"])
+        if "p2" in state:
+            self.p2 = state["p2"].copy() if isinstance(state["p2"], Point) else Point.from_dict(state["p2"])
+        if "p3" in state:
+            p3_val = state["p3"]
+            self.p3 = p3_val.copy() if isinstance(p3_val, Point) else (Point.from_dict(p3_val) if p3_val is not None else None)
+        if "stroke" in state:
+            st = state["stroke"]
+            self.stroke = st.copy() if isinstance(st, StrokeStyle) else (StrokeStyle.from_dict(st) if st else None)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain JSON-compatible dictionary representation."""
+        res = self._base_to_dict()
+        res.update({
+            "type": "bezier",
+            "p0": self.p0.to_dict(),
+            "p1": self.p1.to_dict(),
+            "p2": self.p2.to_dict(),
+            "p3": self.p3.to_dict() if self.p3 is not None else None,
+            "stroke": self.stroke.to_dict() if self.stroke else None,
+        })
+        return res
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> BezierCurve:
+        """Construct a BezierCurve from dictionary representation."""
+        base_kwargs = cls._base_from_dict(data)
+        p0 = Point.from_dict(data["p0"]) if "p0" in data else Point(0.0, 0.0)
+        p1 = Point.from_dict(data["p1"]) if "p1" in data else Point(50.0, 100.0)
+        p2 = Point.from_dict(data["p2"]) if "p2" in data else Point(100.0, 0.0)
+        p3 = Point.from_dict(data["p3"]) if data.get("p3") is not None else None
+        stroke = StrokeStyle.from_dict(data["stroke"]) if data.get("stroke") is not None else None
+        return cls(
+            p0=p0,
+            p1=p1,
+            p2=p2,
+            p3=p3,
+            stroke=stroke,
+            **base_kwargs,
+        )
+

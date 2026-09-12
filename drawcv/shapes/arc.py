@@ -179,3 +179,77 @@ class Arc(Drawable):
                 return True
 
         return False
+
+    def _get_shape_state(self) -> dict[str, Any]:
+        return {
+            "center": self.center.copy(),
+            "radius_x": float(self.radius_x),
+            "radius_y": float(self.radius_y),
+            "start_angle": float(self.start_angle),
+            "sweep_angle": float(self.sweep_angle),
+            "closure": self.closure.value if hasattr(self.closure, "value") else str(self.closure),
+            "stroke": self.stroke.copy() if self.stroke else None,
+            "fill": self.fill.copy() if self.fill else None,
+        }
+
+    def _apply_shape_state(self, state: dict[str, Any]) -> None:
+        if "center" in state:
+            self.center = state["center"].copy() if isinstance(state["center"], Point) else Point.from_dict(state["center"])
+        if "radius_x" in state:
+            self.radius_x = float(state["radius_x"])
+        if "radius_y" in state:
+            self.radius_y = float(state["radius_y"])
+        if "start_angle" in state:
+            self.start_angle = float(state["start_angle"])
+        if "sweep_angle" in state:
+            self.sweep_angle = float(state["sweep_angle"])
+        if "closure" in state:
+            c_val = state["closure"]
+            self.closure = ArcClosure(c_val) if isinstance(c_val, str) else c_val
+        if "stroke" in state:
+            st = state["stroke"]
+            self.stroke = st.copy() if isinstance(st, StrokeStyle) else (StrokeStyle.from_dict(st) if st else None)
+        if "fill" in state:
+            fi = state["fill"]
+            self.fill = fi.copy() if isinstance(fi, FillStyle) else (FillStyle.from_dict(fi) if fi else None)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain JSON-compatible dictionary representation."""
+        res = self._base_to_dict()
+        res.update({
+            "type": "arc",
+            "center": self.center.to_dict(),
+            "radius_x": float(self.radius_x),
+            "radius_y": float(self.radius_y),
+            "start_angle": float(self.start_angle),
+            "sweep_angle": float(self.sweep_angle),
+            "closure": self.closure.value if hasattr(self.closure, "value") else str(self.closure),
+            "stroke": self.stroke.to_dict() if self.stroke else None,
+            "fill": self.fill.to_dict() if self.fill else None,
+        })
+        return res
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Arc:
+        """Construct an Arc from dictionary representation."""
+        base_kwargs = cls._base_from_dict(data)
+        center = Point.from_dict(data["center"]) if "center" in data else Point(0.0, 0.0)
+        rx = float(data.get("radius_x", 0.0))
+        ry = float(data.get("radius_y", 0.0))
+        start_angle = float(data.get("start_angle", 0.0))
+        sweep_angle = float(data.get("sweep_angle", 0.0))
+        closure_val = ArcClosure(data["closure"]) if "closure" in data else ArcClosure.OPEN
+        stroke = StrokeStyle.from_dict(data["stroke"]) if data.get("stroke") is not None else None
+        fill = FillStyle.from_dict(data["fill"]) if data.get("fill") is not None else None
+        return cls(
+            center=center,
+            radius_x=rx,
+            radius_y=ry,
+            start_angle=start_angle,
+            sweep_angle=sweep_angle,
+            closure=closure_val,
+            stroke=stroke,
+            fill=fill,
+            **base_kwargs,
+        )
+

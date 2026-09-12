@@ -362,3 +362,80 @@ class Group(Drawable):
             if recursive and isinstance(child, Group):
                 results.extend(child.find_by_type(cls, recursive=True))
         return results
+
+    # -------------------------------------------------------------------------
+    # In-Place Semantic State Capture & Restoration (Recursive Descendant State)
+    # -------------------------------------------------------------------------
+
+    def _get_shape_state(self) -> dict[str, Any]:
+        """Capture recursive semantic state and ordering of all descendants."""
+        return {
+            "children_states": [child._get_semantic_state() for child in self._children],
+            "children_instances": list(self._children),
+        }
+
+    def _apply_shape_state(self, state: dict[str, Any]) -> None:
+        """Restore descendant states in-place while preserving existing child Python object identities."""
+        children_states = state.get("children_states", [])
+        instances_by_id = {c.id: c for c in state.get("children_instances", [])}
+        instances_by_id.update({c.id: c for c in self._children})
+        if self._scene is not None:
+            for s in children_states:
+                cid = s.get("id")
+                if cid and cid not in instances_by_id:
+                    sc_obj = self._scene.get(cid)
+                    if sc_obj is not None:
+                        instances_by_id[cid] = sc_obj
+
+        restored_children: list[Drawable] = []
+        for child_state in children_states:
+            cid = child_state.get("id")
+            child = instances_by_id.get(cid)
+            if child is not None:
+                child._apply_semantic_state(child_state)
+                child._parent = self
+                child._layer = self._layer
+                if self._scene is not None and child._scene is not self._scene:
+                    child._set_scene(self._scene)
+                restored_children.append(child)
+            else:
+                child = Drawable.from_dict(child_state)
+                child._parent = self
+                child._layer = self._layer
+                if self._scene is not None:
+                    child._set_scene(self._scene)
+                restored_children.append(child)
+
+        for old_child in self._children:
+            if old_child not in restored_children and old_child._parent is self:
+                old_child._parent = None
+
+        self._children = restored_children
+
+    # -------------------------------------------------------------------------
+    # Serialization
+    # -------------------------------------------------------------------------
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain JSON-compatible dictionary representation."""
+        res = self._base_to_dict()
+        res.update({
+            "type": "group",
+            "children": [child.to_dict() for child in self._children],
+        })
+        return res
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Group:
+        """Construct a Group from dictionary representation."""
+        base_kwargs = cls._base_from_dict(data)
+        children_data = data.get("children", [])
+        children: list[Drawable] = []
+        for cd in children_data:
+            children.append(Drawable.from_dict(cd))
+
+        group = cls(children=None, **base_kwargs)
+        for child in children:
+            child._parent = group
+            group._children.append(child)
+        return group

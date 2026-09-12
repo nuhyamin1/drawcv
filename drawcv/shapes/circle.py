@@ -138,3 +138,52 @@ class Circle(Drawable):
 
         local_pt = self.to_local(world_point)
         return local_pt.distance_to(self.center) <= float(self.radius)
+
+    def _get_shape_state(self) -> dict[str, Any]:
+        return {
+            "center": self.center.copy(),
+            "radius": float(self.radius),
+            "stroke": self.stroke.copy() if self.stroke else None,
+            "fill": self.fill.copy() if self.fill else None,
+        }
+
+    def _apply_shape_state(self, state: dict[str, Any]) -> None:
+        if "center" in state:
+            self.center = state["center"].copy() if isinstance(state["center"], Point) else Point.from_dict(state["center"])
+        if "radius" in state:
+            self.radius = float(state["radius"])
+        if "stroke" in state:
+            st = state["stroke"]
+            self.stroke = st.copy() if isinstance(st, StrokeStyle) else (StrokeStyle.from_dict(st) if st else None)
+        if "fill" in state:
+            fi = state["fill"]
+            self.fill = fi.copy() if isinstance(fi, FillStyle) else (FillStyle.from_dict(fi) if fi else None)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain JSON-compatible dictionary representation."""
+        res = self._base_to_dict()
+        res.update({
+            "type": "circle",
+            "center": self.center.to_dict(),
+            "radius": float(self.radius),
+            "stroke": self.stroke.to_dict() if self.stroke else None,
+            "fill": self.fill.to_dict() if self.fill else None,
+        })
+        return res
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Circle:
+        """Construct a Circle from dictionary representation."""
+        base_kwargs = cls._base_from_dict(data)
+        center = Point.from_dict(data["center"]) if "center" in data else Point(0.0, 0.0)
+        radius = float(data.get("radius", 0.0))
+        stroke = StrokeStyle.from_dict(data["stroke"]) if data.get("stroke") is not None else None
+        fill = FillStyle.from_dict(data["fill"]) if data.get("fill") is not None else None
+        return cls(
+            center=center,
+            radius=radius,
+            stroke=stroke,
+            fill=fill,
+            **base_kwargs,
+        )
+

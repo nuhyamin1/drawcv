@@ -409,3 +409,105 @@ class FreehandStroke(Drawable):
         """Create an independent deep copy of the FreehandStroke preserving all raw points and settings."""
         return super().clone(new_id=new_id)  # type: ignore
 
+    def _get_shape_state(self) -> dict[str, Any]:
+        return {
+            "points": [p.copy() for p in self.points],
+            "stroke": self.stroke.copy() if self.stroke else None,
+            "smoothing": self.smoothing,
+            "smoothing_iterations": int(self.smoothing_iterations),
+            "smoothing_ratio": float(self.smoothing_ratio),
+            "simplification": self.simplification,
+            "simplification_tolerance": float(self.simplification_tolerance),
+            "interpolation": self.interpolation,
+            "interpolation_samples": int(self.interpolation_samples),
+            "variable_width": bool(self.variable_width),
+            "width_mode": str(self.width_mode),
+            "min_width": float(self.min_width) if self.min_width is not None else None,
+            "max_width": float(self.max_width) if self.max_width is not None else None,
+            "velocity_min": float(self.velocity_min),
+            "velocity_max": float(self.velocity_max),
+        }
+
+    def _apply_shape_state(self, state: dict[str, Any]) -> None:
+        if "points" in state:
+            self.points = [p.copy() if isinstance(p, StrokePoint) else StrokePoint.from_dict(p) for p in state["points"]]
+        if "stroke" in state:
+            st = state["stroke"]
+            self.stroke = st.copy() if isinstance(st, StrokeStyle) else (StrokeStyle.from_dict(st) if st else None)
+        if "smoothing" in state:
+            self.smoothing = state["smoothing"]
+        if "smoothing_iterations" in state:
+            self.smoothing_iterations = int(state["smoothing_iterations"])
+        if "smoothing_ratio" in state:
+            self.smoothing_ratio = float(state["smoothing_ratio"])
+        if "simplification" in state:
+            self.simplification = state["simplification"]
+        if "simplification_tolerance" in state:
+            self.simplification_tolerance = float(state["simplification_tolerance"])
+        if "interpolation" in state:
+            self.interpolation = state["interpolation"]
+        if "interpolation_samples" in state:
+            self.interpolation_samples = int(state["interpolation_samples"])
+        if "variable_width" in state:
+            self.variable_width = bool(state["variable_width"])
+        if "width_mode" in state:
+            self.width_mode = str(state["width_mode"])
+        if "min_width" in state:
+            self.min_width = float(state["min_width"]) if state["min_width"] is not None else None
+        if "max_width" in state:
+            self.max_width = float(state["max_width"]) if state["max_width"] is not None else None
+        if "velocity_min" in state:
+            self.velocity_min = float(state["velocity_min"])
+        if "velocity_max" in state:
+            self.velocity_max = float(state["velocity_max"])
+        self._invalidate_cache()
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain JSON-compatible dictionary representation."""
+        res = self._base_to_dict()
+        res.update({
+            "type": "freehand",
+            "points": [p.to_dict() for p in self.points],
+            "stroke": self.stroke.to_dict() if self.stroke else None,
+            "smoothing": self.smoothing,
+            "smoothing_iterations": int(self.smoothing_iterations),
+            "smoothing_ratio": float(self.smoothing_ratio),
+            "simplification": self.simplification,
+            "simplification_tolerance": float(self.simplification_tolerance),
+            "interpolation": self.interpolation,
+            "interpolation_samples": int(self.interpolation_samples),
+            "variable_width": bool(self.variable_width),
+            "width_mode": str(self.width_mode),
+            "min_width": float(self.min_width) if self.min_width is not None else None,
+            "max_width": float(self.max_width) if self.max_width is not None else None,
+            "velocity_min": float(self.velocity_min),
+            "velocity_max": float(self.velocity_max),
+        })
+        return res
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> FreehandStroke:
+        """Construct a FreehandStroke from dictionary representation."""
+        base_kwargs = cls._base_from_dict(data)
+        pts = [StrokePoint.from_dict(p) for p in data.get("points", [])]
+        stroke = StrokeStyle.from_dict(data["stroke"]) if data.get("stroke") is not None else None
+        return cls(
+            points=pts,
+            stroke=stroke,
+            smoothing=data.get("smoothing"),
+            smoothing_iterations=int(data.get("smoothing_iterations", 1)),
+            smoothing_ratio=float(data.get("smoothing_ratio", 0.25)),
+            simplification=data.get("simplification"),
+            simplification_tolerance=float(data.get("simplification_tolerance", 1.0)),
+            interpolation=data.get("interpolation"),
+            interpolation_samples=int(data.get("interpolation_samples", 8)),
+            variable_width=bool(data.get("variable_width", False)),
+            width_mode=str(data.get("width_mode", "pressure")),
+            min_width=float(data["min_width"]) if data.get("min_width") is not None else None,
+            max_width=float(data["max_width"]) if data.get("max_width") is not None else None,
+            velocity_min=float(data.get("velocity_min", 0.0)),
+            velocity_max=float(data.get("velocity_max", 1000.0)),
+            **base_kwargs,
+        )
+
+

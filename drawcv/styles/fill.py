@@ -46,3 +46,27 @@ class FillStyle:
             color=self.color.copy(),
             opacity=self.opacity,
         )
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain JSON-compatible dictionary representation."""
+        return {
+            "enabled": bool(self.enabled),
+            "color": self.color.to_dict(),
+            "opacity": float(self.opacity),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any] | None) -> FillStyle:
+        """Construct a FillStyle from a dictionary."""
+        if data is None:
+            return cls()
+        if not isinstance(data, dict):
+            raise ValidationError(f"FillStyle data must be a dict, got {type(data).__name__}")
+
+        color_val = Color.from_dict(data["color"]) if "color" in data else Color.white()
+        return cls(
+            enabled=bool(data.get("enabled", True)),
+            color=color_val,
+            opacity=float(data.get("opacity", 1.0)),
+        )
+

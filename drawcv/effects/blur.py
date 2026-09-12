@@ -52,3 +52,25 @@ class BlurEffect(Effect):
         else:
             pad = float(self.kernel_size // 2)
         return (pad, pad, pad, pad)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain JSON-compatible dictionary representation."""
+        return {
+            "type": "blur",
+            "kernel_size": int(self.kernel_size),
+            "sigma": float(self.sigma),
+            "blur_type": self.blur_type.value,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> BlurEffect:
+        """Construct a BlurEffect from a dictionary."""
+        if not isinstance(data, dict):
+            raise ValidationError(f"BlurEffect data must be a dict, got {type(data).__name__}")
+        blur_type_val = BlurType(data["blur_type"]) if "blur_type" in data else BlurType.GAUSSIAN
+        return cls(
+            kernel_size=int(data.get("kernel_size", 15)),
+            sigma=float(data.get("sigma", 0.0)),
+            blur_type=blur_type_val,
+        )
+

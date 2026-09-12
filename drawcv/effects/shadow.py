@@ -62,3 +62,29 @@ class ShadowEffect(Effect):
         top = blur_padding + max(0.0, -self.offset_y)
         bottom = blur_padding + max(0.0, self.offset_y)
         return (left, right, top, bottom)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain JSON-compatible dictionary representation."""
+        return {
+            "type": "shadow",
+            "offset_x": float(self.offset_x),
+            "offset_y": float(self.offset_y),
+            "blur_radius": float(self.blur_radius),
+            "color": self.color.to_dict(),
+            "opacity": float(self.opacity),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> ShadowEffect:
+        """Construct a ShadowEffect from a dictionary."""
+        if not isinstance(data, dict):
+            raise ValidationError(f"ShadowEffect data must be a dict, got {type(data).__name__}")
+        color_val = Color.from_dict(data["color"]) if "color" in data else Color(0, 0, 0, 0.5)
+        return cls(
+            offset_x=float(data.get("offset_x", 8.0)),
+            offset_y=float(data.get("offset_y", 8.0)),
+            blur_radius=float(data.get("blur_radius", 10.0)),
+            color=color_val,
+            opacity=float(data.get("opacity", 1.0)),
+        )
+

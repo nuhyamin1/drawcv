@@ -136,3 +136,58 @@ class Rectangle(Drawable):
         local_pt = self.to_local(world_point)
         x, y = self.position.x, self.position.y
         return (x <= local_pt.x <= x + self.width) and (y <= local_pt.y <= y + self.height)
+
+    def _get_shape_state(self) -> dict[str, Any]:
+        return {
+            "position": self.position.copy(),
+            "width": float(self.width),
+            "height": float(self.height),
+            "stroke": self.stroke.copy() if self.stroke else None,
+            "fill": self.fill.copy() if self.fill else None,
+        }
+
+    def _apply_shape_state(self, state: dict[str, Any]) -> None:
+        if "position" in state:
+            self.position = state["position"].copy() if isinstance(state["position"], Point) else Point.from_dict(state["position"])
+        if "width" in state:
+            self.width = float(state["width"])
+        if "height" in state:
+            self.height = float(state["height"])
+        if "stroke" in state:
+            st = state["stroke"]
+            self.stroke = st.copy() if isinstance(st, StrokeStyle) else (StrokeStyle.from_dict(st) if st else None)
+        if "fill" in state:
+            fi = state["fill"]
+            self.fill = fi.copy() if isinstance(fi, FillStyle) else (FillStyle.from_dict(fi) if fi else None)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain JSON-compatible dictionary representation."""
+        res = self._base_to_dict()
+        res.update({
+            "type": "rectangle",
+            "position": self.position.to_dict(),
+            "width": float(self.width),
+            "height": float(self.height),
+            "stroke": self.stroke.to_dict() if self.stroke else None,
+            "fill": self.fill.to_dict() if self.fill else None,
+        })
+        return res
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Rectangle:
+        """Construct a Rectangle from dictionary representation."""
+        base_kwargs = cls._base_from_dict(data)
+        pos = Point.from_dict(data["position"]) if "position" in data else Point(0.0, 0.0)
+        width = float(data.get("width", 0.0))
+        height = float(data.get("height", 0.0))
+        stroke = StrokeStyle.from_dict(data["stroke"]) if data.get("stroke") is not None else None
+        fill = FillStyle.from_dict(data["fill"]) if data.get("fill") is not None else None
+        return cls(
+            position=pos,
+            width=width,
+            height=height,
+            stroke=stroke,
+            fill=fill,
+            **base_kwargs,
+        )
+

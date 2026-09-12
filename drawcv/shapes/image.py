@@ -1,17 +1,20 @@
 """Retained-mode raster image drawable for DrawCV."""
 
 from __future__ import annotations
+import base64
 import copy
 import math
 from typing import Any
+import cv2
 import numpy as np
 
 from drawcv.core.bounds import BoundingBox
 from drawcv.core.drawable import Drawable
 from drawcv.core.enums import ImageInterpolation
-from drawcv.core.exceptions import ValidationError
+from drawcv.core.exceptions import SerializationError, ValidationError
 from drawcv.core.geometry import Point
 from drawcv.core.transform import Transform
+
 
 
 class ImageObject(Drawable):
@@ -253,3 +256,90 @@ class ImageObject(Drawable):
             effects=copy.deepcopy(self.effects),
             interpolation=self.interpolation,
         )
+
+    def _get_shape_state(self) -> dict[str, Any]:
+        return {
+            "image": self.image.copy(),
+            "position": self.position.copy(),
+            "width": float(self.width) if self.width is not None else None,
+            "height": float(self.height) if self.height is not None else None,
+            "crop": copy.deepcopy(self.crop),
+            "interpolation": self.interpolation.value if hasattr(self.interpolation, "value") else str(self.interpolation),
+        }
+
+    def _apply_shape_state(self, state: dict[str, Any]) -> None:
+        if "image" in state:
+            self.image = state["image"].copy()
+        if "position" in state:
+            self.position = state["position"].copy() if isinstance(state["position"], Point) else Point.from_dict(state["position"])
+        if "width" in state:
+            self.width = float(state["width"]) if state["width"] is not None else None
+        if "height" in state:
+            self.height = float(state["height"]) if state["height"] is not None else None
+        if "crop" in state:
+            c = state["crop"]
+            self.crop = copy.deepcopy(c) if isinstance(c, BoundingBox) else (BoundingBox.from_dict(c) if c is not None else None)
+        if "interpolation" in state:
+            it = state["interpolation"]
+            self.interpolation = ImageInterpolation(it) if isinstance(it, str) else it
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain JSON-compatible dictionary representation with structured raster payload."""
+        res = self._base_to_dict()
+        success, encoded = cv2.imencode(".png", self.image)
+        if not success:
+            raise SerializationError("Failed to encode ImageObject buffer to PNG")
+        data_b64 = base64.b64encode(encoded.tobytes()).decode("ascii")
+
+        res.update({
+            "type": "image",
+            "image": {
+                "encoding": "png_base64",
+                "dtype": "uint8",
+                "shape": list(self.image.shape),
+                "data": data_b64,
+            },
+            "position": self.position.to_dict(),
+            "width": float(self.width) if self.width is not None else None,
+            "height": float(self.height) if self.height is not None else None,
+            "crop": self.crop.to_dict() if self.crop is not None else None,
+            "interpolation": self.interpolation.value if hasattr(self.interpolation, "value") else str(self.interpolation),
+        })
+        return res
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> ImageObject:
+        """Construct an ImageObject from dictionary representation."""
+        base_kwargs = cls._base_from_dict(data)
+        img_payload = data.get("image")
+        if not isinstance(img_payload, dict):
+            raise SerializationError("ImageObject 'image' must be a structured raster dictionary")
+        if img_payload.get("encoding") != "png_base64":
+            raise SerializationError(f"Unsupported image encoding '{img_payload.get('encoding')}'")
+
+        raw_bytes = base64.b64decode(img_payload["data"])
+        arr = np.frombuffer(raw_bytes, dtype=np.uint8)
+        decoded = cv2.imdecode(arr, cv2.IMREAD_UNCHANGED)
+        if decoded is None:
+            raise SerializationError("Failed to decode ImageObject PNG buffer")
+
+        expected_shape = tuple(img_payload.get("shape", []))
+        if expected_shape and decoded.shape != expected_shape:
+            raise SerializationError(
+                f"Decoded image shape {decoded.shape} does not match expected shape {expected_shape}"
+            )
+
+        pos = Point.from_dict(data["position"]) if "position" in data else Point(0.0, 0.0)
+        crop_val = BoundingBox.from_dict(data["crop"]) if data.get("crop") is not None else None
+        interp = ImageInterpolation(data["interpolation"]) if "interpolation" in data else ImageInterpolation.LINEAR
+
+        return cls(
+            image=decoded,
+            position=pos,
+            width=float(data["width"]) if data.get("width") is not None else None,
+            height=float(data["height"]) if data.get("height") is not None else None,
+            crop=crop_val,
+            interpolation=interp,
+            **base_kwargs,
+        )
+

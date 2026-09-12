@@ -233,3 +233,48 @@ class Layer:
 
     def __repr__(self) -> str:
         return f"Layer(name='{self.name}', z_order={self.z_order}, objects={len(self._objects)}, visible={self.visible}, locked={self.locked})"
+
+    # -------------------------------------------------------------------------
+    # Serialization
+    # -------------------------------------------------------------------------
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain JSON-compatible dictionary representation."""
+        return {
+            "name": self.name,
+            "visible": bool(self.visible),
+            "locked": bool(self.locked),
+            "opacity": float(self.opacity),
+            "z_order": int(self.z_order),
+            "clip": self.clip.to_dict() if self.clip is not None else None,
+            "mask": self.mask.to_dict() if self.mask is not None else None,
+            "effects": [e.to_dict() for e in self.effects],
+            "objects": [obj.to_dict() for obj in self._objects],
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any], scene: Any | None = None) -> Layer:
+        """Construct a Layer from dictionary representation."""
+        from drawcv.effects import clip_from_dict, effect_from_dict, Mask
+
+        clip_val = clip_from_dict(data.get("clip"))
+        mask_val = Mask.from_dict(data.get("mask"))
+        effs = [effect_from_dict(e) for e in data.get("effects", [])]
+
+        layer = cls(
+            name=data["name"],
+            visible=bool(data.get("visible", True)),
+            locked=bool(data.get("locked", False)),
+            opacity=float(data.get("opacity", 1.0)),
+            z_order=int(data.get("z_order", 0)),
+            scene=scene,
+            clip=clip_val,
+            mask=mask_val,
+            effects=effs,
+        )
+
+        for obj_data in data.get("objects", []):
+            obj = Drawable.from_dict(obj_data)
+            layer.add(obj)
+
+        return layer

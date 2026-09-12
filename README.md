@@ -161,11 +161,21 @@ canvas.save("output.png")
   - `ImageObject`: Raster images supporting BGR and BGRA, source cropping, target sizing, affine warps, and alpha compositing.
   - `Text`: Typography with font families (`FontFamily.SANS_SERIF`, `SERIF`, `MONOSPACE`, `SCRIPT`), alignments (`LEFT`, `CENTER`, `RIGHT`), and background plates with optional `background_radius`.
 
+- **Phase 7 Capabilities (Persistence & History Engine)**:
+  - **Canonical JSON Document Envelope**: Root header (`{"format": "drawcv", "version": "1.0", "scene": ...}`) with bit-for-bit deterministic serialization (`sort_keys=True`, `allow_nan=False`).
+  - **Strict Version Migration Pipeline**: `SchemaMigrator` enables sequential forward migrations for backward compatibility across schema versions.
+  - **Structured Raster Payload**: Lossless PNG base64 encoding with decoded shape and `uint8` dtype validation for `Mask` and `ImageObject`.
+  - **Lossless Float Alpha**: Colors serialize alpha as exact floating-point numbers (`0.5 == 0.5`), preventing 8-bit quantization drift.
+  - **In-Place Live Object Identity Preservation**: History undo/redo mutates existing live Python instances via `_apply_semantic_state()`, preserving references (`scene.get(id) is original_obj`).
+  - **Recursive Group Semantic Snapshots**: `Group._get_semantic_state()` captures descendant states and ordering; `Group._apply_semantic_state()` restores states in-place.
+  - **Reversible Operations**: `add`, `remove`, `move_to_front`, `move_to_back`, `move_forward`, `move_backward`, `group`, `ungroup`, `move_object`, `rotate_object`, `scale_object`, `restyle_object`, `with scene.edit(...)`, and `with scene.batch(...)`.
+  - **History Invariants**: Automatic redo branch invalidation, no-op edit filtering, exception rollback, and drift-free 50-cycle undo/redo.
+
 ---
 
 ## Running Tests & Demos
 
-Run automated unit tests:
+Run automated unit tests (208 tests):
 
 ```bash
 pytest tests/ -v
@@ -180,6 +190,7 @@ python examples/phase3_demo.py
 python examples/phase4_demo.py
 python examples/phase5_demo.py
 python examples/phase6_demo.py
+python examples/phase7_demo.py
 ```
 
 Generated outputs will be saved to `examples/output/`.
@@ -194,7 +205,7 @@ Generated outputs will be saved to `examples/output/`.
 - [x] **Phase 4 — Scene System**: Semantic Groups, Rendering Layers, Selection models, Relative positioning utilities, Centralized scene registry.
 - [x] **Phase 5 — Freehand Engine**: FreehandStroke, StrokePoint, Chaikin smoothing, Ramer-Douglas-Peucker simplification, Catmull-Rom interpolation, pressure and velocity sensitive variable width.
 - [x] **Phase 6 — Compositing & Effects**: Grayscale masks, clipping rectangles, clipping paths, ImageObject, Text, blur, drop shadows, isolated group/layer offscreen compositing.
-- [ ] **Phase 7 — Persistence & History**: JSON serialization/deserialization with format versioning, command-based Undo/Redo.
+- [x] **Phase 7 — Persistence & History**: Strict canonical JSON serialization, forward schema migration, command-based Undo/Redo engine, live identity preservation, recursive group state snapshots.
 - [ ] **Phase 8 — Temporal Drawing**: Timing metadata, path-length-based progressive rendering (`render_progress`), easing functions, video/frame rendering.
 
 

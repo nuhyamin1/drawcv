@@ -142,3 +142,48 @@ class Polyline(Drawable):
                 return True
 
         return False
+
+    def _get_shape_state(self) -> dict[str, Any]:
+        return {
+            "points": [p.copy() for p in self.points],
+            "closed": bool(self.closed),
+            "stroke": self.stroke.copy() if self.stroke else None,
+        }
+
+    def _apply_shape_state(self, state: dict[str, Any]) -> None:
+        if "points" in state:
+            self.points = [
+                p.copy() if isinstance(p, Point) else Point.from_dict(p)
+                for p in state["points"]
+            ]
+        if "closed" in state:
+            self.closed = bool(state["closed"])
+        if "stroke" in state:
+            st = state["stroke"]
+            self.stroke = st.copy() if isinstance(st, StrokeStyle) else StrokeStyle.from_dict(st)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain JSON-compatible dictionary representation."""
+        res = self._base_to_dict()
+        res.update({
+            "type": "polyline",
+            "points": [p.to_dict() for p in self.points],
+            "closed": bool(self.closed),
+            "stroke": self.stroke.to_dict() if self.stroke else None,
+        })
+        return res
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Polyline:
+        """Construct a Polyline from dictionary representation."""
+        base_kwargs = cls._base_from_dict(data)
+        pts = [Point.from_dict(p) for p in data.get("points", [])]
+        closed_val = bool(data.get("closed", False))
+        stroke_val = StrokeStyle.from_dict(data.get("stroke")) if data.get("stroke") is not None else StrokeStyle()
+        return cls(
+            points=pts,
+            closed=closed_val,
+            stroke=stroke_val,
+            **base_kwargs,
+        )
+

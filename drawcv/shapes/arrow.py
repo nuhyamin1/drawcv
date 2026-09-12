@@ -209,3 +209,71 @@ class Arrow(Drawable):
                 return True
 
         return False
+
+    def _get_shape_state(self) -> dict[str, Any]:
+        return {
+            "start": self.start.copy(),
+            "end": self.end.copy(),
+            "head_length": float(self.head_length),
+            "head_width": float(self.head_width),
+            "head_style": self.head_style.value if hasattr(self.head_style, "value") else str(self.head_style),
+            "stroke": self.stroke.copy() if self.stroke else None,
+            "fill": self.fill.copy() if self.fill else None,
+        }
+
+    def _apply_shape_state(self, state: dict[str, Any]) -> None:
+        if "start" in state:
+            self.start = state["start"].copy() if isinstance(state["start"], Point) else Point.from_dict(state["start"])
+        if "end" in state:
+            self.end = state["end"].copy() if isinstance(state["end"], Point) else Point.from_dict(state["end"])
+        if "head_length" in state:
+            self.head_length = float(state["head_length"])
+        if "head_width" in state:
+            self.head_width = float(state["head_width"])
+        if "head_style" in state:
+            hs = state["head_style"]
+            self.head_style = ArrowHeadStyle(hs) if isinstance(hs, str) else hs
+        if "stroke" in state:
+            st = state["stroke"]
+            self.stroke = st.copy() if isinstance(st, StrokeStyle) else (StrokeStyle.from_dict(st) if st else None)
+        if "fill" in state:
+            fi = state["fill"]
+            self.fill = fi.copy() if isinstance(fi, FillStyle) else (FillStyle.from_dict(fi) if fi else None)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain JSON-compatible dictionary representation."""
+        res = self._base_to_dict()
+        res.update({
+            "type": "arrow",
+            "start": self.start.to_dict(),
+            "end": self.end.to_dict(),
+            "head_length": float(self.head_length),
+            "head_width": float(self.head_width),
+            "head_style": self.head_style.value if hasattr(self.head_style, "value") else str(self.head_style),
+            "stroke": self.stroke.to_dict() if self.stroke else None,
+            "fill": self.fill.to_dict() if self.fill else None,
+        })
+        return res
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Arrow:
+        """Construct an Arrow from dictionary representation."""
+        base_kwargs = cls._base_from_dict(data)
+        start_pt = Point.from_dict(data["start"]) if "start" in data else Point(0.0, 0.0)
+        end_pt = Point.from_dict(data["end"]) if "end" in data else Point(100.0, 0.0)
+        head_len = float(data.get("head_length", 15.0))
+        head_wid = float(data.get("head_width", 10.0))
+        head_st = ArrowHeadStyle(data["head_style"]) if "head_style" in data else ArrowHeadStyle.TRIANGLE
+        stroke = StrokeStyle.from_dict(data["stroke"]) if data.get("stroke") is not None else None
+        fill = FillStyle.from_dict(data["fill"]) if data.get("fill") is not None else None
+        return cls(
+            start=start_pt,
+            end=end_pt,
+            head_length=head_len,
+            head_width=head_wid,
+            head_style=head_st,
+            stroke=stroke,
+            fill=fill,
+            **base_kwargs,
+        )
+

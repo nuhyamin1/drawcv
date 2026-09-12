@@ -173,3 +173,63 @@ class RoundedRectangle(Drawable):
             return math.hypot(lp.x - (x + r), lp.y - (y + h - r)) <= r + 1e-9
 
         return False
+
+    def _get_shape_state(self) -> dict[str, Any]:
+        return {
+            "x": float(self.x),
+            "y": float(self.y),
+            "width": float(self.width),
+            "height": float(self.height),
+            "corner_radius": float(self.corner_radius),
+            "stroke": self.stroke.copy() if self.stroke else None,
+            "fill": self.fill.copy() if self.fill else None,
+        }
+
+    def _apply_shape_state(self, state: dict[str, Any]) -> None:
+        if "x" in state:
+            self.x = float(state["x"])
+        if "y" in state:
+            self.y = float(state["y"])
+        if "width" in state:
+            self.width = float(state["width"])
+        if "height" in state:
+            self.height = float(state["height"])
+        if "corner_radius" in state:
+            self.corner_radius = float(state["corner_radius"])
+        if "stroke" in state:
+            st = state["stroke"]
+            self.stroke = st.copy() if isinstance(st, StrokeStyle) else (StrokeStyle.from_dict(st) if st else None)
+        if "fill" in state:
+            fi = state["fill"]
+            self.fill = fi.copy() if isinstance(fi, FillStyle) else (FillStyle.from_dict(fi) if fi else None)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain JSON-compatible dictionary representation."""
+        res = self._base_to_dict()
+        res.update({
+            "type": "rounded_rectangle",
+            "x": float(self.x),
+            "y": float(self.y),
+            "width": float(self.width),
+            "height": float(self.height),
+            "corner_radius": float(self.corner_radius),
+            "stroke": self.stroke.to_dict() if self.stroke else None,
+            "fill": self.fill.to_dict() if self.fill else None,
+        })
+        return res
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> RoundedRectangle:
+        """Construct a RoundedRectangle from dictionary representation."""
+        base_kwargs = cls._base_from_dict(data)
+        return cls(
+            x=float(data.get("x", 0.0)),
+            y=float(data.get("y", 0.0)),
+            width=float(data.get("width", 0.0)),
+            height=float(data.get("height", 0.0)),
+            corner_radius=float(data.get("corner_radius", 0.0)),
+            stroke=StrokeStyle.from_dict(data["stroke"]) if data.get("stroke") is not None else None,
+            fill=FillStyle.from_dict(data["fill"]) if data.get("fill") is not None else None,
+            **base_kwargs,
+        )
+

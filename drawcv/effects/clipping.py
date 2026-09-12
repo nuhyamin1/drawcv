@@ -42,6 +42,23 @@ class ClipRect:
         object.__setattr__(self, "width", float(width))
         object.__setattr__(self, "height", float(height))
 
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain JSON-compatible dictionary representation."""
+        return {
+            "type": "rect",
+            "x": float(self.x),
+            "y": float(self.y),
+            "width": float(self.width),
+            "height": float(self.height),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> ClipRect:
+        """Construct a ClipRect from a dictionary."""
+        if not isinstance(data, dict):
+            raise ValidationError(f"ClipRect data must be a dict, got {type(data).__name__}")
+        return cls(data["x"], data["y"], data["width"], data["height"])
+
     @property
     def bounds(self) -> BoundingBox:
         """Local bounding box of the clip rectangle."""
@@ -84,6 +101,23 @@ class ClipPath:
 
         object.__setattr__(self, "points", tuple(norm_pts))
 
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain JSON-compatible dictionary representation."""
+        return {
+            "type": "path",
+            "points": [p.to_dict() for p in self.points],
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> ClipPath:
+        """Construct a ClipPath from a dictionary."""
+        if not isinstance(data, dict):
+            raise ValidationError(f"ClipPath data must be a dict, got {type(data).__name__}")
+        if "points" not in data:
+            raise ValidationError("ClipPath data must contain 'points'")
+        pts = [Point.from_dict(p) for p in data["points"]]
+        return cls(pts)
+
     @property
     def bounds(self) -> BoundingBox:
         """Local bounding box of the clip path."""
@@ -92,3 +126,18 @@ class ClipPath:
         min_x, max_x = min(xs), max(xs)
         min_y, max_y = min(ys), max(ys)
         return BoundingBox(min_x, min_y, max_x - min_x, max_y - min_y)
+
+
+def clip_from_dict(data: dict[str, Any] | None) -> ClipRect | ClipPath | None:
+    """Deserialize a ClipRect or ClipPath from dictionary representation."""
+    if data is None:
+        return None
+    if not isinstance(data, dict):
+        raise ValidationError(f"Clip data must be a dict or None, got {type(data).__name__}")
+    clip_type = data.get("type", "rect")
+    if clip_type == "rect":
+        return ClipRect.from_dict(data)
+    elif clip_type == "path":
+        return ClipPath.from_dict(data)
+    raise ValidationError(f"Unknown clip type: '{clip_type}'")
+

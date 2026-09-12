@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 from dataclasses import dataclass
+import base64
 import cv2
 import numpy as np
 
 from drawcv.core.enums import MaskMapping
-from drawcv.core.exceptions import ValidationError
+from drawcv.core.exceptions import SerializationError, ValidationError
+
 
 
 @dataclass
@@ -75,3 +77,52 @@ class Mask:
         if self.inverted:
             coverage = 1.0 - coverage
         return coverage
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain JSON-compatible dictionary representation with structured raster payload."""
+        success, encoded = cv2.imencode(".png", self.buffer)
+        if not success:
+            raise SerializationError("Failed to encode Mask buffer to PNG")
+        data_b64 = base64.b64encode(encoded.tobytes()).decode("ascii")
+        return {
+            "buffer": {
+                "encoding": "png_base64",
+                "dtype": "uint8",
+                "shape": list(self.buffer.shape),
+                "data": data_b64,
+            },
+            "mapping": self.mapping.value,
+            "inverted": bool(self.inverted),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any] | None) -> Mask | None:
+        """Construct a Mask from a dictionary."""
+        if data is None:
+            return None
+        if not isinstance(data, dict):
+            raise ValidationError(f"Mask data must be a dict, got {type(data).__name__}")
+
+        buf_data = data.get("buffer")
+        if not isinstance(buf_data, dict):
+            raise SerializationError("Mask 'buffer' must be a structured raster dictionary")
+        if buf_data.get("encoding") != "png_base64":
+            raise SerializationError(f"Unsupported mask encoding '{buf_data.get('encoding')}'")
+
+        raw_bytes = base64.b64decode(buf_data["data"])
+        arr = np.frombuffer(raw_bytes, dtype=np.uint8)
+        decoded = cv2.imdecode(arr, cv2.IMREAD_GRAYSCALE)
+        if decoded is None:
+            raise SerializationError("Failed to decode Mask PNG buffer")
+
+        expected_shape = tuple(buf_data.get("shape", []))
+        if expected_shape and decoded.shape != expected_shape:
+            raise SerializationError(
+                f"Decoded mask shape {decoded.shape} does not match expected shape {expected_shape}"
+            )
+
+        mapping_str = data.get("mapping", MaskMapping.FIT_BOUNDS.value)
+        mapping_val = MaskMapping(mapping_str) if isinstance(mapping_str, str) else MaskMapping.FIT_BOUNDS
+        inverted_val = bool(data.get("inverted", False))
+        return cls(buffer=decoded, mapping=mapping_val, inverted=inverted_val)
+

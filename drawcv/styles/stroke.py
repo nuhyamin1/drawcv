@@ -65,3 +65,37 @@ class StrokeStyle:
             cap_style=self.cap_style,
             join_style=self.join_style,
         )
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain JSON-compatible dictionary representation."""
+        return {
+            "color": self.color.to_dict(),
+            "width": float(self.width),
+            "opacity": float(self.opacity),
+            "line_type": self.line_type.value,
+            "cap_style": self.cap_style.value,
+            "join_style": self.join_style.value,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any] | None) -> StrokeStyle:
+        """Construct a StrokeStyle from a dictionary."""
+        if data is None:
+            return cls()
+        if not isinstance(data, dict):
+            raise ValidationError(f"StrokeStyle data must be a dict, got {type(data).__name__}")
+
+        color_val = Color.from_dict(data["color"]) if "color" in data else Color.black()
+        line_type_val = LineType(data["line_type"]) if "line_type" in data else LineType.AA
+        cap_style_val = CapStyle(data["cap_style"]) if "cap_style" in data else CapStyle.ROUND
+        join_style_val = JoinStyle(data["join_style"]) if "join_style" in data else JoinStyle.ROUND
+
+        return cls(
+            color=color_val,
+            width=float(data.get("width", 1.0)),
+            opacity=float(data.get("opacity", 1.0)),
+            line_type=line_type_val,
+            cap_style=cap_style_val,
+            join_style=join_style_val,
+        )
+

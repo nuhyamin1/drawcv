@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 from dataclasses import dataclass, field
+import copy
 import math
 from typing import Sequence
+
 
 from drawcv.core.bounds import BoundingBox
 from drawcv.core.drawable import Drawable
@@ -418,3 +420,96 @@ class Path(Drawable):
                         return True
 
         return False
+
+    def _get_shape_state(self) -> dict[str, Any]:
+        return {
+            "subpaths": [copy.deepcopy(sp) for sp in self.subpaths],
+            "fill_rule": self.fill_rule.value if hasattr(self.fill_rule, "value") else str(self.fill_rule),
+            "stroke": self.stroke.copy() if self.stroke else None,
+            "fill": self.fill.copy() if self.fill else None,
+        }
+
+    def _apply_shape_state(self, state: dict[str, Any]) -> None:
+        if "subpaths" in state:
+            self.subpaths = [copy.deepcopy(sp) for sp in state["subpaths"]]
+        if "fill_rule" in state:
+            fr = state["fill_rule"]
+            self.fill_rule = FillRule(fr) if isinstance(fr, str) else fr
+        if "stroke" in state:
+            st = state["stroke"]
+            self.stroke = st.copy() if isinstance(st, StrokeStyle) else (StrokeStyle.from_dict(st) if st else None)
+        if "fill" in state:
+            fi = state["fill"]
+            self.fill = fi.copy() if isinstance(fi, FillStyle) else (FillStyle.from_dict(fi) if fi else None)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain JSON-compatible dictionary representation."""
+        res = self._base_to_dict()
+        subpaths_data = []
+        for sp in self.subpaths:
+            cmds_data = []
+            for cmd in sp.commands:
+                if isinstance(cmd, MoveTo):
+                    cmds_data.append({"type": "move_to", "point": cmd.point.to_dict()})
+                elif isinstance(cmd, LineTo):
+                    cmds_data.append({"type": "line_to", "point": cmd.point.to_dict()})
+                elif isinstance(cmd, QuadraticTo):
+                    cmds_data.append({"type": "quadratic_to", "control": cmd.control.to_dict(), "end": cmd.end.to_dict()})
+                elif isinstance(cmd, CubicTo):
+                    cmds_data.append({
+                        "type": "cubic_to",
+                        "control1": cmd.control1.to_dict(),
+                        "control2": cmd.control2.to_dict(),
+                        "end": cmd.end.to_dict(),
+                    })
+                elif isinstance(cmd, Close):
+                    cmds_data.append({"type": "close"})
+            subpaths_data.append({"commands": cmds_data, "closed": bool(sp.closed)})
+
+        res.update({
+            "type": "path",
+            "subpaths": subpaths_data,
+            "fill_rule": self.fill_rule.value if hasattr(self.fill_rule, "value") else str(self.fill_rule),
+            "stroke": self.stroke.to_dict() if self.stroke else None,
+            "fill": self.fill.to_dict() if self.fill else None,
+        })
+        return res
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Path:
+        """Construct a Path from dictionary representation."""
+        base_kwargs = cls._base_from_dict(data)
+        subpaths = []
+        for sp_dict in data.get("subpaths", []):
+            cmds = []
+            for c_dict in sp_dict.get("commands", []):
+                c_type = c_dict.get("type", "")
+                if c_type in ("move_to", "moveTo"):
+                    cmds.append(MoveTo(Point.from_dict(c_dict["point"])))
+                elif c_type in ("line_to", "lineTo"):
+                    cmds.append(LineTo(Point.from_dict(c_dict["point"])))
+                elif c_type in ("quadratic_to", "quadraticTo"):
+                    cmds.append(QuadraticTo(Point.from_dict(c_dict["control"]), Point.from_dict(c_dict["end"])))
+                elif c_type in ("cubic_to", "cubicTo"):
+                    cmds.append(CubicTo(
+                        Point.from_dict(c_dict["control1"]),
+                        Point.from_dict(c_dict["control2"]),
+                        Point.from_dict(c_dict["end"]),
+                    ))
+                elif c_type in ("close", "closePath"):
+                    cmds.append(Close())
+                else:
+                    raise ValidationError(f"Unknown path command type '{c_type}'")
+            subpaths.append(Subpath(commands=cmds, closed=bool(sp_dict.get("closed", False))))
+
+        fill_rule_val = FillRule(data["fill_rule"]) if "fill_rule" in data else FillRule.NON_ZERO
+        stroke = StrokeStyle.from_dict(data["stroke"]) if data.get("stroke") is not None else None
+        fill = FillStyle.from_dict(data["fill"]) if data.get("fill") is not None else None
+        return cls(
+            subpaths=subpaths,
+            stroke=stroke,
+            fill=fill,
+            fill_rule=fill_rule_val,
+            **base_kwargs,
+        )
+

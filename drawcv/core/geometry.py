@@ -47,6 +47,22 @@ class Point:
         """Return a copy of the point (for API convenience, points are immutable)."""
         return Point(self.x, self.y)
 
+    def to_dict(self) -> dict[str, float]:
+        """Return a plain JSON-compatible dictionary representation."""
+        return {"x": float(self.x), "y": float(self.y)}
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any] | tuple | list) -> Point:
+        """Construct a Point from a dictionary or coordinate sequence."""
+        if isinstance(data, (list, tuple)) and len(data) >= 2:
+            return cls(data[0], data[1])
+        if isinstance(data, dict):
+            if "x" not in data or "y" not in data:
+                raise ValidationError("Point dict must contain 'x' and 'y'")
+            return cls(data["x"], data["y"])
+        raise ValidationError(f"Cannot construct Point from {type(data).__name__}")
+
+
     def __add__(self, other: Any) -> Point:
         if isinstance(other, Point):
             return Point(self.x + other.x, self.y + other.y)
@@ -150,6 +166,35 @@ class StrokePoint:
     def copy(self) -> StrokePoint:
         """Return a copy of the StrokePoint."""
         return StrokePoint(self.x, self.y, self.pressure, self.timestamp, self.velocity)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain JSON-compatible dictionary representation."""
+        res: dict[str, Any] = {"x": float(self.x), "y": float(self.y)}
+        if self.pressure is not None:
+            res["pressure"] = float(self.pressure)
+        if self.timestamp is not None:
+            res["timestamp"] = float(self.timestamp)
+        if self.velocity is not None:
+            res["velocity"] = float(self.velocity)
+        return res
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any] | tuple | list) -> StrokePoint:
+        """Construct a StrokePoint from a dictionary or coordinate sequence."""
+        if isinstance(data, (list, tuple)) and len(data) >= 2:
+            return cls(data[0], data[1])
+        if isinstance(data, dict):
+            if "x" not in data or "y" not in data:
+                raise ValidationError("StrokePoint dict must contain 'x' and 'y'")
+            return cls(
+                data["x"],
+                data["y"],
+                pressure=data.get("pressure"),
+                timestamp=data.get("timestamp"),
+                velocity=data.get("velocity"),
+            )
+        raise ValidationError(f"Cannot construct StrokePoint from {type(data).__name__}")
+
 
     @classmethod
     def from_point(

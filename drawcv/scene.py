@@ -1,15 +1,36 @@
 """Scene graph and retained-mode object manager for DrawCV."""
 
 from __future__ import annotations
-from typing import Any, Callable, Iterator, TypeVar
+from contextlib import contextmanager
+from pathlib import Path
+from typing import Any, Callable, Generator, Iterator, TypeVar
 
 from drawcv.core.color import Color
 from drawcv.core.drawable import Drawable
 from drawcv.core.exceptions import ObjectNotFoundError, ValidationError
 from drawcv.core.geometry import Point
+from drawcv.core.transform import Transform
 from drawcv.group import Group
+from drawcv.history.command import CompoundCommand
+from drawcv.history.commands import (
+    AddObjectCommand,
+    GroupCommand,
+    RemoveObjectCommand,
+    ReorderCommand,
+    StateEditCommand,
+    TransformCommand,
+    UngroupCommand,
+)
+from drawcv.history.manager import HistoryManager
 from drawcv.layer import Layer
 from drawcv.selection import Selection
+from drawcv.serialization import (
+    CURRENT_FORMAT_IDENTIFIER,
+    CURRENT_SCHEMA_VERSION,
+    from_json as parse_json,
+    to_json as serialize_json,
+)
+from drawcv.serialization.registry import SchemaMigrator
 
 T = TypeVar("T", bound=Drawable)
 
@@ -18,7 +39,7 @@ class Scene:
     """Retained-mode drawing document model.
     
     The Scene is the authoritative source of document dimensions, background color,
-    rendering layers, global ID registry, and all retained drawable entities.
+    rendering layers, global ID registry, reversible history, and all retained drawable entities.
     """
 
     def __init__(self, width: int, height: int, background: Color = Color.white()):
@@ -36,6 +57,7 @@ class Scene:
         self._layers: dict[str, Layer] = {}
         self._layer_order: list[str] = []
         self._id_map: dict[str, Drawable] = {}
+        self.history = HistoryManager()
 
         # Initialize authoritative default layer
         self.create_layer("default", z_order=0)
@@ -202,23 +224,30 @@ class Scene:
                 self._unregister_id(child)
 
     # -------------------------------------------------------------------------
-    # Object Management
+    # Untracked Internal Primitives (Execution Path for Commands & Loading)
     # -------------------------------------------------------------------------
 
-    def add(self, drawable: Drawable, layer: str = "default") -> None:
-        """Add a top-level drawable to the specified layer (default: 'default')."""
+    def _add_untracked(self, drawable: Drawable, layer: str = "default", index: int | None = None) -> None:
+        """Internal untracked insertion preserving exact live instance."""
         target_layer = self.get_layer(layer)
         if target_layer is None:
             raise ObjectNotFoundError(f"Layer '{layer}' does not exist in scene")
-        target_layer.add(drawable)
+        self._check_id_unique(drawable)
 
-    def remove(self, id: str) -> Drawable:
-        """Remove a drawable by its ID from whichever parent group or layer holds it."""
+        drawable._layer = target_layer
+        drawable._parent = None
+        if index is not None and 0 <= index <= len(target_layer._objects):
+            target_layer._objects.insert(index, drawable)
+        else:
+            target_layer._objects.append(drawable)
+
+        drawable._set_scene(self)
+
+    def _remove_untracked(self, id: str) -> Drawable:
+        """Internal untracked removal of drawable from its container."""
         obj = self.get(id)
         if obj is None:
             raise ObjectNotFoundError(f"Drawable with id '{id}' not found in scene")
-        if obj.effective_locked:
-            raise ValidationError(f"Cannot remove locked drawable '{id}'")
 
         if obj._parent is not None:
             return obj._parent.remove(obj)
@@ -227,6 +256,50 @@ class Scene:
         else:
             self._unregister_id(obj)
             return obj
+
+    # -------------------------------------------------------------------------
+    # Object Management (Tracked Public Operations)
+    # -------------------------------------------------------------------------
+
+    def add(self, drawable: Drawable, layer: str = "default") -> None:
+        """Add a top-level drawable to the specified layer (default: 'default') with history tracking."""
+        target_layer = self.get_layer(layer)
+        if target_layer is None:
+            raise ObjectNotFoundError(f"Layer '{layer}' does not exist in scene")
+        idx = len(target_layer._objects)
+        self._add_untracked(drawable, layer=layer)
+        self.history.record(
+            AddObjectCommand(self, drawable, layer_name=layer, index=idx)
+        )
+
+    def remove(self, id: str) -> Drawable:
+        """Remove a drawable by its ID from whichever parent group or layer holds it with history tracking."""
+        obj = self.get(id)
+        if obj is None:
+            raise ObjectNotFoundError(f"Drawable with id '{id}' not found in scene")
+        if obj.effective_locked:
+            raise ValidationError(f"Cannot remove locked drawable '{id}'")
+
+        parent_grp = obj._parent
+        layer_nm = obj._layer.name if obj._layer is not None else None
+        if parent_grp is not None:
+            idx = parent_grp._children.index(obj) if obj in parent_grp._children else -1
+        elif obj._layer is not None:
+            idx = obj._layer._objects.index(obj) if obj in obj._layer._objects else -1
+        else:
+            idx = -1
+
+        removed = self._remove_untracked(id)
+        self.history.record(
+            RemoveObjectCommand(
+                scene=self,
+                drawable=removed,
+                layer_name=layer_nm,
+                parent_group=parent_grp,
+                index=idx,
+            )
+        )
+        return removed
 
     def get(self, id: str) -> Drawable | None:
         """Fast O(1) retrieval of any drawable in the scene (including inside groups)."""
@@ -239,6 +312,7 @@ class Scene:
         self._layers.clear()
         self._layer_order.clear()
         self._id_map.clear()
+        self.history.clear()
         self.create_layer("default", z_order=0)
 
     @property
@@ -250,7 +324,7 @@ class Scene:
         return all_objs
 
     # -------------------------------------------------------------------------
-    # Object State Modifiers
+    # Object State Modifiers & History-Tracked Transformations
     # -------------------------------------------------------------------------
 
     def show(self, id: str) -> None:
@@ -270,44 +344,268 @@ class Scene:
         self._get_or_raise(id).locked = False
 
     def move_to_front(self, id: str) -> None:
-        """Move object to front within its container (group or layer)."""
+        """Move object to front within its container (group or layer) with history tracking."""
         obj = self._get_or_raise(id)
         if obj._parent is not None:
-            max_z = max((o.z_index for o in obj._parent.children), default=0)
-            obj.z_index = max_z + 1
-            if obj in obj._parent._children:
-                obj._parent._children.remove(obj)
-                obj._parent._children.append(obj)
+            container = obj._parent
+            pool = container._children
         elif obj._layer is not None:
-            max_z = max((o.z_index for o in obj._layer.objects), default=0)
-            obj.z_index = max_z + 1
-            if obj in obj._layer._objects:
-                obj._layer._objects.remove(obj)
-                obj._layer._objects.append(obj)
+            container = obj._layer
+            pool = container._objects
+        else:
+            return
+
+        old_idx = pool.index(obj) if obj in pool else -1
+        old_z = obj.z_index
+        max_z = max((o.z_index for o in pool), default=0)
+        new_z = max_z + 1
+        obj.z_index = new_z
+        if obj in pool:
+            pool.remove(obj)
+            pool.append(obj)
+        new_idx = len(pool) - 1
+        self.history.record(ReorderCommand(container, obj, old_idx, new_idx, old_z, new_z, description="Move to Front"))
 
     def move_to_back(self, id: str) -> None:
-        """Move object to back within its container (group or layer)."""
+        """Move object to back within its container (group or layer) with history tracking."""
         obj = self._get_or_raise(id)
         if obj._parent is not None:
-            min_z = min((o.z_index for o in obj._parent.children), default=0)
-            obj.z_index = min_z - 1
-            if obj in obj._parent._children:
-                obj._parent._children.remove(obj)
-                obj._parent._children.insert(0, obj)
+            container = obj._parent
+            pool = container._children
         elif obj._layer is not None:
-            min_z = min((o.z_index for o in obj._layer.objects), default=0)
-            obj.z_index = min_z - 1
-            if obj in obj._layer._objects:
-                obj._layer._objects.remove(obj)
-                obj._layer._objects.insert(0, obj)
+            container = obj._layer
+            pool = container._objects
+        else:
+            return
+
+        old_idx = pool.index(obj) if obj in pool else -1
+        old_z = obj.z_index
+        min_z = min((o.z_index for o in pool), default=0)
+        new_z = min_z - 1
+        obj.z_index = new_z
+        if obj in pool:
+            pool.remove(obj)
+            pool.insert(0, obj)
+        new_idx = 0
+        self.history.record(ReorderCommand(container, obj, old_idx, new_idx, old_z, new_z, description="Move to Back"))
 
     def move_forward(self, id: str) -> None:
-        """Increment object z-index."""
-        self._get_or_raise(id).z_index += 1
+        """Increment object z-index with history tracking."""
+        obj = self._get_or_raise(id)
+        container = obj._parent or obj._layer
+        if container is None:
+            return
+        pool = container._children if hasattr(container, "_children") else container._objects
+        old_idx = pool.index(obj) if obj in pool else -1
+        old_z = obj.z_index
+        new_z = old_z + 1
+        obj.z_index = new_z
+        self.history.record(ReorderCommand(container, obj, old_idx, old_idx, old_z, new_z, description="Move Forward"))
 
     def move_backward(self, id: str) -> None:
-        """Decrement object z-index."""
-        self._get_or_raise(id).z_index -= 1
+        """Decrement object z-index with history tracking."""
+        obj = self._get_or_raise(id)
+        container = obj._parent or obj._layer
+        if container is None:
+            return
+        pool = container._children if hasattr(container, "_children") else container._objects
+        old_idx = pool.index(obj) if obj in pool else -1
+        old_z = obj.z_index
+        new_z = old_z - 1
+        obj.z_index = new_z
+        self.history.record(ReorderCommand(container, obj, old_idx, old_idx, old_z, new_z, description="Move Backward"))
+
+    def move_object(self, id: str, dx: float | int, dy: float | int) -> None:
+        """Translate an object with history tracking."""
+        obj = self._get_or_raise(id)
+        before = obj.transform.copy()
+        obj.move(dx, dy)
+        after = obj.transform.copy()
+        self.history.record(TransformCommand(obj, before, after, description="Move Object"))
+
+    def rotate_object(self, id: str, degrees: float | int, pivot: Point | None = None) -> None:
+        """Rotate an object with history tracking."""
+        obj = self._get_or_raise(id)
+        before = obj.transform.copy()
+        obj.rotate(degrees, pivot=pivot)
+        after = obj.transform.copy()
+        self.history.record(TransformCommand(obj, before, after, description="Rotate Object"))
+
+    def scale_object(self, id: str, sx: float | int, sy: float | int | None = None, pivot: Point | None = None) -> None:
+        """Scale an object with history tracking."""
+        obj = self._get_or_raise(id)
+        before = obj.transform.copy()
+        obj.scale(sx, sy=sy, pivot=pivot)
+        after = obj.transform.copy()
+        self.history.record(TransformCommand(obj, before, after, description="Scale Object"))
+
+    def restyle_object(self, id: str, **styles: Any) -> None:
+        """Modify object styling with in-place history tracking."""
+        obj = self._get_or_raise(id)
+        with self.edit(obj, name="Restyle Object"):
+            for k, v in styles.items():
+                if hasattr(obj, k):
+                    setattr(obj, k, v)
+                else:
+                    raise ValidationError(f"Unknown style attribute '{k}' for {type(obj).__name__}")
+
+    def group(self, drawables: list[Drawable | str], name: str | None = None) -> Group:
+        """Group drawables into a new Group container with history tracking."""
+        if not drawables:
+            raise ValidationError("Cannot create an empty group")
+        resolved: list[Drawable] = []
+        for item in drawables:
+            obj = self._get_or_raise(item if isinstance(item, str) else item.id)
+            if obj.effective_locked:
+                raise ValidationError(f"Cannot group locked drawable '{obj.id}'")
+            if obj not in resolved:
+                resolved.append(obj)
+
+        first = resolved[0]
+        target_layer = first.layer
+        target_layer_name = target_layer.name if target_layer is not None else "default"
+
+        children_info: list[dict[str, Any]] = []
+        group_index = 0
+        for d in resolved:
+            orig_parent = d._parent
+            orig_layer = d._layer.name if d._layer is not None else target_layer_name
+            if orig_parent is not None:
+                orig_idx = orig_parent._children.index(d) if d in orig_parent._children else 0
+            elif d._layer is not None:
+                orig_idx = d._layer._objects.index(d) if d in d._layer._objects else 0
+            else:
+                orig_idx = 0
+            if d is first:
+                group_index = orig_idx
+
+            children_info.append({
+                "child": d,
+                "orig_parent": orig_parent,
+                "orig_layer": orig_layer,
+                "orig_index": orig_idx,
+                "orig_transform": d.transform.copy(),
+                "grouped_transform": Transform.from_matrix(d.world_matrix),
+            })
+
+        new_group = Group(name=name)
+        cmd = GroupCommand(
+            scene=self,
+            group=new_group,
+            children_info=children_info,
+            layer_name=target_layer_name,
+            group_index=group_index,
+        )
+        cmd.execute()
+        self.history.record(cmd)
+        return new_group
+
+    def ungroup(self, group_or_id: Group | str) -> list[Drawable]:
+        """Unpack a Group into its enclosing layer with history tracking."""
+        group_obj = self._get_or_raise(group_or_id if isinstance(group_or_id, str) else group_or_id.id)
+        if not isinstance(group_obj, Group):
+            raise ValidationError(f"Object '{group_obj.id}' is not a Group")
+        if group_obj.effective_locked:
+            raise ValidationError(f"Cannot ungroup locked group '{group_obj.id}'")
+
+        layer = group_obj.layer
+        layer_name = layer.name if layer is not None else "default"
+        group_index = layer._objects.index(group_obj) if (layer and group_obj in layer._objects) else 0
+
+        children_info: list[dict[str, Any]] = []
+        for child in list(group_obj.children):
+            children_info.append({
+                "child": child,
+                "orig_transform": child.transform.copy(),
+                "unpacked_transform": Transform.from_matrix(child.world_matrix),
+            })
+
+        cmd = UngroupCommand(
+            scene=self,
+            group=group_obj,
+            children_info=children_info,
+            layer_name=layer_name,
+            group_index=group_index,
+        )
+        cmd.execute()
+        self.history.record(cmd)
+        return [info["child"] for info in children_info]
+
+    # -------------------------------------------------------------------------
+    # History Operations & Context Managers
+    # -------------------------------------------------------------------------
+
+    @contextmanager
+    def edit(self, *drawables: Drawable | str, name: str = "Edit") -> Generator[list[Drawable], None, None]:
+        """Context manager for tracked in-place mutations.
+        
+        Normalizes targets:
+        - Resolves IDs to live Drawable instances.
+        - Discards duplicates.
+        - Ancestor deduplication: if target A is a descendant of target B, target A is pruned
+          because target B's recursive semantic state captures all descendants.
+        - Captures before snapshots.
+        - Rolls back on unhandled exceptions.
+        - Records StateEditCommand preserving live object identities.
+        """
+        resolved: list[Drawable] = []
+        for item in drawables:
+            obj = self._get_or_raise(item if isinstance(item, str) else item.id)
+            if obj not in resolved:
+                resolved.append(obj)
+
+        resolved_set = set(resolved)
+        targets: list[Drawable] = []
+        for obj in resolved:
+            curr = obj._parent
+            has_ancestor_in_targets = False
+            while curr is not None:
+                if curr in resolved_set:
+                    has_ancestor_in_targets = True
+                    break
+                curr = curr._parent
+            if not has_ancestor_in_targets:
+                targets.append(obj)
+
+        befores = [d._get_semantic_state() for d in targets]
+
+        try:
+            yield targets
+        except Exception:
+            with self.history.suspended():
+                for d, b in zip(targets, befores):
+                    d._apply_semantic_state(b)
+            raise
+
+        afters = [d._get_semantic_state() for d in targets]
+
+        cmd = StateEditCommand(
+            targets=[(d, b, a) for d, b, a in zip(targets, befores, afters)],
+            description=name,
+        )
+        self.history.record(cmd)
+
+    def batch(self, name: str = "Batch") -> Generator[CompoundCommand, None, None]:
+        """Context manager to group multiple operations into an atomic compound command."""
+        return self.history.batch(name=name)
+
+    def undo(self) -> bool:
+        """Undo the most recent command."""
+        return self.history.undo()
+
+    def redo(self) -> bool:
+        """Re-apply the most recently undone command."""
+        return self.history.redo()
+
+    @property
+    def can_undo(self) -> bool:
+        """Whether there are actions to undo."""
+        return self.history.can_undo
+
+    @property
+    def can_redo(self) -> bool:
+        """Whether there are actions to redo."""
+        return self.history.can_redo
 
     # -------------------------------------------------------------------------
     # Lookup & Queries
@@ -404,20 +702,13 @@ class Scene:
     # -------------------------------------------------------------------------
 
     def hit_test(self, x: float | int, y: float | int) -> list[Drawable]:
-        """Query all visible objects intersecting (x, y) in topmost-first order.
-        
-        Traverses:
-        1. Layers: descending layer.z_order (skips hidden layers).
-        2. Within Layer: descending (drawable.z_index, insertion_order).
-        3. Within Groups: recursively descending (child.z_index, child_order).
-        """
+        """Query all visible objects intersecting (x, y) in topmost-first order."""
         if not isinstance(x, (int, float)) or not isinstance(y, (int, float)):
             raise ValidationError("Hit-test coordinates must be numeric")
 
         point = Point(x, y)
         hits: list[Drawable] = []
 
-        # Traverse layers in descending order (topmost layer first)
         for layer in reversed(self.layers):
             if not layer.visible or layer.opacity <= 0.0:
                 continue
@@ -442,7 +733,6 @@ class Scene:
             return
 
         if isinstance(drawable, Group):
-            # Check group children topmost-first
             indexed_children = [
                 (idx, child) for idx, child in enumerate(drawable.children)
                 if child.visible and child.opacity > 0.0
@@ -454,7 +744,6 @@ class Scene:
             )
             for _, child in sorted_children:
                 self._hit_test_recursive(child, point, hits)
-            # Also register the group itself if its children were hit or if it intersects
             if drawable.contains_point(point) and drawable not in hits:
                 hits.append(drawable)
         else:
@@ -465,6 +754,83 @@ class Scene:
         """Query the single topmost visible object intersecting (x, y), or None."""
         hits = self.hit_test(x, y)
         return hits[0] if hits else None
+
+    # -------------------------------------------------------------------------
+    # Document Serialization
+    # -------------------------------------------------------------------------
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return canonical DrawCV document envelope dictionary."""
+        return {
+            "format": CURRENT_FORMAT_IDENTIFIER,
+            "version": CURRENT_SCHEMA_VERSION,
+            "scene": {
+                "width": self.width,
+                "height": self.height,
+                "background": self.background.to_dict(),
+                "layers": [layer.to_dict() for layer in self.layers],
+            },
+        }
+
+    def to_json(self, indent: int = 2) -> str:
+        """Serialize Scene to strict, canonical JSON string."""
+        return serialize_json(self.to_dict(), indent=indent)
+
+    def save_json(self, filepath: str | Path, indent: int = 2) -> None:
+        """Save Scene document to JSON file."""
+        p = Path(filepath)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(self.to_json(indent=indent), encoding="utf-8")
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Scene:
+        """Construct Scene from dictionary (migrating schema version if needed)."""
+        if not isinstance(data, dict):
+            raise ValidationError(f"Scene data must be a dict, got {type(data).__name__}")
+
+        if "format" in data:
+            migrated = SchemaMigrator.migrate(data)
+            scene_data = migrated.get("scene", migrated)
+        else:
+            scene_data = data.get("scene", data)
+
+        width = scene_data["width"]
+        height = scene_data["height"]
+        bg = Color.from_dict(scene_data["background"])
+        scene = cls(width=width, height=height, background=bg)
+
+        # Clear auto-created default layer
+        scene._layers.clear()
+        scene._layer_order.clear()
+        scene._id_map.clear()
+
+        for layer_data in scene_data.get("layers", []):
+            layer = Layer.from_dict(layer_data, scene=scene)
+            scene._layers[layer.name] = layer
+            scene._layer_order.append(layer.name)
+
+        if "default" not in scene._layers:
+            scene.create_layer("default", z_order=0)
+
+        # Loaded documents have clean history
+        scene.history.clear()
+        return scene
+
+    @classmethod
+    def from_json(cls, text: str) -> Scene:
+        """Construct Scene from JSON string with envelope validation and migration."""
+        parsed = parse_json(text, migrate=True)
+        return cls.from_dict(parsed)
+
+    @classmethod
+    def load_json(cls, filepath: str | Path) -> Scene:
+        """Load Scene document from a JSON file."""
+        text = Path(filepath).read_text(encoding="utf-8")
+        return cls.from_json(text)
+
+    # -------------------------------------------------------------------------
+    # Internal Helpers & Dunder Methods
+    # -------------------------------------------------------------------------
 
     def _get_or_raise(self, id: str) -> Drawable:
         obj = self.get(id)

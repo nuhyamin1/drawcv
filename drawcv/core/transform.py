@@ -190,3 +190,56 @@ class Transform:
         vec = np.array([point.x, point.y, 1.0], dtype=np.float64)
         res = inv_m @ vec
         return Point(res[0], res[1])
+
+    def copy(self) -> Transform:
+        """Create an independent copy of this Transform."""
+        tf = Transform(
+            translation_x=self.translation_x,
+            translation_y=self.translation_y,
+            rotation=self.rotation,
+            scale_x=self.scale_x,
+            scale_y=self.scale_y,
+            pivot=self.pivot.copy() if self.pivot is not None else None,
+        )
+        if self._matrix is not None:
+            object.__setattr__(tf, "_matrix", self._matrix.copy())
+        return tf
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain JSON-compatible dictionary representation."""
+        res: dict[str, Any] = {
+            "translation_x": float(self.translation_x),
+            "translation_y": float(self.translation_y),
+            "rotation": float(self.rotation),
+            "scale_x": float(self.scale_x),
+            "scale_y": float(self.scale_y),
+            "pivot": self.pivot.to_dict() if self.pivot is not None else None,
+        }
+        if self._matrix is not None:
+            res["matrix"] = self._matrix.tolist()
+        return res
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any] | None) -> Transform:
+        """Construct a Transform from a dictionary."""
+        if data is None:
+            return cls()
+        if not isinstance(data, dict):
+            raise ValidationError(f"Transform data must be a dict or None, got {type(data).__name__}")
+
+        pivot_val = None
+        if data.get("pivot") is not None:
+            pivot_val = Point.from_dict(data["pivot"])
+
+        tf = cls(
+            translation_x=float(data.get("translation_x", 0.0)),
+            translation_y=float(data.get("translation_y", 0.0)),
+            rotation=float(data.get("rotation", 0.0)),
+            scale_x=float(data.get("scale_x", 1.0)),
+            scale_y=float(data.get("scale_y", 1.0)),
+            pivot=pivot_val,
+        )
+        if "matrix" in data and data["matrix"] is not None:
+            object.__setattr__(tf, "_matrix", np.array(data["matrix"], dtype=np.float64))
+        return tf
+

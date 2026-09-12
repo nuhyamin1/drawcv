@@ -40,6 +40,27 @@ class BoundingBox:
         object.__setattr__(self, "width", float(width))
         object.__setattr__(self, "height", float(height))
 
+    def to_dict(self) -> dict[str, float]:
+        """Return a plain JSON-compatible dictionary representation."""
+        return {
+            "x": float(self.x),
+            "y": float(self.y),
+            "width": float(self.width),
+            "height": float(self.height),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any] | tuple | list) -> BoundingBox:
+        """Construct a BoundingBox from a dict or (x, y, width, height) sequence."""
+        if isinstance(data, (list, tuple)) and len(data) >= 4:
+            return cls(data[0], data[1], data[2], data[3])
+        if isinstance(data, dict):
+            if "x" not in data or "y" not in data or "width" not in data or "height" not in data:
+                raise ValidationError("BoundingBox dict requires 'x', 'y', 'width', and 'height'")
+            return cls(data["x"], data["y"], data["width"], data["height"])
+        raise ValidationError(f"Cannot construct BoundingBox from {type(data).__name__}")
+
+
     @property
     def left(self) -> float:
         return self.x

@@ -110,3 +110,44 @@ class Line(Drawable):
         tol = max((self.stroke.width / 2.0) if self.stroke else 0.0, 2.0)
         dist = distance_point_to_segment(world_point, world_start, world_end)
         return dist <= tol
+
+    def _get_shape_state(self) -> dict[str, Any]:
+        return {
+            "start": self.start.copy(),
+            "end": self.end.copy(),
+            "stroke": self.stroke.copy() if self.stroke else None,
+        }
+
+    def _apply_shape_state(self, state: dict[str, Any]) -> None:
+        if "start" in state:
+            self.start = state["start"].copy() if isinstance(state["start"], Point) else Point.from_dict(state["start"])
+        if "end" in state:
+            self.end = state["end"].copy() if isinstance(state["end"], Point) else Point.from_dict(state["end"])
+        if "stroke" in state:
+            self.stroke = state["stroke"].copy() if isinstance(state["stroke"], StrokeStyle) else StrokeStyle.from_dict(state["stroke"])
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain JSON-compatible dictionary representation."""
+        res = self._base_to_dict()
+        res.update({
+            "type": "line",
+            "start": self.start.to_dict(),
+            "end": self.end.to_dict(),
+            "stroke": self.stroke.to_dict() if self.stroke else None,
+        })
+        return res
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Line:
+        """Construct a Line from dictionary representation."""
+        base_kwargs = cls._base_from_dict(data)
+        start_pt = Point.from_dict(data["start"]) if "start" in data else Point(0.0, 0.0)
+        end_pt = Point.from_dict(data["end"]) if "end" in data else Point(0.0, 0.0)
+        stroke_val = StrokeStyle.from_dict(data.get("stroke")) if data.get("stroke") is not None else StrokeStyle()
+        return cls(
+            start=start_pt,
+            end=end_pt,
+            stroke=stroke_val,
+            **base_kwargs,
+        )
+

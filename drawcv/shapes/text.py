@@ -268,3 +268,85 @@ class Text(Drawable):
             mask=copy.deepcopy(self.mask),
             effects=copy.deepcopy(self.effects),
         )
+
+    def _get_shape_state(self) -> dict[str, Any]:
+        return {
+            "text": self.text,
+            "position": self.position.copy(),
+            "color": self.color.copy(),
+            "font_family": self.font_family.value if hasattr(self.font_family, "value") else str(self.font_family),
+            "font_scale": float(self.font_scale),
+            "thickness": int(self.thickness),
+            "alignment": self.alignment.value if hasattr(self.alignment, "value") else str(self.alignment),
+            "background_fill": self.background_fill.copy() if isinstance(self.background_fill, FillStyle) else None,
+            "background_radius": float(self.background_radius),
+            "padding": float(self.padding),
+        }
+
+    def _apply_shape_state(self, state: dict[str, Any]) -> None:
+        if "text" in state:
+            self.text = str(state["text"])
+        if "position" in state:
+            self.position = state["position"].copy() if isinstance(state["position"], Point) else Point.from_dict(state["position"])
+        if "color" in state:
+            c = state["color"]
+            self.color = c.copy() if isinstance(c, Color) else Color.from_dict(c)
+        if "font_family" in state:
+            ff = state["font_family"]
+            self.font_family = FontFamily(ff) if isinstance(ff, str) else ff
+        if "font_scale" in state:
+            self.font_scale = float(state["font_scale"])
+        if "thickness" in state:
+            self.thickness = int(state["thickness"])
+        if "alignment" in state:
+            al = state["alignment"]
+            self.alignment = TextAlignment(al) if isinstance(al, str) else al
+        if "background_fill" in state:
+            bf = state["background_fill"]
+            self.background_fill = bf.copy() if isinstance(bf, FillStyle) else (FillStyle.from_dict(bf) if bf else None)
+        if "background_radius" in state:
+            self.background_radius = float(state["background_radius"])
+        if "padding" in state:
+            self.padding = float(state["padding"])
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain JSON-compatible dictionary representation."""
+        res = self._base_to_dict()
+        res.update({
+            "type": "text",
+            "text": self.text,
+            "position": self.position.to_dict(),
+            "color": self.color.to_dict(),
+            "font_family": self.font_family.value if hasattr(self.font_family, "value") else str(self.font_family),
+            "font_scale": float(self.font_scale),
+            "thickness": int(self.thickness),
+            "alignment": self.alignment.value if hasattr(self.alignment, "value") else str(self.alignment),
+            "background_fill": self.background_fill.to_dict() if isinstance(self.background_fill, FillStyle) else None,
+            "background_radius": float(self.background_radius),
+            "padding": float(self.padding),
+        })
+        return res
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Text:
+        """Construct a Text object from dictionary representation."""
+        base_kwargs = cls._base_from_dict(data)
+        pos = Point.from_dict(data["position"]) if "position" in data else Point(0.0, 0.0)
+        color = Color.from_dict(data["color"]) if "color" in data else Color.black()
+        font_family = FontFamily(data["font_family"]) if "font_family" in data else FontFamily.SIMPLEX
+        alignment = TextAlignment(data["alignment"]) if "alignment" in data else TextAlignment.LEFT
+        bg_fill = FillStyle.from_dict(data["background_fill"]) if data.get("background_fill") is not None else None
+        return cls(
+            text=str(data.get("text", "")),
+            position=pos,
+            color=color,
+            font_family=font_family,
+            font_scale=float(data.get("font_scale", 1.0)),
+            thickness=int(data.get("thickness", 1)),
+            alignment=alignment,
+            background_fill=bg_fill,
+            background_radius=float(data.get("background_radius", 0.0)),
+            padding=float(data.get("padding", 0.0)),
+            **base_kwargs,
+        )
+

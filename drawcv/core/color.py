@@ -159,6 +159,28 @@ class Color:
         """Return a copy of this color."""
         return Color(self.r, self.g, self.b, self.a)
 
+    def to_dict(self) -> dict[str, Any]:
+        """Return a lossless plain JSON-compatible dictionary representation."""
+        return {"r": int(self.r), "g": int(self.g), "b": int(self.b), "a": float(self.a)}
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any] | str | tuple | list) -> Color:
+        """Construct a Color from a dict, hex string, or sequence."""
+        if isinstance(data, str):
+            return cls.from_hex(data)
+        if isinstance(data, (list, tuple)):
+            if len(data) == 3:
+                return cls(int(data[0]), int(data[1]), int(data[2]), 1.0)
+            elif len(data) >= 4:
+                return cls(int(data[0]), int(data[1]), int(data[2]), float(data[3]))
+            raise ValidationError(f"Color sequence requires 3 or 4 elements, got {len(data)}")
+        if isinstance(data, dict):
+            if "r" not in data or "g" not in data or "b" not in data:
+                raise ValidationError("Color dict must contain 'r', 'g', and 'b'")
+            return cls(int(data["r"]), int(data["g"]), int(data["b"]), float(data.get("a", 1.0)))
+        raise ValidationError(f"Cannot construct Color from {type(data).__name__}")
+
+
     def __repr__(self) -> str:
         if self.a < 1.0:
             return f"Color(r={self.r}, g={self.g}, b={self.b}, a={self.a:.2f})"
