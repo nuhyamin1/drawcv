@@ -93,6 +93,10 @@ class OpenCVRenderer:
 
         return canvas
 
+    def render_drawable(self, drawable: Drawable, canvas: Canvas) -> None:
+        """Render a single drawable directly onto an existing Canvas."""
+        self._render_single(drawable, canvas)
+
     # -------------------------------------------------------------------------
     # Compositing & Isolation Dispatch
     # -------------------------------------------------------------------------
@@ -132,6 +136,15 @@ class OpenCVRenderer:
     def _render_single(self, drawable: Drawable, canvas: Canvas | _IsolatedSurface) -> None:
         """Dispatch rendering for a single drawable."""
         if not drawable.effective_visible:
+            return
+
+        prog = getattr(drawable, "render_progress", 1.0)
+        if prog <= 0.0:
+            return
+        if prog < 1.0 and getattr(drawable, "supports_progressive_rendering", False):
+            sliced = drawable.slice_at_progress(prog)
+            sliced.render_progress = 1.0  # Invariant: prevent recursive slicing
+            self._render_single(sliced, canvas)
             return
 
         if self._needs_isolated_compositing(drawable):

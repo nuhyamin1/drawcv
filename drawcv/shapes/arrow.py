@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 from dataclasses import dataclass, field
+import copy
 import math
 
 from drawcv.core.bounds import BoundingBox
@@ -30,6 +31,8 @@ class Arrow(Drawable):
         stroke: StrokeStyle for shaft and head outline.
         fill: Optional FillStyle for filled head styles (TRIANGLE, DIAMOND, CIRCLE).
     """
+    supports_progressive_rendering: bool = True
+
     start: Point = field(default_factory=lambda: Point(0.0, 0.0))
     end: Point = field(default_factory=lambda: Point(100.0, 0.0))
     head_length: float = 15.0
@@ -37,6 +40,41 @@ class Arrow(Drawable):
     head_style: ArrowHeadStyle = ArrowHeadStyle.TRIANGLE
     stroke: StrokeStyle | None = None
     fill: FillStyle | None = None
+
+    def slice_at_progress(self, progress: float) -> Arrow:
+        """Return a transient partial Arrow sliced along the shaft."""
+        p = max(0.0, min(1.0, float(progress)))
+        dx = self.end.x - self.start.x
+        dy = self.end.y - self.start.y
+        cut_x = self.start.x + p * dx
+        cut_y = self.start.y + p * dy
+        cut_pt = Point(cut_x, cut_y)
+
+        if cut_pt == self.start:
+            cut_pt = Point(self.start.x + 1e-4 * dx, self.start.y + 1e-4 * dy)
+
+        fill_val = self.fill.copy() if (p >= 1.0 and self.fill) else None
+
+        sliced = Arrow(
+            start=self.start.copy(),
+            end=cut_pt,
+            head_length=self.head_length,
+            head_width=self.head_width,
+            head_style=self.head_style,
+            stroke=self.stroke.copy() if self.stroke else None,
+            fill=fill_val,
+            name=self.name,
+            visible=self.visible,
+            locked=self.locked,
+            opacity=self.opacity,
+            z_index=self.z_index,
+            transform=self.transform.copy(),
+            clip=copy.deepcopy(self.clip),
+            mask=copy.deepcopy(self.mask),
+            effects=[copy.deepcopy(e) for e in self.effects],
+        )
+        sliced.render_progress = 1.0
+        return sliced
 
     def __post_init__(self):
         super().__post_init__()

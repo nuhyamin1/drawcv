@@ -1,0 +1,373 @@
+{
+  "format": "drawcv",
+  "scene": {
+    "background": {
+      "a": 1.0,
+      "b": 33,
+      "g": 24,
+      "r": 20
+    },
+    "height": 600,
+    "layers": [
+      {
+        "clip": null,
+        "effects": [],
+        "locked": false,
+        "mask": null,
+        "name": "default",
+        "objects": [
+          {
+            "clip": null,
+            "closed": true,
+            "effects": [],
+            "id": "d7ead917-d293-4e59-a664-a45253aba83e",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "points": [
+              {
+                "x": 400.0,
+                "y": 150.0
+              },
+              {
+                "x": 450.0,
+                "y": 250.0
+              },
+              {
+                "x": 560.0,
+                "y": 270.0
+              },
+              {
+                "x": 480.0,
+                "y": 350.0
+              },
+              {
+                "x": 500.0,
+                "y": 460.0
+              },
+              {
+                "x": 400.0,
+                "y": 410.0
+              },
+              {
+                "x": 300.0,
+                "y": 460.0
+              },
+              {
+                "x": 320.0,
+                "y": 350.0
+              },
+              {
+                "x": 240.0,
+                "y": 270.0
+              },
+              {
+                "x": 350.0,
+                "y": 250.0
+              }
+            ],
+            "render_progress": 1.0,
+            "stroke": {
+              "cap_style": "round",
+              "color": {
+                "a": 1.0,
+                "b": 50,
+                "g": 180,
+                "r": 255
+              },
+              "join_style": "round",
+              "line_type": "AA",
+              "opacity": 1.0,
+              "width": 4.0
+            },
+            "tags": [],
+            "timing": {
+              "delay": 0.0,
+              "duration": 2.0,
+              "easing": "ease_in_out",
+              "loop": false,
+              "speed": 1.0,
+              "start_time": 0.0
+            },
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "polyline",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "center": {
+              "x": 400.0,
+              "y": 310.0
+            },
+            "clip": null,
+            "effects": [],
+            "fill": {
+              "color": {
+                "a": 1.0,
+                "b": 255,
+                "g": 200,
+                "r": 100
+              },
+              "enabled": true,
+              "opacity": 1.0
+            },
+            "id": "center_orb",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "radius": 15.0,
+            "render_progress": 1.0,
+            "stroke": null,
+            "tags": [],
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "circle",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "center": {
+              "x": 400.0,
+              "y": 100.0
+            },
+            "clip": null,
+            "effects": [],
+            "fill": {
+              "color": {
+                "a": 1.0,
+                "b": 120,
+                "g": 80,
+                "r": 255
+              },
+              "enabled": true,
+              "opacity": 1.0
+            },
+            "id": "satellite_orb",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "radius": 12.0,
+            "render_progress": 1.0,
+            "stroke": null,
+            "tags": [],
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "circle",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "clip": null,
+            "effects": [],
+            "end": {
+              "x": 400.0,
+              "y": 100.0
+            },
+            "id": "beam_line",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "render_progress": 1.0,
+            "start": {
+              "x": 400.0,
+              "y": 310.0
+            },
+            "stroke": {
+              "cap_style": "round",
+              "color": {
+                "a": 0.7,
+                "b": 255,
+                "g": 180,
+                "r": 150
+              },
+              "join_style": "round",
+              "line_type": "AA",
+              "opacity": 1.0,
+              "width": 2.0
+            },
+            "tags": [],
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "line",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "center": {
+              "x": 400.0,
+              "y": 310.0
+            },
+            "clip": null,
+            "closure": "open",
+            "effects": [],
+            "fill": null,
+            "id": "1240874a-db38-4302-8a57-af010813e854",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "radius_x": 120.0,
+            "radius_y": 120.0,
+            "render_progress": 1.0,
+            "start_angle": 0.0,
+            "stroke": {
+              "cap_style": "round",
+              "color": {
+                "a": 0.5,
+                "b": 240,
+                "g": 160,
+                "r": 80
+              },
+              "join_style": "round",
+              "line_type": "AA",
+              "opacity": 1.0,
+              "width": 2.0
+            },
+            "sweep_angle": 360.0,
+            "tags": [],
+            "timing": {
+              "delay": 0.0,
+              "duration": 1.5,
+              "easing": "ease_out",
+              "loop": false,
+              "speed": 1.0,
+              "start_time": 0.5
+            },
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "arc",
+            "visible": true,
+            "z_index": 0
+          }
+        ],
+        "opacity": 1.0,
+        "visible": true,
+        "z_order": 0
+      }
+    ],
+    "timeline": {
+      "tracks": [
+        {
+          "end_value": 40.0,
+          "property_path": "radius",
+          "start_value": 15.0,
+          "target_id": "center_orb",
+          "timing": {
+            "delay": 0.0,
+            "duration": 2.0,
+            "easing": "ease_in_out",
+            "loop": false,
+            "speed": 1.0,
+            "start_time": 0.0
+          },
+          "value_type": "number"
+        },
+        {
+          "end_value": {
+            "a": 1.0,
+            "b": 200,
+            "g": 255,
+            "r": 0
+          },
+          "property_path": "fill.color",
+          "start_value": {
+            "a": 1.0,
+            "b": 255,
+            "g": 200,
+            "r": 100
+          },
+          "target_id": "center_orb",
+          "timing": {
+            "delay": 0.0,
+            "duration": 2.0,
+            "easing": "linear",
+            "loop": false,
+            "speed": 1.0,
+            "start_time": 0.0
+          },
+          "value_type": "color"
+        },
+        {
+          "end_value": {
+            "pivot": {
+              "x": 400.0,
+              "y": 310.0
+            },
+            "rotation": 180.0,
+            "scale_x": 1.0,
+            "scale_y": 1.0,
+            "translation_x": 0.0,
+            "translation_y": 0.0
+          },
+          "property_path": "transform",
+          "start_value": {
+            "pivot": {
+              "x": 400.0,
+              "y": 310.0
+            },
+            "rotation": 0.0,
+            "scale_x": 1.0,
+            "scale_y": 1.0,
+            "translation_x": 0.0,
+            "translation_y": 0.0
+          },
+          "target_id": "d7ead917-d293-4e59-a664-a45253aba83e",
+          "timing": {
+            "delay": 0.0,
+            "duration": 2.0,
+            "easing": "ease_in_out",
+            "loop": false,
+            "speed": 1.0,
+            "start_time": 0.0
+          },
+          "value_type": "transform"
+        }
+      ]
+    },
+    "width": 800
+  },
+  "version": "1.1"
+}

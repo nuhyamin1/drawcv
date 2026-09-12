@@ -1,6 +1,7 @@
 """Arc shape implementation."""
 
 from __future__ import annotations
+import copy
 from dataclasses import dataclass, field
 import math
 import numpy as np
@@ -35,6 +36,8 @@ class Arc(Drawable):
         stroke: Optional StrokeStyle for outline rendering.
         fill: Optional FillStyle for interior rendering (applicable to CHORD and PIE).
     """
+    supports_progressive_rendering: bool = True
+
     center: Point = field(default_factory=lambda: Point(0.0, 0.0))
     radius_x: float = 0.0
     radius_y: float = 0.0
@@ -43,6 +46,35 @@ class Arc(Drawable):
     closure: ArcClosure = ArcClosure.OPEN
     stroke: StrokeStyle | None = None
     fill: FillStyle | None = None
+
+    def slice_at_progress(self, progress: float) -> Arc:
+        """Return a transient partial Arc sliced by sweep angle."""
+        p = max(0.0, min(1.0, float(progress)))
+        partial_sweep = self.sweep_angle * p
+        closure_val = self.closure if p >= 1.0 else ArcClosure.OPEN
+        fill_val = self.fill.copy() if (p >= 1.0 and self.fill) else None
+
+        sliced = Arc(
+            center=self.center.copy(),
+            radius_x=self.radius_x,
+            radius_y=self.radius_y,
+            start_angle=self.start_angle,
+            sweep_angle=partial_sweep,
+            closure=closure_val,
+            stroke=self.stroke.copy() if self.stroke else None,
+            fill=fill_val,
+            name=self.name,
+            visible=self.visible,
+            locked=self.locked,
+            opacity=self.opacity,
+            z_index=self.z_index,
+            transform=self.transform.copy(),
+            clip=copy.deepcopy(self.clip),
+            mask=copy.deepcopy(self.mask),
+            effects=[copy.deepcopy(e) for e in self.effects],
+        )
+        sliced.render_progress = 1.0
+        return sliced
 
     def __post_init__(self):
         super().__post_init__()

@@ -58,6 +58,8 @@ class Scene:
         self._layer_order: list[str] = []
         self._id_map: dict[str, Drawable] = {}
         self.history = HistoryManager()
+        from drawcv.animation.timeline import Timeline
+        self.timeline = Timeline()
 
         # Initialize authoritative default layer
         self.create_layer("default", z_order=0)
@@ -756,6 +758,102 @@ class Scene:
         return hits[0] if hits else None
 
     # -------------------------------------------------------------------------
+    # Temporal Evaluation & Non-Destructive Rendering (Phase 8)
+    # -------------------------------------------------------------------------
+
+    def animate(
+        self,
+        target: Any,
+        property_path: str,
+        start_value: Any,
+        end_value: Any,
+        duration: float | int = 1.0,
+        easing: str | Callable[[float], float] = "linear",
+        delay: float | int = 0.0,
+        speed: float | int = 1.0,
+        loop: bool = False,
+    ) -> Any:
+        """Convenience method to create and register an AnimationTrack on the scene timeline."""
+        return self.timeline.animate(
+            target=target,
+            property_path=property_path,
+            start_value=start_value,
+            end_value=end_value,
+            duration=duration,
+            easing=easing,
+            delay=delay,
+            speed=speed,
+            loop=loop,
+        )
+
+    @property
+    def temporal_duration(self) -> float:
+        """Maximum active endpoint across all Drawables with Timing and all Timeline tracks."""
+        max_duration = 0.0
+
+        for track in self.timeline.tracks:
+            if track.timing.loop:
+                return float("inf")
+            max_duration = max(max_duration, track.timing.end_time)
+
+        for d in self._id_map.values():
+            if d.timing is not None:
+                if d.timing.loop:
+                    return float("inf")
+                max_duration = max(max_duration, d.timing.end_time)
+
+        return max_duration
+
+    def sample(self, time: float) -> None:
+        """Advance the scene model in-place to the given timestamp.
+
+        Updates render_progress for all Drawables with Timing, and evaluates
+        all Timeline animation tracks in insertion order.
+        """
+        for d in self._id_map.values():
+            if d.timing is not None:
+                d.render_progress = d.timing.get_progress(time)
+
+        self.timeline.evaluate(time, self)
+
+    def render_at_time(self, time: float, renderer: Any | None = None) -> Any:
+        """Observational, strictly non-destructive evaluation and rendering at a timestamp.
+
+        Captures the exact semantic state of all animated objects and timing progress,
+        temporarily evaluates the scene at time t with history suspended, renders the frame,
+        and unconditionally restores authored state in a finally block.
+        """
+        from drawcv.renderer import OpenCVRenderer
+        active_renderer = renderer if renderer is not None else OpenCVRenderer()
+
+        with self.history.suspended():
+            # 1. Capture snapshot of all Timeline targets (semantic state)
+            target_snapshots: dict[str, tuple[Drawable, dict[str, Any]]] = {}
+            for track in self.timeline.tracks:
+                if track.target_id not in target_snapshots:
+                    obj = self.get(track.target_id)
+                    if obj is not None:
+                        target_snapshots[track.target_id] = (obj, obj._get_semantic_state())
+
+            # 2. Capture original render_progress for all drawables with Timing
+            timing_snapshots: list[tuple[Drawable, float]] = []
+            for d in self._id_map.values():
+                if d.timing is not None:
+                    timing_snapshots.append((d, d.render_progress))
+
+            try:
+                self.sample(time)
+                return active_renderer.render(self)
+            finally:
+                # 3. Restore all render_progress values
+                for d, orig_progress in timing_snapshots:
+                    d.render_progress = orig_progress
+
+                # 4. Restore all mutated semantic states in-place using _apply_semantic_state
+                for obj, state in target_snapshots.values():
+                    obj._apply_semantic_state(state)
+
+    # -------------------------------------------------------------------------
     # Document Serialization
     # -------------------------------------------------------------------------
 
@@ -769,6 +867,7 @@ class Scene:
                 "height": self.height,
                 "background": self.background.to_dict(),
                 "layers": [layer.to_dict() for layer in self.layers],
+                "timeline": self.timeline.to_dict(),
             },
         }
 
@@ -811,6 +910,13 @@ class Scene:
 
         if "default" not in scene._layers:
             scene.create_layer("default", z_order=0)
+
+        # 2. Reconstruct Timeline and resolve target_ids against the populated scene graph
+        from drawcv.animation.timeline import Timeline
+        if "timeline" in scene_data:
+            scene.timeline = Timeline.from_dict(scene_data["timeline"], scene=scene)
+        else:
+            scene.timeline = Timeline()
 
         # Loaded documents have clean history
         scene.history.clear()

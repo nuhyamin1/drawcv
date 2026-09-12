@@ -171,11 +171,24 @@ canvas.save("output.png")
   - **Reversible Operations**: `add`, `remove`, `move_to_front`, `move_to_back`, `move_forward`, `move_backward`, `group`, `ungroup`, `move_object`, `rotate_object`, `scale_object`, `restyle_object`, `with scene.edit(...)`, and `with scene.batch(...)`.
   - **History Invariants**: Automatic redo branch invalidation, no-op edit filtering, exception rollback, and drift-free 50-cycle undo/redo.
 
+- **Phase 8 Capabilities (Temporal Drawing & Animation Engine)**:
+  - **Timing & Pacing Model**: Dedicated `Timing` value object controlling `start_time`, `duration`, `delay`, `speed`, and `loop`, with clamped `get_progress()` for progressive reveal and raw `evaluate()` for property tracks.
+  - **Easing Suite**: 22 standard easing curves across Linear, Quadratic, Cubic, Sine, Exponential, Circular, Elastic, and Bounce families.
+  - **Arc-Length Progressive Path Slicing**: True Euclidean path-length parameterization for `Line`, `Polyline`, `Arrow`, `BezierCurve`, `Path`, `FreehandStroke`, and `Arc` (sweep angle reveal).
+  - **Stroke-First Reveal Semantics**: While `render_progress < 1.0`, shapes progressively expose outline stroke only; interior fills are suppressed until reaching full completion ($p = 1.0$).
+  - **Explicit Progressive Capability**: `supports_progressive_rendering` prevents slicing recursion and ensures non-path shapes (e.g. `Rectangle`, `Circle`) render safely.
+  - **Observational Non-Destructive Sampling**: `scene.render_at_time(t)` evaluates timestamps with suspended history and unconditionally restores authored state in `finally`, preserving live object identity and preventing history pollution.
+  - **Automatic Timing Binding**: `drawable.timing` automatically drives `drawable.render_progress` during temporal evaluation without requiring explicit Timeline tracks.
+  - **Synchronized Timeline**: Multi-track property animations with deterministic insertion-order conflict resolution and comprehensive `scene.temporal_duration` derivation.
+  - **Typed Value Serialization**: `AnimationTrack` persists typed value codecs (`"number"`, `"point"`, `"color"`, `"transform"`, `"bounds"`) and string-only easing contracts.
+  - **Document Schema 1.1 & Migration**: Automatic forward migration from Phase 7 (`"1.0"`) to `"1.1"`, injecting temporal defaults across layers and nested groups.
+  - **Multi-Frame & Video Export**: `VideoRenderer` encoding playable MP4 video via OpenCV `cv2.VideoWriter`, image sequences, and optional Pillow animated GIF.
+
 ---
 
 ## Running Tests & Demos
 
-Run automated unit tests (208 tests):
+Run automated unit tests (240 tests, 100% green):
 
 ```bash
 pytest tests/ -v
@@ -191,6 +204,8 @@ python examples/phase4_demo.py
 python examples/phase5_demo.py
 python examples/phase6_demo.py
 python examples/phase7_demo.py
+python examples/progressive_drawing.py
+python examples/phase8_demo.py
 ```
 
 Generated outputs will be saved to `examples/output/`.
@@ -206,6 +221,6 @@ Generated outputs will be saved to `examples/output/`.
 - [x] **Phase 5 — Freehand Engine**: FreehandStroke, StrokePoint, Chaikin smoothing, Ramer-Douglas-Peucker simplification, Catmull-Rom interpolation, pressure and velocity sensitive variable width.
 - [x] **Phase 6 — Compositing & Effects**: Grayscale masks, clipping rectangles, clipping paths, ImageObject, Text, blur, drop shadows, isolated group/layer offscreen compositing.
 - [x] **Phase 7 — Persistence & History**: Strict canonical JSON serialization, forward schema migration, command-based Undo/Redo engine, live identity preservation, recursive group state snapshots.
-- [ ] **Phase 8 — Temporal Drawing**: Timing metadata, path-length-based progressive rendering (`render_progress`), easing functions, video/frame rendering.
+- [x] **Phase 8 — Temporal Drawing & Animation**: Timing metadata, arc-length progressive rendering, stroke-first reveal, 22 easing curves, non-destructive temporal sampling, Timeline multi-track synchronization, schema 1.1 migration, OpenCV MP4 video encoding.
 
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 from dataclasses import dataclass, field
+import copy
 import math
 from typing import Any
 import uuid
@@ -41,8 +42,50 @@ class FreehandStroke(Drawable):
         velocity_min: Lower bound for velocity normalization (>= 0.0).
         velocity_max: Upper bound for velocity normalization (> velocity_min).
     """
+    supports_progressive_rendering: bool = True
+
     points: list[StrokePoint] = field(default_factory=list)
     stroke: StrokeStyle | None = None
+
+    def slice_at_progress(self, progress: float) -> FreehandStroke:
+        """Return a transient partial FreehandStroke sliced along arc length."""
+        from drawcv.core.path_processing import slice_stroke_points
+        p = max(0.0, min(1.0, float(progress)))
+        sliced_pts = slice_stroke_points(self.points, p)
+        if len(sliced_pts) < 2:
+            if len(sliced_pts) == 1:
+                sliced_pts = [sliced_pts[0], sliced_pts[0].copy()]
+            else:
+                sliced_pts = [StrokePoint(0.0, 0.0), StrokePoint(0.0, 0.0)]
+
+        sliced = FreehandStroke(
+            points=sliced_pts,
+            stroke=self.stroke.copy() if self.stroke else None,
+            smoothing=self.smoothing,
+            smoothing_iterations=self.smoothing_iterations,
+            smoothing_ratio=self.smoothing_ratio,
+            simplification=self.simplification,
+            simplification_tolerance=self.simplification_tolerance,
+            interpolation=self.interpolation,
+            interpolation_samples=self.interpolation_samples,
+            variable_width=self.variable_width,
+            width_mode=self.width_mode,
+            min_width=self.min_width,
+            max_width=self.max_width,
+            velocity_min=self.velocity_min,
+            velocity_max=self.velocity_max,
+            name=self.name,
+            visible=self.visible,
+            locked=self.locked,
+            opacity=self.opacity,
+            z_index=self.z_index,
+            transform=self.transform.copy(),
+            clip=copy.deepcopy(self.clip),
+            mask=copy.deepcopy(self.mask),
+            effects=[copy.deepcopy(e) for e in self.effects],
+        )
+        sliced.render_progress = 1.0
+        return sliced
     smoothing: str | None = None
     smoothing_iterations: int = 1
     smoothing_ratio: float = 0.25

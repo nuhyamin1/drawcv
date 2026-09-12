@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 from dataclasses import dataclass, field
+import copy
 import math
 
 from drawcv.core.bounds import BoundingBox
@@ -20,9 +21,35 @@ class Line(Drawable):
         end: Ending Point in local space.
         stroke: StrokeStyle for outline rendering.
     """
+    supports_progressive_rendering: bool = True
+
     start: Point = field(default_factory=lambda: Point(0.0, 0.0))
     end: Point = field(default_factory=lambda: Point(0.0, 0.0))
     stroke: StrokeStyle = field(default_factory=StrokeStyle)
+
+    def slice_at_progress(self, progress: float) -> Line:
+        """Return a transient partial Line sliced along arc length."""
+        p = max(0.0, min(1.0, float(progress)))
+        cut = Point(
+            (1.0 - p) * self.start.x + p * self.end.x,
+            (1.0 - p) * self.start.y + p * self.end.y,
+        )
+        sliced = Line(
+            start=self.start.copy(),
+            end=cut,
+            stroke=self.stroke.copy() if self.stroke else StrokeStyle(),
+            name=self.name,
+            visible=self.visible,
+            locked=self.locked,
+            opacity=self.opacity,
+            z_index=self.z_index,
+            transform=self.transform.copy(),
+            clip=copy.deepcopy(self.clip),
+            mask=copy.deepcopy(self.mask),
+            effects=[copy.deepcopy(e) for e in self.effects],
+        )
+        sliced.render_progress = 1.0
+        return sliced
 
     def __post_init__(self):
         super().__post_init__()

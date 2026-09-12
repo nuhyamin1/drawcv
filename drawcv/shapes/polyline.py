@@ -1,6 +1,7 @@
 """Polyline shape implementation."""
 
 from __future__ import annotations
+import copy
 from dataclasses import dataclass, field
 
 from drawcv.core.bounds import BoundingBox
@@ -24,9 +25,38 @@ class Polyline(Drawable):
         closed: Whether the last point connects back to the first point.
         stroke: Optional StrokeStyle for stroke rendering.
     """
+    supports_progressive_rendering: bool = True
+
     points: list[Point] = field(default_factory=list)
     closed: bool = False
     stroke: StrokeStyle | None = None
+
+    def slice_at_progress(self, progress: float) -> Polyline:
+        """Return a transient partial Polyline sliced along arc length."""
+        from drawcv.core.path_processing import slice_polyline
+        p = max(0.0, min(1.0, float(progress)))
+        sliced_pts = slice_polyline(self.points, p, closed=self.closed)
+        if len(sliced_pts) < 2:
+            if len(sliced_pts) == 1:
+                sliced_pts = [sliced_pts[0], sliced_pts[0].copy()]
+            else:
+                sliced_pts = [Point(0.0, 0.0), Point(0.0, 0.0)]
+        sliced = Polyline(
+            points=sliced_pts,
+            closed=False if p < 1.0 else self.closed,
+            stroke=self.stroke.copy() if self.stroke else None,
+            name=self.name,
+            visible=self.visible,
+            locked=self.locked,
+            opacity=self.opacity,
+            z_index=self.z_index,
+            transform=self.transform.copy(),
+            clip=copy.deepcopy(self.clip),
+            mask=copy.deepcopy(self.mask),
+            effects=[copy.deepcopy(e) for e in self.effects],
+        )
+        sliced.render_progress = 1.0
+        return sliced
 
     def __post_init__(self):
         super().__post_init__()

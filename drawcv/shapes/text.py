@@ -49,6 +49,9 @@ class Text(Drawable):
         clip: Any | None = None,
         mask: Any | None = None,
         effects: list[Any] | None = None,
+        timing: Any | None = None,
+        render_progress: float = 1.0,
+        **kwargs: Any,
     ):
         super_kwargs: dict[str, Any] = {
             "name": name,
@@ -58,6 +61,8 @@ class Text(Drawable):
             "z_index": z_index,
             "clip": clip,
             "mask": mask,
+            "timing": timing,
+            "render_progress": float(render_progress),
         }
         if id is not None:
             super_kwargs["id"] = id

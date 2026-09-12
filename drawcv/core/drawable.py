@@ -4,6 +4,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 import copy
 from dataclasses import dataclass, field
+import math
 import uuid
 from typing import Any
 import numpy as np
@@ -21,6 +22,8 @@ class Drawable(ABC):
     All drawables maintain identity, appearance flags, metadata, tags,
     and an affine transform hierarchy separating local geometry from world space.
     """
+    supports_progressive_rendering: bool = False
+
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     name: str | None = None
     visible: bool = True
@@ -33,6 +36,8 @@ class Drawable(ABC):
     clip: Any | None = field(default=None)
     mask: Any | None = field(default=None)
     effects: list[Any] = field(default_factory=list)
+    timing: Any | None = field(default=None)
+    render_progress: float = 1.0
     _parent: Any | None = field(default=None, repr=False, compare=False)
     _layer: Any | None = field(default=None, repr=False, compare=False)
     _scene: Any | None = field(default=None, repr=False, compare=False)
@@ -63,6 +68,27 @@ class Drawable(ABC):
             raise ValidationError("Drawable 'transform' must be a Transform instance")
         if not isinstance(self.effects, list):
             raise ValidationError("Drawable 'effects' must be a list")
+        if self.timing is not None:
+            from drawcv.animation.timing import Timing
+            if not isinstance(self.timing, Timing):
+                raise ValidationError(f"Drawable 'timing' must be a Timing instance or None, got {type(self.timing).__name__}")
+        if not isinstance(self.render_progress, (int, float)) or isinstance(self.render_progress, bool):
+            raise ValidationError("Drawable 'render_progress' must be numeric")
+        if math.isnan(self.render_progress) or math.isinf(self.render_progress):
+            raise ValidationError("Drawable 'render_progress' must be finite")
+
+    @property
+    def progress(self) -> float:
+        """Normalized render progress clamped to [0.0, 1.0]."""
+        return self.render_progress
+
+    @progress.setter
+    def progress(self, val: float | int) -> None:
+        if not isinstance(val, (int, float)) or isinstance(val, bool):
+            raise ValidationError(f"Drawable 'progress' must be numeric, got {type(val).__name__}")
+        if math.isnan(val) or math.isinf(val):
+            raise ValidationError(f"Drawable 'progress' must be finite, got {val}")
+        self.render_progress = float(max(0.0, min(1.0, val)))
 
     # -------------------------------------------------------------------------
     # Bounds Hierarchy
@@ -384,6 +410,8 @@ class Drawable(ABC):
             "clip": copy.deepcopy(self.clip),
             "mask": copy.deepcopy(self.mask),
             "effects": [copy.deepcopy(e) for e in self.effects],
+            "timing": self.timing.to_dict() if self.timing is not None else None,
+            "render_progress": float(self.render_progress),
         }
         state.update(self._get_shape_state())
         return state
@@ -413,6 +441,14 @@ class Drawable(ABC):
         effs = state.get("effects", [])
         self.effects = [copy.deepcopy(e) for e in effs]
 
+        timing_val = state.get("timing")
+        if isinstance(timing_val, dict):
+            from drawcv.animation.timing import Timing
+            self.timing = Timing.from_dict(timing_val)
+        else:
+            self.timing = timing_val
+        self.render_progress = float(state.get("render_progress", 1.0))
+
         self._apply_shape_state(state)
 
     # -------------------------------------------------------------------------
@@ -434,6 +470,8 @@ class Drawable(ABC):
             "clip": self.clip.to_dict() if self.clip is not None else None,
             "mask": self.mask.to_dict() if self.mask is not None else None,
             "effects": [e.to_dict() for e in self.effects],
+            "timing": self.timing.to_dict() if self.timing is not None else None,
+            "render_progress": float(self.render_progress),
         }
 
     @classmethod
@@ -445,6 +483,10 @@ class Drawable(ABC):
         mask_val = Mask.from_dict(data.get("mask"))
         effs = [effect_from_dict(e) for e in data.get("effects", [])]
         tf_val = Transform.from_dict(data.get("transform"))
+
+        timing_data = data.get("timing")
+        from drawcv.animation.timing import Timing
+        timing_val = Timing.from_dict(timing_data) if isinstance(timing_data, dict) else None
 
         return {
             "id": data.get("id", str(uuid.uuid4())),
@@ -459,6 +501,8 @@ class Drawable(ABC):
             "clip": clip_val,
             "mask": mask_val,
             "effects": effs,
+            "timing": timing_val,
+            "render_progress": float(data.get("render_progress", 1.0)),
         }
 
     @abstractmethod

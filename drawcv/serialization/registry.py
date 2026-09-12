@@ -11,7 +11,7 @@ from drawcv.core.exceptions import (
     UnsupportedVersionError,
 )
 
-CURRENT_SCHEMA_VERSION = "1.0"
+CURRENT_SCHEMA_VERSION = "1.1"
 CURRENT_FORMAT_IDENTIFIER = "drawcv"
 
 _DRAWABLE_REGISTRY: dict[str, type] = {}
@@ -185,3 +185,33 @@ class SchemaMigrator:
             doc_version = str(current.get("version", "")).strip()
 
         return current
+
+
+def _migrate_1_0_to_1_1(data: dict[str, Any]) -> dict[str, Any]:
+    """Forward-migrate document schema 1.0 to 1.1 supplying Phase 8 temporal defaults."""
+    migrated = copy.deepcopy(data)
+    migrated["version"] = "1.1"
+
+    scene_data = migrated.get("scene", {})
+    if "timeline" not in scene_data:
+        scene_data["timeline"] = {"tracks": []}
+
+    def _patch_drawable(d: dict[str, Any]) -> None:
+        if not isinstance(d, dict):
+            return
+        if "timing" not in d:
+            d["timing"] = None
+        if "render_progress" not in d:
+            d["render_progress"] = 1.0
+        if d.get("type") == "group" and "children" in d:
+            for child in d.get("children", []):
+                _patch_drawable(child)
+
+    for layer in scene_data.get("layers", []):
+        for obj_data in layer.get("objects", []):
+            _patch_drawable(obj_data)
+
+    return migrated
+
+
+SchemaMigrator.register_migration("1.0", _migrate_1_0_to_1_1)

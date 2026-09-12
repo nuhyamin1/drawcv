@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 from dataclasses import dataclass, field
+import copy
 import math
 
 from drawcv.core.bounds import BoundingBox
@@ -28,11 +29,47 @@ class BezierCurve(Drawable):
         p3: Optional End Point (if cubic).
         stroke: Optional StrokeStyle for stroke rendering.
     """
+    supports_progressive_rendering: bool = True
+
     p0: Point = field(default_factory=lambda: Point(0.0, 0.0))
     p1: Point = field(default_factory=lambda: Point(50.0, 100.0))
     p2: Point = field(default_factory=lambda: Point(100.0, 0.0))
     p3: Point | None = None
     stroke: StrokeStyle | None = None
+
+    def slice_at_progress(self, progress: float) -> BezierCurve:
+        """Return a transient partial BezierCurve sliced along arc length."""
+        from drawcv.core.path_processing import slice_bezier
+        p = max(0.0, min(1.0, float(progress)))
+
+        if self.is_cubic:
+            q0, q1, q2, q3 = slice_bezier(self.p0, self.p1, self.p2, self.p3, p)
+        else:
+            c1 = Point(
+                self.p0.x + (2.0 / 3.0) * (self.p1.x - self.p0.x),
+                self.p0.y + (2.0 / 3.0) * (self.p1.y - self.p0.y),
+            )
+            c2 = Point(
+                self.p2.x + (2.0 / 3.0) * (self.p1.x - self.p2.x),
+                self.p2.y + (2.0 / 3.0) * (self.p1.y - self.p2.y),
+            )
+            q0, q1, q2, q3 = slice_bezier(self.p0, c1, c2, self.p2, p)
+
+        sliced = BezierCurve(
+            p0=q0, p1=q1, p2=q2, p3=q3,
+            stroke=self.stroke.copy() if self.stroke else None,
+            name=self.name,
+            visible=self.visible,
+            locked=self.locked,
+            opacity=self.opacity,
+            z_index=self.z_index,
+            transform=self.transform.copy(),
+            clip=copy.deepcopy(self.clip),
+            mask=copy.deepcopy(self.mask),
+            effects=[copy.deepcopy(e) for e in self.effects],
+        )
+        sliced.render_progress = 1.0
+        return sliced
 
     def __post_init__(self):
         super().__post_init__()

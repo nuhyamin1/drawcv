@@ -123,10 +123,31 @@ class Path(Drawable):
         stroke: Optional StrokeStyle.
         fill: Optional FillStyle.
     """
+    supports_progressive_rendering: bool = True
+
     subpaths: list[Subpath] = field(default_factory=list)
     fill_rule: FillRule = FillRule.EVEN_ODD
     stroke: StrokeStyle | None = None
     fill: FillStyle | None = None
+
+    def slice_at_progress(self, progress: float) -> Path:
+        """Return a transient partial Path sliced along arc length."""
+        from drawcv.core.path_processing import slice_path
+        p = max(0.0, min(1.0, float(progress)))
+        sliced_path = slice_path(self, p)
+        sliced_path.stroke = self.stroke.copy() if self.stroke else None
+        sliced_path.fill = self.fill.copy() if (p >= 1.0 and self.fill) else None
+        sliced_path.name = self.name
+        sliced_path.visible = self.visible
+        sliced_path.locked = self.locked
+        sliced_path.opacity = self.opacity
+        sliced_path.z_index = self.z_index
+        sliced_path.transform = self.transform.copy()
+        sliced_path.clip = copy.deepcopy(self.clip)
+        sliced_path.mask = copy.deepcopy(self.mask)
+        sliced_path.effects = [copy.deepcopy(e) for e in self.effects]
+        sliced_path.render_progress = 1.0
+        return sliced_path
 
     def __post_init__(self):
         super().__post_init__()

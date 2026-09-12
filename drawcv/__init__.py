@@ -105,8 +105,31 @@ from drawcv.shapes.rounded_rectangle import RoundedRectangle
 from drawcv.shapes.text import Text
 from drawcv.styles.fill import FillStyle
 from drawcv.styles.stroke import StrokeStyle
+from drawcv.animation import (
+    AnimationTrack,
+    EASING_FUNCTIONS,
+    Timeline,
+    Timing,
+    VideoRenderer,
+    ease_in,
+    ease_in_out,
+    ease_out,
+    get_easing,
+    lerp,
+    lerp_bounds,
+    lerp_color,
+    lerp_point,
+    lerp_transform,
+    linear,
+)
+from drawcv.core.path_processing import (
+    slice_bezier,
+    slice_path,
+    slice_polyline,
+    slice_stroke_points,
+)
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"
 
 __all__ = [
     "AddObjectCommand",
@@ -117,6 +140,7 @@ __all__ = [
     "align_left",
     "align_right",
     "align_top",
+    "AnimationTrack",
     "Arc",
     "ArcClosure",
     "Arrow",
@@ -144,6 +168,10 @@ __all__ = [
     "distribute_vertically",
     "Drawable",
     "DrawCVError",
+    "ease_in",
+    "ease_in_out",
+    "ease_out",
+    "EASING_FUNCTIONS",
     "Effect",
     "Ellipse",
     "FillRule",
@@ -151,6 +179,7 @@ __all__ = [
     "FontFamily",
     "FreehandStroke",
     "from_json",
+    "get_easing",
     "Group",
     "GroupCommand",
     "HistoryManager",
@@ -159,7 +188,13 @@ __all__ = [
     "InvalidFormatError",
     "JoinStyle",
     "Layer",
+    "lerp",
+    "lerp_bounds",
+    "lerp_color",
+    "lerp_point",
+    "lerp_transform",
     "Line",
+    "linear",
     "LineTo",
     "LineType",
     "Mask",
@@ -189,12 +224,18 @@ __all__ = [
     "Selection",
     "SerializationError",
     "ShadowEffect",
+    "slice_bezier",
+    "slice_path",
+    "slice_polyline",
+    "slice_stroke_points",
     "StateEditCommand",
     "StrokePoint",
     "StrokeStyle",
     "Subpath",
     "Text",
     "TextAlignment",
+    "Timeline",
+    "Timing",
     "to_json",
     "Transform",
     "TransformCommand",
@@ -202,4 +243,5 @@ __all__ = [
     "UnknownDrawableTypeError",
     "UnsupportedVersionError",
     "ValidationError",
+    "VideoRenderer",
 ]
