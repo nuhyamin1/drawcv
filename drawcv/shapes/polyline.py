@@ -97,7 +97,7 @@ class Polyline(Drawable):
 
     def get_local_bounds(self) -> BoundingBox:
         """Visual bounds in local space (including stroke width expansion)."""
-        half_stroke = (self.stroke.width / 2.0) if self.stroke else 0.0
+        half_stroke = (self.stroke.bounds_padding) if self.stroke else 0.0
         return self.get_geometry_bounds().expand(half_stroke)
 
     def get_bounds(self) -> BoundingBox:
@@ -108,7 +108,7 @@ class Polyline(Drawable):
         min_x, max_x = min(xs), max(xs)
         min_y, max_y = min(ys), max(ys)
         geom_aabb = BoundingBox(min_x, min_y, max_x - min_x, max_y - min_y)
-        half_stroke = (self.stroke.width / 2.0) if self.stroke else 0.0
+        half_stroke = (self.stroke.bounds_padding) if self.stroke else 0.0
         return geom_aabb.expand(half_stroke)
 
     # -------------------------------------------------------------------------

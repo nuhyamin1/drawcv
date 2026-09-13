@@ -11,20 +11,14 @@ class LineType(Enum):
 
 
 class CapStyle(Enum):
-    """Cap styles for stroke terminals.
-    
-    Note: Full vector cap rendering support is deferred to future phases.
-    """
+    """Cap styles for stroke terminals."""
     BUTT = "butt"
     ROUND = "round"
     SQUARE = "square"
 
 
 class JoinStyle(Enum):
-    """Join styles for connected stroke segments.
-    
-    Note: Full vector join rendering support is deferred to future phases.
-    """
+    """Join styles for connected stroke segments."""
     MITER = "miter"
     ROUND = "round"
     BEVEL = "bevel"

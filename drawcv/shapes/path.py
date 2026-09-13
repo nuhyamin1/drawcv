@@ -235,13 +235,14 @@ class Path(Drawable):
     # Screen-Space Flattening
     # -------------------------------------------------------------------------
 
-    def flatten_world(self, tolerance: float = 0.5) -> list[list[Point]]:
+    def flatten_world(self, tolerance: float = 0.5, *, include_closed: bool = False):
         """Derive flattened point contours mapped directly into world space.
         
         Evaluates de Casteljau adaptive subdivision on transformed control points
         so the tolerance (in screen pixels) remains scale-invariant.
         """
         world_contours: list[list[Point]] = []
+        closed_flags: list[bool] = []
 
         for sp in self.subpaths:
             if not sp.commands:
@@ -256,6 +257,7 @@ class Path(Drawable):
                     pt_w = self.to_world(cmd.point)
                     if contour:
                         world_contours.append(contour)
+                        closed_flags.append(False)
                         contour = []
                     current_w = pt_w
                     start_w = pt_w
@@ -301,7 +303,10 @@ class Path(Drawable):
 
             if contour:
                 world_contours.append(contour)
+                closed_flags.append(sp.closed)
 
+        if include_closed:
+            return list(zip(world_contours, closed_flags))
         return world_contours
 
     # -------------------------------------------------------------------------
@@ -342,7 +347,7 @@ class Path(Drawable):
 
     def get_local_bounds(self) -> BoundingBox:
         """Visual bounds in local space."""
-        half_stroke = (self.stroke.width / 2.0) if self.stroke else 0.0
+        half_stroke = (self.stroke.bounds_padding) if self.stroke else 0.0
         return self.get_geometry_bounds().expand(half_stroke)
 
     def get_bounds(self) -> BoundingBox:
@@ -382,7 +387,7 @@ class Path(Drawable):
         for b in all_boxes[1:]:
             result = result.union(b)
 
-        half_stroke = (self.stroke.width / 2.0) if self.stroke else 0.0
+        half_stroke = (self.stroke.bounds_padding) if self.stroke else 0.0
         return result.expand(half_stroke)
 
     # -------------------------------------------------------------------------

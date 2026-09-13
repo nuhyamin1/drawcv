@@ -192,9 +192,9 @@ def test_schema_1_0_to_1_1_migration():
 
     assert isinstance(scene.timeline, Timeline)
 
-    # Re-serialization writes 1.1
+    # Re-serialization writes the current stroke-aware schema.
     doc = scene.to_dict()
-    assert doc["version"] == "1.1"
+    assert doc["version"] == "1.2"
 
 
 def test_typed_animation_tracks_round_trip():

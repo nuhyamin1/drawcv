@@ -38,10 +38,18 @@ class HistoryManager:
         self._batch_stack.append(compound)
         try:
             yield compound
-        finally:
+        except Exception:
+            with self.suspended():
+                compound.undo()
+            raise
+        else:
             self._batch_stack.pop()
             if not compound.is_noop():
                 self.record(compound)
+            return
+        finally:
+            if self._batch_stack and self._batch_stack[-1] is compound:
+                self._batch_stack.pop()
 
     def record(self, command: Command) -> None:
         """Record an executed command into the undo history.
@@ -77,9 +85,10 @@ class HistoryManager:
         if not self._undo_stack:
             return False
 
-        cmd = self._undo_stack.pop()
+        cmd = self._undo_stack[-1]
         with self.suspended():
             cmd.undo()
+        self._undo_stack.pop()
         self._redo_stack.append(cmd)
         return True
 
@@ -92,9 +101,10 @@ class HistoryManager:
         if not self._redo_stack:
             return False
 
-        cmd = self._redo_stack.pop()
+        cmd = self._redo_stack[-1]
         with self.suspended():
             cmd.redo()
+        self._redo_stack.pop()
         self._undo_stack.append(cmd)
         return True
 

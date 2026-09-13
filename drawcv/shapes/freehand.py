@@ -345,7 +345,7 @@ class FreehandStroke(Drawable):
         if not pts:
             return BoundingBox(0.0, 0.0, 0.0, 0.0)
         widths = self.get_point_widths(pts)
-        max_half_w = (max(widths) / 2.0) if widths else (self.stroke.width / 2.0 if self.stroke else 0.0)
+        max_half_w = (max(widths) * (self.stroke.bounds_padding / self.stroke.width if self.stroke else 0.5)) if widths else (self.stroke.bounds_padding if self.stroke else 0.0)
         xs = [p.x for p in pts]
         ys = [p.y for p in pts]
         min_x, max_x = min(xs), max(xs)
@@ -365,7 +365,7 @@ class FreehandStroke(Drawable):
         min_x, max_x = float(np.min(xs)), float(np.max(xs))
         min_y, max_y = float(np.min(ys)), float(np.max(ys))
         widths = self.get_point_widths(pts)
-        max_half_w = (max(widths) / 2.0) if widths else (self.stroke.width / 2.0 if self.stroke else 0.0)
+        max_half_w = (max(widths) * (self.stroke.bounds_padding / self.stroke.width if self.stroke else 0.5)) if widths else (self.stroke.bounds_padding if self.stroke else 0.0)
         return BoundingBox(min_x, min_y, max_x - min_x, max_y - min_y).expand(max_half_w)
 
     def get_bounds_in_parent(self) -> BoundingBox:
@@ -382,7 +382,7 @@ class FreehandStroke(Drawable):
         min_x, max_x = float(np.min(xs)), float(np.max(xs))
         min_y, max_y = float(np.min(ys)), float(np.max(ys))
         widths = self.get_point_widths(pts)
-        max_half_w = (max(widths) / 2.0) if widths else (self.stroke.width / 2.0 if self.stroke else 0.0)
+        max_half_w = (max(widths) * (self.stroke.bounds_padding / self.stroke.width if self.stroke else 0.5)) if widths else (self.stroke.bounds_padding if self.stroke else 0.0)
         return BoundingBox(min_x, min_y, max_x - min_x, max_y - min_y).expand(max_half_w)
 
     # -------------------------------------------------------------------------

@@ -172,7 +172,7 @@ class Arrow(Drawable):
 
     def get_local_bounds(self) -> BoundingBox:
         """Visual bounds in local space."""
-        half_stroke = (self.stroke.width / 2.0) if self.stroke else 0.0
+        half_stroke = (self.stroke.bounds_padding) if self.stroke else 0.0
         extra = max(half_stroke, self.head_width / 2.0, self.head_length)
         return self.get_geometry_bounds().expand(extra)
 
@@ -192,7 +192,7 @@ class Arrow(Drawable):
         xs = [p.x for p in all_pts]
         ys = [p.y for p in all_pts]
         geom_aabb = BoundingBox(min(xs), min(ys), max(xs) - min(xs), max(ys) - min(ys))
-        half_stroke = (self.stroke.width / 2.0) if self.stroke else 0.0
+        half_stroke = (self.stroke.bounds_padding) if self.stroke else 0.0
         return geom_aabb.expand(half_stroke)
 
     # -------------------------------------------------------------------------

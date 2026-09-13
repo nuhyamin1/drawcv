@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 from dataclasses import dataclass, field
+from typing import Any
 
 from drawcv.core.color import Color
 from drawcv.core.exceptions import ValidationError
+from drawcv.core.validation import validated_setattr
 
 
 @dataclass
@@ -35,9 +37,7 @@ class FillStyle:
             raise ValidationError(f"FillStyle 'opacity' must be in range [0.0, 1.0], got {self.opacity}")
 
     def __setattr__(self, name, value):
-        super().__setattr__(name, value)
-        if getattr(self, "_initialized", False):
-            self._validate()
+        validated_setattr(self, name, value)
 
     def copy(self) -> FillStyle:
         """Return an independent copy of this FillStyle."""

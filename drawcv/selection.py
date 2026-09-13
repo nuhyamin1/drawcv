@@ -1,6 +1,7 @@
 """Logical selection management for DrawCV scenes."""
 
 from __future__ import annotations
+from drawcv.core.validation import atomic_transforms
 import math
 from typing import Any, Iterator
 
@@ -135,6 +136,7 @@ class Selection:
     # Spatial Transformation Operations
     # -------------------------------------------------------------------------
 
+    @atomic_transforms
     def move(self, dx: float | int, dy: float | int) -> None:
         """Translate all selected transform roots by (dx, dy)."""
         roots = self._get_transform_roots()
@@ -142,6 +144,7 @@ class Selection:
         for root in roots:
             root.move(dx, dy)
 
+    @atomic_transforms
     def rotate(self, degrees: float | int, pivot: Point | None = None) -> None:
         """Rotate all selected transform roots rigidly around pivot (default: selection center)."""
         roots = self._get_transform_roots()
@@ -167,6 +170,7 @@ class Selection:
             root.rotate(degrees)
             root.move(shift_x, shift_y)
 
+    @atomic_transforms
     def scale(self, sx: float | int, sy: float | int | None = None, pivot: Point | None = None) -> None:
         """Scale all selected transform roots relative to pivot (default: selection center)."""
         roots = self._get_transform_roots()
@@ -185,7 +189,7 @@ class Selection:
             shift_x = new_C.x - C.x
             shift_y = new_C.y - C.y
 
-            root.scale(sx, sy_val)
+            root.scale(sx, sy)
             root.move(shift_x, shift_y)
 
     # -------------------------------------------------------------------------
@@ -233,13 +237,17 @@ class Selection:
 
     def set_opacity(self, opacity: float) -> None:
         """Set opacity for all selected objects."""
+        if isinstance(opacity, bool) or not isinstance(opacity, (int, float)) or not 0 <= opacity <= 1:
+            raise ValidationError("Opacity must be numeric in [0, 1]")
         for obj in self._objects:
             obj.opacity = float(opacity)
 
     def set_z_index(self, z_index: int) -> None:
         """Set z_index for all selected objects."""
+        if isinstance(z_index, bool) or not isinstance(z_index, int):
+            raise ValidationError("z_index must be an integer")
         for obj in self._objects:
-            obj.z_index = int(z_index)
+            obj.z_index = z_index
 
     # -------------------------------------------------------------------------
     # Grouping

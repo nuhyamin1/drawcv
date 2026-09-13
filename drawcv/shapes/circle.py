@@ -69,7 +69,7 @@ class Circle(Drawable):
 
     def get_local_bounds(self) -> BoundingBox:
         """Visual bounds in local space (including stroke width expansion)."""
-        half_stroke = (self.stroke.width / 2.0) if self.stroke else 0.0
+        half_stroke = (self.stroke.bounds_padding) if self.stroke else 0.0
         return self.get_geometry_bounds().expand(half_stroke)
 
     def get_bounds(self) -> BoundingBox:
@@ -87,7 +87,7 @@ class Circle(Drawable):
         y_ext = math.sqrt((b * r) ** 2 + (d * r) ** 2)
 
         geom_aabb = BoundingBox(w_center.x - x_ext, w_center.y - y_ext, 2.0 * x_ext, 2.0 * y_ext)
-        half_stroke = (self.stroke.width / 2.0) if self.stroke else 0.0
+        half_stroke = (self.stroke.bounds_padding) if self.stroke else 0.0
         return geom_aabb.expand(half_stroke)
 
     # -------------------------------------------------------------------------

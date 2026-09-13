@@ -22,6 +22,7 @@ from drawcv.core.enums import (
 )
 from drawcv.core.exceptions import RenderError, ValidationError
 from drawcv.core.geometry import Point
+from drawcv.core.stroking import stroke_mask
 from drawcv.core.geometry_utils import _FONT_FAMILY_TO_CV, evaluate_fill_rule_mask, flatten_arc
 from drawcv.effects.blur import BlurEffect
 from drawcv.effects.clipping import ClipPath, ClipRect
@@ -143,6 +144,11 @@ class OpenCVRenderer:
             return
         if prog < 1.0 and getattr(drawable, "supports_progressive_rendering", False):
             sliced = drawable.slice_at_progress(prog)
+            sliced.transform = drawable.transform.copy()
+            if sliced.transform.pivot is None:
+                # Assign directly so an authoritative matrix is not invalidated.
+                object.__setattr__(sliced.transform, "pivot", drawable.get_geometry_bounds().center)
+            sliced._parent, sliced._layer = drawable._parent, drawable._layer
             sliced.render_progress = 1.0  # Invariant: prevent recursive slicing
             self._render_single(sliced, canvas)
             return
@@ -376,30 +382,8 @@ class OpenCVRenderer:
     # Centralized Shape Renderers
     # -------------------------------------------------------------------------
 
-    def _render_line(self, line: Line, canvas: Canvas | _IsolatedSurface) -> None:
-        stroke = line.stroke
-        if stroke is None or stroke.width <= 0:
-            return
-
-        eff_alpha = stroke.color.a * stroke.opacity * self._get_render_opacity(line)
-        if eff_alpha <= 0.0:
-            return
-
-        w_p1 = line.to_world(line.start)
-        w_p2 = line.to_world(line.end)
-        p1 = (int(round(w_p1.x)), int(round(w_p1.y)))
-        p2 = (int(round(w_p2.x)), int(round(w_p2.y)))
-        thickness = max(1, int(round(stroke.width)))
-        cv_line_type = self._get_cv_line_type(stroke.line_type)
-        bgr = stroke.color.to_bgr()
-
-        if self._is_direct_draw(canvas, eff_alpha):
-            cv2.line(canvas.buffer, p1, p2, bgr, thickness, cv_line_type)
-        else:
-            mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-            cv2.line(mask, p1, p2, 255, thickness, cv_line_type)
-            bounds = line.get_bounds()
-            self._composite_mask(canvas, mask, bgr, eff_alpha, bounds)
+    def _render_line(self, line, canvas):
+        self._stroke_contours(line, canvas, [([line.to_world(line.start), line.to_world(line.end)], False)])
 
     def _render_rectangle(self, rect: Rectangle, canvas: Canvas | _IsolatedSurface) -> None:
         if rect.width <= 0 or rect.height <= 0:
@@ -425,33 +409,16 @@ class OpenCVRenderer:
                     cv2.fillPoly(mask, [pts], 255, cv2.LINE_AA)
                     self._composite_mask(canvas, mask, fill_bgr, fill_alpha, bounds)
 
-        # 2. Render Stroke if specified (non-scaling screen thickness)
-        stroke = rect.stroke
-        if stroke is not None and stroke.width > 0 and stroke.opacity > 0.0:
-            stroke_alpha = stroke.color.a * stroke.opacity * self._get_render_opacity(rect)
-            if stroke_alpha > 0.0:
-                stroke_bgr = stroke.color.to_bgr()
-                thickness = max(1, int(round(stroke.width)))
-                cv_line_type = self._get_cv_line_type(stroke.line_type)
-                if self._is_direct_draw(canvas, stroke_alpha):
-                    cv2.polylines(canvas.buffer, [pts], isClosed=True, color=stroke_bgr, thickness=thickness, lineType=cv_line_type)
-                else:
-                    mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-                    cv2.polylines(mask, [pts], isClosed=True, color=255, thickness=thickness, lineType=cv_line_type)
-                    self._composite_mask(canvas, mask, stroke_bgr, stroke_alpha, bounds)
+        self._stroke_contours(rect, canvas, [(world_corners, True)])
 
     def _render_circle(self, circle: Circle, canvas: Canvas | _IsolatedSurface) -> None:
         if circle.radius <= 0:
             return
-
-        w_center = circle.to_world(circle.center)
-        center_pt = (int(round(w_center.x)), int(round(w_center.y)))
+        sampled = flatten_arc(circle.center, circle.radius, circle.radius, 0, 360,
+                              tolerance=self._curve_tolerance(circle))
+        world_pts = [circle.to_world(p) for p in sampled]
+        pts = np.rint([[p.x, p.y] for p in world_pts]).astype(np.int32)
         bounds = circle.get_bounds()
-
-        sx = circle.transform.scale_x
-        sy = circle.transform.scale_y
-        r = float(circle.radius)
-        is_uniform = math.isclose(sx, sy, rel_tol=1e-5)
 
         # 1. Render Fill if enabled
         fill = circle.fill
@@ -459,55 +426,21 @@ class OpenCVRenderer:
             fill_alpha = fill.color.a * fill.opacity * self._get_render_opacity(circle)
             if fill_alpha > 0.0:
                 fill_bgr = fill.color.to_bgr()
-                if is_uniform:
-                    scaled_r = max(1, int(round(r * sx)))
-                    if self._is_direct_draw(canvas, fill_alpha):
-                        cv2.circle(canvas.buffer, center_pt, scaled_r, fill_bgr, -1, cv2.LINE_AA)
-                    else:
-                        mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-                        cv2.circle(mask, center_pt, scaled_r, 255, -1, cv2.LINE_AA)
-                        self._composite_mask(canvas, mask, fill_bgr, fill_alpha, bounds)
+                if self._is_direct_draw(canvas, fill_alpha):
+                    cv2.fillPoly(canvas.buffer, [pts], fill_bgr, cv2.LINE_AA)
                 else:
-                    axes = (max(1, int(round(r * sx))), max(1, int(round(r * sy))))
-                    angle = circle.transform.rotation
-                    if self._is_direct_draw(canvas, fill_alpha):
-                        cv2.ellipse(canvas.buffer, center_pt, axes, angle, 0, 360, fill_bgr, -1, cv2.LINE_AA)
-                    else:
-                        mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-                        cv2.ellipse(mask, center_pt, axes, angle, 0, 360, 255, -1, cv2.LINE_AA)
-                        self._composite_mask(canvas, mask, fill_bgr, fill_alpha, bounds)
+                    mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
+                    cv2.fillPoly(mask, [pts], 255, cv2.LINE_AA)
+                    self._composite_mask(canvas, mask, fill_bgr, fill_alpha, bounds)
 
-        # 2. Render Stroke if specified (non-scaling screen thickness)
-        stroke = circle.stroke
-        if stroke is not None and stroke.width > 0 and stroke.opacity > 0.0:
-            stroke_alpha = stroke.color.a * stroke.opacity * self._get_render_opacity(circle)
-            if stroke_alpha > 0.0:
-                stroke_bgr = stroke.color.to_bgr()
-                thickness = max(1, int(round(stroke.width)))
-                cv_line_type = self._get_cv_line_type(stroke.line_type)
-                if is_uniform:
-                    scaled_r = max(1, int(round(r * sx)))
-                    if self._is_direct_draw(canvas, stroke_alpha):
-                        cv2.circle(canvas.buffer, center_pt, scaled_r, stroke_bgr, thickness, cv_line_type)
-                    else:
-                        mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-                        cv2.circle(mask, center_pt, scaled_r, 255, thickness, cv_line_type)
-                        self._composite_mask(canvas, mask, stroke_bgr, stroke_alpha, bounds)
-                else:
-                    axes = (max(1, int(round(r * sx))), max(1, int(round(r * sy))))
-                    angle = circle.transform.rotation
-                    if self._is_direct_draw(canvas, stroke_alpha):
-                        cv2.ellipse(canvas.buffer, center_pt, axes, angle, 0, 360, stroke_bgr, thickness, cv_line_type)
-                    else:
-                        mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-                        cv2.ellipse(mask, center_pt, axes, angle, 0, 360, 255, thickness, cv_line_type)
-                        self._composite_mask(canvas, mask, stroke_bgr, stroke_alpha, bounds)
+        self._stroke_contours(circle, canvas, [(world_pts, True)])
 
     def _render_ellipse(self, ellipse: Ellipse, canvas: Canvas | _IsolatedSurface) -> None:
         if ellipse.radius_x <= 0 or ellipse.radius_y <= 0:
             return
 
-        sampled = flatten_arc(ellipse.center, ellipse.radius_x, ellipse.radius_y, 0.0, 360.0, tolerance=0.5)
+        sampled = flatten_arc(ellipse.center, ellipse.radius_x, ellipse.radius_y, 0.0, 360.0,
+                              tolerance=self._curve_tolerance(ellipse))
         world_pts = [ellipse.to_world(p) for p in sampled]
         pts = np.array([[int(round(p.x)), int(round(p.y))] for p in world_pts], dtype=np.int32).reshape((-1, 1, 2))
         bounds = ellipse.get_bounds()
@@ -525,20 +458,7 @@ class OpenCVRenderer:
                     cv2.fillPoly(mask, [pts], 255, cv2.LINE_AA)
                     self._composite_mask(canvas, mask, fill_bgr, fill_alpha, bounds)
 
-        # 2. Stroke
-        stroke = ellipse.stroke
-        if stroke is not None and stroke.width > 0 and stroke.opacity > 0.0:
-            stroke_alpha = stroke.color.a * stroke.opacity * self._get_render_opacity(ellipse)
-            if stroke_alpha > 0.0:
-                stroke_bgr = stroke.color.to_bgr()
-                thickness = max(1, int(round(stroke.width)))
-                cv_line_type = self._get_cv_line_type(stroke.line_type)
-                if self._is_direct_draw(canvas, stroke_alpha):
-                    cv2.polylines(canvas.buffer, [pts], isClosed=True, color=stroke_bgr, thickness=thickness, lineType=cv_line_type)
-                else:
-                    mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-                    cv2.polylines(mask, [pts], isClosed=True, color=255, thickness=thickness, lineType=cv_line_type)
-                    self._composite_mask(canvas, mask, stroke_bgr, stroke_alpha, bounds)
+        self._stroke_contours(ellipse, canvas, [(world_pts, True)])
 
     def _render_polygon(self, polygon: Polygon, canvas: Canvas | _IsolatedSurface) -> None:
         if len(polygon.vertices) < 3:
@@ -561,45 +481,13 @@ class OpenCVRenderer:
                     cv2.fillPoly(mask, [pts], 255, cv2.LINE_AA)
                     self._composite_mask(canvas, mask, fill_bgr, fill_alpha, bounds)
 
-        # 2. Stroke
-        stroke = polygon.stroke
-        if stroke is not None and stroke.width > 0 and stroke.opacity > 0.0:
-            stroke_alpha = stroke.color.a * stroke.opacity * self._get_render_opacity(polygon)
-            if stroke_alpha > 0.0:
-                stroke_bgr = stroke.color.to_bgr()
-                thickness = max(1, int(round(stroke.width)))
-                cv_line_type = self._get_cv_line_type(stroke.line_type)
-                if self._is_direct_draw(canvas, stroke_alpha):
-                    cv2.polylines(canvas.buffer, [pts], isClosed=True, color=stroke_bgr, thickness=thickness, lineType=cv_line_type)
-                else:
-                    mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-                    cv2.polylines(mask, [pts], isClosed=True, color=255, thickness=thickness, lineType=cv_line_type)
-                    self._composite_mask(canvas, mask, stroke_bgr, stroke_alpha, bounds)
+        self._stroke_contours(polygon, canvas, [(world_pts, True)])
 
-    def _render_polyline(self, polyline: Polyline, canvas: Canvas | _IsolatedSurface) -> None:
-        if len(polyline.points) < 2:
-            return
-
-        world_pts = [polyline.to_world(p) for p in polyline.points]
-        pts = np.array([[int(round(p.x)), int(round(p.y))] for p in world_pts], dtype=np.int32).reshape((-1, 1, 2))
-        bounds = polyline.get_bounds()
-
-        stroke = polyline.stroke
-        if stroke is not None and stroke.width > 0 and stroke.opacity > 0.0:
-            stroke_alpha = stroke.color.a * stroke.opacity * self._get_render_opacity(polyline)
-            if stroke_alpha > 0.0:
-                stroke_bgr = stroke.color.to_bgr()
-                thickness = max(1, int(round(stroke.width)))
-                cv_line_type = self._get_cv_line_type(stroke.line_type)
-                if self._is_direct_draw(canvas, stroke_alpha):
-                    cv2.polylines(canvas.buffer, [pts], isClosed=polyline.closed, color=stroke_bgr, thickness=thickness, lineType=cv_line_type)
-                else:
-                    mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-                    cv2.polylines(mask, [pts], isClosed=polyline.closed, color=255, thickness=thickness, lineType=cv_line_type)
-                    self._composite_mask(canvas, mask, stroke_bgr, stroke_alpha, bounds)
+    def _render_polyline(self, polyline, canvas):
+        self._stroke_contours(polyline, canvas, [([polyline.to_world(p) for p in polyline.points], polyline.closed)])
 
     def _render_rounded_rectangle(self, rect: RoundedRectangle, canvas: Canvas | _IsolatedSurface) -> None:
-        local_pts = rect.get_contour_points(tolerance=0.5)
+        local_pts = rect.get_contour_points(tolerance=self._curve_tolerance(rect))
         world_pts = [rect.to_world(p) for p in local_pts]
         pts = np.array([[int(round(p.x)), int(round(p.y))] for p in world_pts], dtype=np.int32).reshape((-1, 1, 2))
         bounds = rect.get_bounds()
@@ -617,23 +505,10 @@ class OpenCVRenderer:
                     cv2.fillPoly(mask, [pts], 255, cv2.LINE_AA)
                     self._composite_mask(canvas, mask, fill_bgr, fill_alpha, bounds)
 
-        # 2. Stroke
-        stroke = rect.stroke
-        if stroke is not None and stroke.width > 0 and stroke.opacity > 0.0:
-            stroke_alpha = stroke.color.a * stroke.opacity * self._get_render_opacity(rect)
-            if stroke_alpha > 0.0:
-                stroke_bgr = stroke.color.to_bgr()
-                thickness = max(1, int(round(stroke.width)))
-                cv_line_type = self._get_cv_line_type(stroke.line_type)
-                if self._is_direct_draw(canvas, stroke_alpha):
-                    cv2.polylines(canvas.buffer, [pts], isClosed=True, color=stroke_bgr, thickness=thickness, lineType=cv_line_type)
-                else:
-                    mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-                    cv2.polylines(mask, [pts], isClosed=True, color=255, thickness=thickness, lineType=cv_line_type)
-                    self._composite_mask(canvas, mask, stroke_bgr, stroke_alpha, bounds)
+        self._stroke_contours(rect, canvas, [(world_pts, True)])
 
     def _render_arc(self, arc: Arc, canvas: Canvas | _IsolatedSurface) -> None:
-        local_pts = arc.get_contour_points(tolerance=0.5)
+        local_pts = arc.get_contour_points(tolerance=self._curve_tolerance(arc))
         world_pts = [arc.to_world(p) for p in local_pts]
         pts = np.array([[int(round(p.x)), int(round(p.y))] for p in world_pts], dtype=np.int32).reshape((-1, 1, 2))
         bounds = arc.get_bounds()
@@ -652,20 +527,7 @@ class OpenCVRenderer:
                     cv2.fillPoly(mask, [pts], 255, cv2.LINE_AA)
                     self._composite_mask(canvas, mask, fill_bgr, fill_alpha, bounds)
 
-        # 2. Stroke
-        stroke = arc.stroke
-        if stroke is not None and stroke.width > 0 and stroke.opacity > 0.0:
-            stroke_alpha = stroke.color.a * stroke.opacity * self._get_render_opacity(arc)
-            if stroke_alpha > 0.0:
-                stroke_bgr = stroke.color.to_bgr()
-                thickness = max(1, int(round(stroke.width)))
-                cv_line_type = self._get_cv_line_type(stroke.line_type)
-                if self._is_direct_draw(canvas, stroke_alpha):
-                    cv2.polylines(canvas.buffer, [pts], isClosed=is_closed, color=stroke_bgr, thickness=thickness, lineType=cv_line_type)
-                else:
-                    mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-                    cv2.polylines(mask, [pts], isClosed=is_closed, color=255, thickness=thickness, lineType=cv_line_type)
-                    self._composite_mask(canvas, mask, stroke_bgr, stroke_alpha, bounds)
+        self._stroke_contours(arc, canvas, [(world_pts, is_closed)])
 
     def _render_arrow(self, arrow: Arrow, canvas: Canvas | _IsolatedSurface) -> None:
         """Render an Arrow with shaft stroke and marker terminals."""
@@ -681,18 +543,10 @@ class OpenCVRenderer:
         w_end, head_pts = arrow.get_world_head_geometry()
         bounds = arrow.get_bounds()
         stroke_bgr = stroke.color.to_bgr()
-        thickness = max(1, int(round(stroke.width)))
-        cv_line_type = self._get_cv_line_type(stroke.line_type)
 
-        # 1. Shaft line
-        p1 = (int(round(w_start.x)), int(round(w_start.y)))
-        p2 = (int(round(w_end.x)), int(round(w_end.y)))
-        if self._is_direct_draw(canvas, stroke_alpha):
-            cv2.line(canvas.buffer, p1, p2, stroke_bgr, thickness, cv_line_type)
-        else:
-            mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-            cv2.line(mask, p1, p2, 255, thickness, cv_line_type)
-            self._composite_mask(canvas, mask, stroke_bgr, stroke_alpha, bounds)
+        self._stroke_contours(arrow, canvas, [([w_start, w_end], False)])
+        marker_stroke = stroke.copy()
+        marker_stroke.dash_array = ()
 
         # 2. Arrowhead
         fill = arrow.fill
@@ -708,23 +562,10 @@ class OpenCVRenderer:
                     mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
                     cv2.fillPoly(mask, [pts_head], 255, cv2.LINE_AA)
                     self._composite_mask(canvas, mask, fill_bgr, fill_alpha, bounds)
-            if stroke_alpha > 0.0:
-                if self._is_direct_draw(canvas, stroke_alpha):
-                    cv2.polylines(canvas.buffer, [pts_head], isClosed=True, color=stroke_bgr, thickness=thickness, lineType=cv_line_type)
-                else:
-                    mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-                    cv2.polylines(mask, [pts_head], isClosed=True, color=255, thickness=thickness, lineType=cv_line_type)
-                    self._composite_mask(canvas, mask, stroke_bgr, stroke_alpha, bounds)
+            self._stroke_contours(arrow, canvas, [(head_pts, True)], style=marker_stroke)
 
         elif arrow.head_style == ArrowHeadStyle.OPEN:
-            pts_head = np.array([[int(round(p.x)), int(round(p.y))] for p in head_pts], dtype=np.int32).reshape((-1, 1, 2))
-            if stroke_alpha > 0.0:
-                if self._is_direct_draw(canvas, stroke_alpha):
-                    cv2.polylines(canvas.buffer, [pts_head], isClosed=False, color=stroke_bgr, thickness=thickness, lineType=cv_line_type)
-                else:
-                    mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-                    cv2.polylines(mask, [pts_head], isClosed=False, color=255, thickness=thickness, lineType=cv_line_type)
-                    self._composite_mask(canvas, mask, stroke_bgr, stroke_alpha, bounds)
+            self._stroke_contours(arrow, canvas, [(head_pts, False)], style=marker_stroke)
 
         elif arrow.head_style == ArrowHeadStyle.CIRCLE:
             c = head_pts[0]
@@ -737,42 +578,15 @@ class OpenCVRenderer:
                     mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
                     cv2.circle(mask, c_int, r, 255, -1, cv2.LINE_AA)
                     self._composite_mask(canvas, mask, fill_bgr, fill_alpha, bounds)
-            if stroke_alpha > 0.0:
-                if self._is_direct_draw(canvas, stroke_alpha):
-                    cv2.circle(canvas.buffer, c_int, r, stroke_bgr, thickness, cv_line_type)
-                else:
-                    mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-                    cv2.circle(mask, c_int, r, 255, thickness, cv_line_type)
-                    self._composite_mask(canvas, mask, stroke_bgr, stroke_alpha, bounds)
+            ring = flatten_arc(c, r, r, 0, 360, tolerance=0.25)
+            self._stroke_contours(arrow, canvas, [(ring, True)], style=marker_stroke)
 
-    def _render_bezier(self, bezier: BezierCurve, canvas: Canvas | _IsolatedSurface) -> None:
-        stroke = bezier.stroke
-        if stroke is None or stroke.width <= 0:
-            return
-
-        stroke_alpha = stroke.color.a * stroke.opacity * self._get_render_opacity(bezier)
-        if stroke_alpha <= 0.0:
-            return
-
-        world_pts = bezier.flatten_world(tolerance=0.5)
-        if len(world_pts) < 2:
-            return
-
-        pts = np.array([[int(round(p.x)), int(round(p.y))] for p in world_pts], dtype=np.int32).reshape((-1, 1, 2))
-        thickness = max(1, int(round(stroke.width)))
-        cv_line_type = self._get_cv_line_type(stroke.line_type)
-        stroke_bgr = stroke.color.to_bgr()
-        bounds = bezier.get_bounds()
-
-        if self._is_direct_draw(canvas, stroke_alpha):
-            cv2.polylines(canvas.buffer, [pts], isClosed=False, color=stroke_bgr, thickness=thickness, lineType=cv_line_type)
-        else:
-            mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-            cv2.polylines(mask, [pts], isClosed=False, color=255, thickness=thickness, lineType=cv_line_type)
-            self._composite_mask(canvas, mask, stroke_bgr, stroke_alpha, bounds)
+    def _render_bezier(self, bezier, canvas):
+        self._stroke_contours(bezier, canvas, [(bezier.flatten_world(tolerance=0.25), False)])
 
     def _render_path(self, path: Path, canvas: Canvas | _IsolatedSurface) -> None:
-        world_contours = path.flatten_world(tolerance=0.5)
+        contours = path.flatten_world(tolerance=0.5, include_closed=True)
+        world_contours = [points for points, _ in contours]
         if not world_contours:
             return
 
@@ -789,105 +603,15 @@ class OpenCVRenderer:
                 )
                 self._composite_mask(canvas, mask, fill_bgr, fill_alpha, bounds)
 
-        # 2. Stroke
-        stroke = path.stroke
-        if stroke is not None and stroke.width > 0 and stroke.opacity > 0.0:
-            stroke_alpha = stroke.color.a * stroke.opacity * self._get_render_opacity(path)
-            if stroke_alpha > 0.0:
-                stroke_bgr = stroke.color.to_bgr()
-                thickness = max(1, int(round(stroke.width)))
-                cv_line_type = self._get_cv_line_type(stroke.line_type)
+        self._stroke_contours(path, canvas, contours)
 
-                for idx, contour in enumerate(world_contours):
-                    if len(contour) < 2:
-                        continue
-                    is_closed = idx < len(path.subpaths) and path.subpaths[idx].closed
-                    pts = np.array([[int(round(p.x)), int(round(p.y))] for p in contour], dtype=np.int32).reshape((-1, 1, 2))
-                    if self._is_direct_draw(canvas, stroke_alpha):
-                        cv2.polylines(canvas.buffer, [pts], isClosed=is_closed, color=stroke_bgr, thickness=thickness, lineType=cv_line_type)
-                    else:
-                        mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-                        cv2.polylines(mask, [pts], isClosed=is_closed, color=255, thickness=thickness, lineType=cv_line_type)
-                        self._composite_mask(canvas, mask, stroke_bgr, stroke_alpha, bounds)
-
-    def _render_freehand(self, freehand: FreehandStroke, canvas: Canvas | _IsolatedSurface) -> None:
-        """Render a FreehandStroke with constant width or variable width ribbon quads and round joints."""
-        pts = freehand.get_processed_points()
-        if len(pts) == 0:
+    def _render_freehand(self, freehand, canvas):
+        points = freehand.get_processed_points()
+        if freehand.stroke is None:
             return
-
-        stroke = freehand.stroke
-        if stroke is None or stroke.width <= 0:
-            return
-
-        stroke_alpha = stroke.color.a * stroke.opacity * self._get_render_opacity(freehand)
-        if stroke_alpha <= 0.0:
-            return
-
-        world_pts = [freehand.to_world(Point(p.x, p.y)) for p in pts]
-        stroke_bgr = stroke.color.to_bgr()
-        cv_line_type = self._get_cv_line_type(stroke.line_type)
-        bounds = freehand.get_bounds()
-
-        if not freehand.variable_width:
-            base_thickness = max(1, int(round(stroke.width)))
-            cv_pts = np.array([[int(round(p.x)), int(round(p.y))] for p in world_pts], dtype=np.int32).reshape((-1, 1, 2))
-            allow_direct = self._is_direct_draw(canvas, stroke_alpha)
-            if allow_direct:
-                cv2.polylines(canvas.buffer, [cv_pts], isClosed=False, color=stroke_bgr, thickness=base_thickness, lineType=cv_line_type)
-            else:
-                mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-                cv2.polylines(mask, [cv_pts], isClosed=False, color=255, thickness=base_thickness, lineType=cv_line_type)
-                self._composite_mask(canvas, mask, stroke_bgr, stroke_alpha, bounds)
-        else:
-            widths = freehand.get_point_widths(pts)
-            if len(world_pts) == 1:
-                r = max(1, int(round(widths[0] / 2.0)))
-                center_pt = (int(round(world_pts[0].x)), int(round(world_pts[0].y)))
-                if self._is_direct_draw(canvas, stroke_alpha):
-                    cv2.circle(canvas.buffer, center_pt, r, stroke_bgr, -1, lineType=cv_line_type)
-                else:
-                    mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-                    cv2.circle(mask, center_pt, r, 255, -1, lineType=cv_line_type)
-                    self._composite_mask(canvas, mask, stroke_bgr, stroke_alpha, bounds)
-                return
-
-            allow_direct = self._is_direct_draw(canvas, stroke_alpha)
-            target_buffer = canvas.buffer if allow_direct else np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-            draw_color = stroke_bgr if allow_direct else 255
-
-            for i in range(len(world_pts) - 1):
-                p1 = world_pts[i]
-                p2 = world_pts[i + 1]
-                w1 = widths[i]
-                w2 = widths[i + 1]
-
-                dx = p2.x - p1.x
-                dy = p2.y - p1.y
-                seg_len = math.hypot(dx, dy)
-                if seg_len < 1e-6:
-                    continue
-
-                nx = -dy / seg_len
-                ny = dx / seg_len
-
-                half_w1 = w1 / 2.0
-                half_w2 = w2 / 2.0
-
-                q1 = (int(round(p1.x + nx * half_w1)), int(round(p1.y + ny * half_w1)))
-                q2 = (int(round(p2.x + nx * half_w2)), int(round(p2.y + ny * half_w2)))
-                q3 = (int(round(p2.x - nx * half_w2)), int(round(p2.y - ny * half_w2)))
-                q4 = (int(round(p1.x - nx * half_w1)), int(round(p1.y - ny * half_w1)))
-
-                quad = np.array([q1, q2, q3, q4], dtype=np.int32)
-                cv2.fillConvexPoly(target_buffer, quad, draw_color, lineType=cv_line_type)
-
-            for pt, w in zip(world_pts, widths):
-                r = max(1, int(round(w / 2.0)))
-                cv2.circle(target_buffer, (int(round(pt.x)), int(round(pt.y))), r, draw_color, -1, lineType=cv_line_type)
-
-            if not allow_direct:
-                self._composite_mask(canvas, target_buffer, stroke_bgr, stroke_alpha, bounds)
+        world = [freehand.to_world(Point(p.x, p.y)) for p in points]
+        widths = freehand.get_point_widths(points) if freehand.variable_width else None
+        self._stroke_contours(freehand, canvas, [(world, False)], widths=widths)
 
     def _render_image(self, img_obj: ImageObject, canvas: Canvas | _IsolatedSurface) -> None:
         """Render an ImageObject supporting crop, scaling, affine transforms, and source alpha."""
@@ -1068,6 +792,23 @@ class OpenCVRenderer:
     # -------------------------------------------------------------------------
     # Utility Helpers
     # -------------------------------------------------------------------------
+
+    def _curve_tolerance(self, drawable):
+        scale = float(np.linalg.norm(drawable.world_matrix[:2, :2], ord=2))
+        return 0.25 / max(scale, 1e-12)
+
+    def _stroke_contours(self, drawable, canvas, contours, widths=None, style=None):
+        stroke = style if style is not None else getattr(drawable, "stroke", None)
+        if stroke is None:
+            return
+        alpha = stroke.color.a * stroke.opacity * self._get_render_opacity(drawable)
+        if alpha <= 0:
+            return
+        samples = [([(p.x, p.y, widths[i] if widths is not None else stroke.width)
+                     for i, p in enumerate(points)], closed) for points, closed in contours]
+        mask = stroke_mask(canvas.width, canvas.height, samples, stroke,
+                           self._get_cv_line_type(stroke.line_type))
+        self._composite_mask(canvas, mask, stroke.color.to_bgr(), alpha)
 
     def _get_cv_line_type(self, line_type: LineType) -> int:
         """Map LineType enum to OpenCV line connectivity constant."""

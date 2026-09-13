@@ -4,6 +4,7 @@ from __future__ import annotations
 from drawcv.core.bounds import BoundingBox
 from drawcv.core.drawable import Drawable
 from drawcv.core.exceptions import ValidationError
+from drawcv.core.validation import atomic_transforms
 
 
 def _get_ref_bounds(b: Drawable | BoundingBox) -> BoundingBox:
@@ -104,6 +105,7 @@ def align_center_y(a: Drawable, b: Drawable | BoundingBox) -> Drawable:
     return a
 
 
+@atomic_transforms
 def align_centers(a: Drawable, b: Drawable | BoundingBox) -> Drawable:
     """Move target 'a' so its center aligns with 'b' in both dimensions."""
     _check_target(a)
@@ -119,6 +121,7 @@ def align_centers(a: Drawable, b: Drawable | BoundingBox) -> Drawable:
 # Relative Placement Functions (Default gap=20.0)
 # -----------------------------------------------------------------------------
 
+@atomic_transforms
 def place_above(
     a: Drawable,
     b: Drawable | BoundingBox,
@@ -135,6 +138,7 @@ def place_above(
     return a
 
 
+@atomic_transforms
 def place_below(
     a: Drawable,
     b: Drawable | BoundingBox,
@@ -151,6 +155,7 @@ def place_below(
     return a
 
 
+@atomic_transforms
 def place_left_of(
     a: Drawable,
     b: Drawable | BoundingBox,
@@ -167,6 +172,7 @@ def place_left_of(
     return a
 
 
+@atomic_transforms
 def place_right_of(
     a: Drawable,
     b: Drawable | BoundingBox,
@@ -187,6 +193,7 @@ def place_right_of(
 # Distribution Functions
 # -----------------------------------------------------------------------------
 
+@atomic_transforms
 def distribute_horizontally(objects: list[Drawable], spacing: float | int | None = None) -> list[Drawable]:
     """Distribute a sequence of objects horizontally left-to-right.
     
@@ -220,6 +227,7 @@ def distribute_horizontally(objects: list[Drawable], spacing: float | int | None
     return objects
 
 
+@atomic_transforms
 def distribute_vertically(objects: list[Drawable], spacing: float | int | None = None) -> list[Drawable]:
     """Distribute a sequence of objects vertically top-to-bottom.
     

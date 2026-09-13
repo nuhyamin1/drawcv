@@ -11,7 +11,7 @@ from drawcv.core.exceptions import (
     UnsupportedVersionError,
 )
 
-CURRENT_SCHEMA_VERSION = "1.1"
+CURRENT_SCHEMA_VERSION = "1.2"
 CURRENT_FORMAT_IDENTIFIER = "drawcv"
 
 _DRAWABLE_REGISTRY: dict[str, type] = {}
@@ -215,3 +215,13 @@ def _migrate_1_0_to_1_1(data: dict[str, Any]) -> dict[str, Any]:
 
 
 SchemaMigrator.register_migration("1.0", _migrate_1_0_to_1_1)
+
+
+def _migrate_1_1_to_1_2(data: dict[str, Any]) -> dict[str, Any]:
+    """Stroke readers supply solid/zero-offset/4x-miter defaults recursively."""
+    migrated = copy.deepcopy(data)
+    migrated["version"] = "1.2"
+    return migrated
+
+
+SchemaMigrator.register_migration("1.1", _migrate_1_1_to_1_2)

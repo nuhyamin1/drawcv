@@ -1,6 +1,7 @@
 """Scene graph and retained-mode object manager for DrawCV."""
 
 from __future__ import annotations
+import copy
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Generator, Iterator, TypeVar
@@ -573,6 +574,19 @@ class Scene:
 
         try:
             yield targets
+            # Dataclass geometry can be edited directly: validate it before
+            # recording a successful transaction, including group descendants.
+            def validate_raw(obj):
+                # Run raw-field checks before serializers can coerce invalid
+                # types (e.g. bool radius to float). Normalize only a candidate.
+                copy.copy(obj).__post_init__()
+                if isinstance(obj, Group):
+                    for child in obj.children:
+                        validate_raw(child)
+
+            for d in targets:
+                validate_raw(d)
+                type(d).from_dict(d.to_dict())
         except Exception:
             with self.history.suspended():
                 for d, b in zip(targets, befores):

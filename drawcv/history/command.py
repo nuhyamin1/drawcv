@@ -43,18 +43,27 @@ class CompoundCommand(Command):
 
     def execute(self) -> None:
         """Execute all commands forward."""
-        for cmd in self.commands:
-            cmd.execute()
+        self._apply_atomic(self.commands, "execute", "undo")
 
     def undo(self) -> None:
         """Undo all commands in strict reverse order."""
-        for cmd in reversed(self.commands):
-            cmd.undo()
+        self._apply_atomic(reversed(self.commands), "undo", "redo")
 
     def redo(self) -> None:
         """Re-apply all commands forward."""
-        for cmd in self.commands:
-            cmd.redo()
+        self._apply_atomic(self.commands, "redo", "undo")
+
+    @staticmethod
+    def _apply_atomic(commands, operation, rollback):
+        completed = []
+        try:
+            for command in commands:
+                getattr(command, operation)()
+                completed.append(command)
+        except Exception:
+            for command in reversed(completed):
+                getattr(command, rollback)()
+            raise
 
     def is_noop(self) -> bool:
         """A compound command is a no-op if it contains no commands or all its children are no-ops."""

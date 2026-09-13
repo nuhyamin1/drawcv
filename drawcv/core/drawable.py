@@ -11,6 +11,7 @@ import numpy as np
 
 from drawcv.core.bounds import BoundingBox
 from drawcv.core.exceptions import ValidationError
+from drawcv.core.validation import atomic_transforms
 from drawcv.core.geometry import Point
 from drawcv.core.transform import Transform
 
@@ -209,16 +210,18 @@ class Drawable(ABC):
         default_pivot = self.get_geometry_bounds().center
         return self.transform.inverse_transform_point(world_point, default_pivot=default_pivot)
 
+    @atomic_transforms
     def move(self, dx: float | int, dy: float | int) -> None:
         """Translate the object by accumulating into transform translation."""
-        if not isinstance(dx, (int, float)) or not isinstance(dy, (int, float)):
+        if any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) for v in (dx, dy)):
             raise ValidationError("Move deltas must be numeric")
         self.transform.translation_x += float(dx)
         self.transform.translation_y += float(dy)
 
+    @atomic_transforms
     def rotate(self, degrees: float | int, pivot: Point | None = None) -> None:
         """Rotate the object clockwise by degrees (optional pivot in local space)."""
-        if not isinstance(degrees, (int, float)):
+        if isinstance(degrees, bool) or not isinstance(degrees, (int, float)) or not math.isfinite(degrees):
             raise ValidationError("Rotation angle must be numeric")
         self.transform.rotation += float(degrees)
         if pivot is not None:
@@ -226,10 +229,13 @@ class Drawable(ABC):
         elif self.transform.pivot is None:
             self.transform.pivot = self.get_geometry_bounds().center
 
+    @atomic_transforms
     def scale(self, sx: float | int, sy: float | int | None = None, pivot: Point | None = None) -> None:
         """Scale the object horizontally by sx and vertically by sy (sx, sy > 0)."""
-        if not isinstance(sx, (int, float)) or sx <= 0:
+        if isinstance(sx, bool) or not isinstance(sx, (int, float)) or not math.isfinite(sx) or sx <= 0:
             raise ValidationError(f"Scale 'sx' must be strictly positive, got {sx}")
+        if sy is not None and (isinstance(sy, bool) or not isinstance(sy, (int, float)) or not math.isfinite(sy)):
+            raise ValidationError("Scale sy must be finite and numeric")
         sy_val = float(sy) if sy is not None else float(sx)
         if sy_val <= 0:
             raise ValidationError(f"Scale 'sy' must be strictly positive, got {sy_val}")

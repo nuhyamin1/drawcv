@@ -131,7 +131,7 @@ class BezierCurve(Drawable):
 
     def get_local_bounds(self) -> BoundingBox:
         """Visual bounds in local space."""
-        half_stroke = (self.stroke.width / 2.0) if self.stroke else 0.0
+        half_stroke = (self.stroke.bounds_padding) if self.stroke else 0.0
         return self.get_geometry_bounds().expand(half_stroke)
 
     def get_bounds(self) -> BoundingBox:
@@ -142,7 +142,7 @@ class BezierCurve(Drawable):
         w3 = self.to_world(self.p3) if self.p3 is not None else None
         x, y, w, h = bezier_extrema_bounds(w0, w1, w2, w3)
         geom_aabb = BoundingBox(x, y, w, h)
-        half_stroke = (self.stroke.width / 2.0) if self.stroke else 0.0
+        half_stroke = (self.stroke.bounds_padding) if self.stroke else 0.0
         return geom_aabb.expand(half_stroke)
 
     # -------------------------------------------------------------------------

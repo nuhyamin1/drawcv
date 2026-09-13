@@ -6,6 +6,7 @@ import math
 import numpy as np
 
 from drawcv.core.exceptions import ValidationError
+from drawcv.core.validation import validated_setattr
 from drawcv.core.geometry import Point
 
 
@@ -50,12 +51,9 @@ class Transform:
             raise ValidationError(f"Transform 'pivot' must be a Point or None, got {type(self.pivot).__name__}")
 
     def __setattr__(self, name, value):
-        super().__setattr__(name, value)
-        if getattr(self, "_initialized", False):
-            if not name.startswith("_"):
-                # If explicit properties are mutated, invalidate explicit matrix cache
-                object.__setattr__(self, "_matrix", None)
-            self._validate()
+        validated_setattr(self, name, value)
+        if getattr(self, "_initialized", False) and not name.startswith("_"):
+            object.__setattr__(self, "_matrix", None)
 
     def is_identity(self) -> bool:
         """Check if this transform produces no visual modification."""

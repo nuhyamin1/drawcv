@@ -77,3 +77,4 @@ ehthumbs.db
 # Temporary & agent artifacts
 .tempmediaStorage/
 scratch/
+.test-deps/
