@@ -73,3 +73,16 @@ parameters; see the freehand source and runnable example for combinations.
 `Text(..., fonts=[FontAsset.from_file(path)], font_size=32, wrap_width=400)`
 opts into font shaping. `Text.measure()` distinguishes advance, layout, paragraph
 and ink bounds. See [typography contracts and installation](typography.md).
+
+## SVG export
+
+`scene.save_svg(path)` returns an `SVGExport` containing the SVG text and a tuple
+of `SVGFallback(entity, reason)` records. `scene.export_svg()` returns the same
+result without writing; `scene.to_svg()` returns only its text. Set `strict=True`
+to reject required raster fallbacks before writing a file.
+
+For an observational animation frame, use
+`scene.render_at_time(t, renderer=SVGExporter()).save(path)`.
+SVG retains editable geometry, gradients and clips; text, effects and other
+unsupported rendering use embedded transparent PNGs. See the
+[export matrix, coordinate contract and limitations](svg.md).

@@ -129,11 +129,21 @@ and [retained example](../examples/retained_typography.py).
 
 ## Milestone 5 — Interchange, performance, artistic range
 
+**5A SVG export is implemented.** Native world-space paths, gradients, stroke
+properties, groups and clips remain editable. Text, images, pressure strokes,
+arrows, masks and effects use reported subtree PNG fallbacks; strict mode rejects
+them. Source persistence remains JSON 1.4; SVG import is not implemented. Resvg
+independently verifies output; 473 tests pass locally, including 36 SVG cases.
+The gallery was rendered and inspected. Cross-platform CI execution is pending.
+See [SVG contracts and mapping](svg.md).
+
+**Next: 5B performance measurement.** PDF and textured brushes remain later scopes.
+
 1. **SVG first:** build an export matrix mapping retained geometry, fills, stroke
    semantics, transforms, groups, text, clips, and masks. Specify raster embedding
    for effects or unsupported objects and an explicit strict-error mode. Compare
-   exports in an independent renderer and test editable geometry round-trips where
-   supported. Keep screen-space strokes/dashes compatible under transforms.
+   exports in an independent renderer and test that JSON reload, cloning and history
+   preserve exported geometry. Keep screen-space strokes/dashes compatible under transforms.
 2. **Measure performance:** store reproducible scenes for thousands of objects,
    long freehand inputs, deep transparency, masks/effects, and animation frames.
    Record hardware, Python/NumPy/OpenCV versions, scene size, warmup, median/tail

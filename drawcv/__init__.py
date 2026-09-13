@@ -133,7 +133,12 @@ from drawcv.core.path_processing import (
 
 __version__ = "0.8.0"
 
+from drawcv.svg import SVGExporter, SVGExport, SVGFallback
+
 __all__ = [
+    "SVGExporter",
+    "SVGExport",
+    "SVGFallback",
     "FontAsset", "TextMetrics", "TextLineMetrics",
     "GradientStop", "LinearGradient", "RadialGradient",
     "AddObjectCommand",

@@ -876,6 +876,21 @@ class Scene:
     # Document Serialization
     # -------------------------------------------------------------------------
 
+    def export_svg(self, *, strict: bool = False):
+        """Return an SVGExport with document text and raster fallback accounting."""
+        from drawcv.svg import SVGExporter
+        return SVGExporter(strict=strict).render(self)
+
+    def to_svg(self, *, strict: bool = False) -> str:
+        """Export the current frame as self-contained SVG; see export_svg for its report."""
+        return self.export_svg(strict=strict).svg
+
+    def save_svg(self, filepath: str | Path, *, strict: bool = False):
+        """Export before writing, returning the report; strict errors leave the file intact."""
+        result = self.export_svg(strict=strict)
+        result.save(filepath)
+        return result
+
     def to_dict(self) -> dict[str, Any]:
         """Return canonical DrawCV document envelope dictionary."""
         return {

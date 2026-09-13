@@ -133,6 +133,7 @@ python -m examples.transparent_output
 - [StrokeStyle API and conventions](docs/strokes.md).
 - [Public API guide](docs/api.md).
 - [Retained font typography: installation, metrics and layout](docs/typography.md).
+- [SVG export: editable vectors, raster fallbacks and strict mode](docs/svg.md); [gallery](examples/svg_export.py).
 - [Typography backend evaluation](docs/typography-evaluation.md).
 - [Reliability and history](docs/reliability.md).
 - [Prioritized roadmap and verified findings](docs/roadmap.md).
@@ -154,7 +155,7 @@ python -m examples.transparent_output
 | Typography | Hershey compatibility; optional TTF/OTF, Latin/Thai/Arabic shaping, ICU bidi, explicit fallback, wrapping and metrics | Other scripts, emoji, advanced format controls and glyph strokes remain unsupported |
 | Persistence | JSON 1.4; forward migration; cloning; undo/redo | Direct edits require transaction discipline; older readers need updating |
 | Animation | Timing, easing, numeric/value tracks, progressive drawing, video | No built-in enum/dash-array interpolation; codec availability varies |
-| Interchange | Raster images, editable JSON, video | No native SVG/PDF export |
+| Interchange | SVG paths/gradients/clips with reported PNG fallbacks; raster images, editable JSON, video | No SVG import or PDF export; text/effects use PNG in SVG |
 | Performance | Functional full-scene rendering | Full-canvas intermediates; representative benchmarks still needed |
 
 Raster boundary pixels can differ from earlier releases because caps/joins now

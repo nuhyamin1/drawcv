@@ -1,0 +1,39 @@
+{
+  "fallbacks": [
+    {
+      "entity": "a13784c0-cc50-411a-bce3-6317615ef6dd",
+      "reason": "effects"
+    },
+    {
+      "entity": "aabe046a-a979-4b17-a6f2-6663f3171383",
+      "reason": "Text rendering"
+    },
+    {
+      "entity": "3ef3e62e-8850-44eb-870d-04a5199ac7c2",
+      "reason": "Text rendering"
+    },
+    {
+      "entity": "afc186c2-e80f-4963-868e-d60537c8b357",
+      "reason": "Text rendering"
+    },
+    {
+      "entity": "8dec6211-9bde-41f9-b33f-c01cb491a559",
+      "reason": "Text rendering"
+    },
+    {
+      "entity": "b5b5daa8-6a15-4418-8b91-9963ca441544",
+      "reason": "Text rendering"
+    },
+    {
+      "entity": "870aacba-4f7e-458f-b0d2-bdc4c9336c92",
+      "reason": "Text rendering"
+    },
+    {
+      "entity": "a240749d-ff98-4be8-a239-02d216782a4c",
+      "reason": "Text rendering"
+    }
+  ],
+  "reference_renderer": "resvg-py 0.5.0",
+  "mean_absolute_channel_error": 1.18380636777128,
+  "percentile_99_channel_error": 39.0
+}

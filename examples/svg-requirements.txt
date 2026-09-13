@@ -1,0 +1,2 @@
+# Optional independent SVG verification and gallery rendering; no runtime dependency.
+resvg-py==0.5.0
