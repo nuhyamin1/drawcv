@@ -104,22 +104,28 @@ constant-hue transparent edges. The gallery was rendered and visually inspected.
 Environment: Python 3.12.14, OpenCV 5.0.0, NumPy 2.5.3; lower supported versions
 were not separately exercised. Full-canvas sampling remains an optimization target.
 
-## Milestone 4 — Typography
+## Milestone 4 — Typography (4A evaluated; 4B integrated)
 
-Begin with a backend feasibility fixture, not a new font-name enum. Compare
-available shaping/rasterization integrations for user-supplied TTF/OTF fonts,
-font fallback, glyph metrics, and packaging on supported platforms. Keep optional
-dependencies and font-file portability/licensing requirements visible.
+4A compared shaping/rasterization and paragraph stacks with licensed fonts and
+measured images. 4B adds opt-in retained font Text, explicit embedded font assets,
+HarfBuzz/FreeType rasterization, ICU paragraph/line bidi, deterministic fallback,
+Thai dictionary wrapping, and separate advance/layout/ink metrics. The initial
+bidi candidate failed a bracket case and was replaced with ICU before release.
 
-Acceptance examples: Latin; Thai with combining marks and realistic word wrapping;
-mixed Thai/Latin/numbers; a script requiring contextual shaping; missing-glyph
-fallback; multiline alignment, wrapping, line spacing, and measurements matching
-rendered extents. Validate transforms, clipping, alpha, persistence, and export.
-Use representative licensed test fonts and compare shaping results with a trusted
-reference. Document unsupported scripts and fallback behavior precisely.
+Font descriptors and options round-trip through schema 1.4, cloning, undo/redo,
+and numeric animation. Font scenes use premultiplied output in both BGR and BGRA.
+Hershey remains the dependency-free compatibility path. Bounded caches reuse
+fonts, short shaped runs, glyphs and local paragraph masks.
 
-Preserve a documented Hershey compatibility path. A font backend must resolve
-measurement and layout as well as rasterization before it is considered complete.
+Verification: **437 tests pass** on Windows/Python 3.12.14; eight pre-existing BGR
+frames remain byte-identical. Measured ink matches raster coverage, mixed bidi
+positions agree with Qt, and JSON reload of the rendered example is pixel-identical.
+A three-platform CI matrix is included; macOS/Linux execution is still pending.
+The supported script set is Latin/Thai/Arabic; emoji, additional scripts, format
+controls, glyph strokes, justification and variable-axis controls remain future work.
+
+See the [public contract and limits](typography.md), [4A evidence](typography-evaluation.md),
+and [retained example](../examples/retained_typography.py).
 
 ## Milestone 5 — Interchange, performance, artistic range
 

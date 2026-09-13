@@ -15,6 +15,7 @@ from drawcv.core.geometry import Point
 from drawcv.core.geometry_utils import measure_text_size
 from drawcv.core.transform import Transform
 from drawcv.styles.fill import FillStyle
+from drawcv.typography import FontAsset, TextMetrics, TextLineMetrics
 
 
 class Text(Drawable):
@@ -37,6 +38,11 @@ class Text(Drawable):
         background_radius: float = 0.0,
         padding: float = 0.0,
         *,
+        fonts: tuple[FontAsset, ...] | None = None,
+        font_size: float = 32,
+        wrap_width: float | None = None,
+        line_spacing: float = 1.2,
+        direction: str = "auto",
         id: str | None = None,
         name: str | None = None,
         visible: bool = True,
@@ -131,6 +137,65 @@ class Text(Drawable):
         if not isinstance(padding, (int, float)) or isinstance(padding, bool) or float(padding) < 0.0:
             raise ValidationError(f"padding must be a non-negative float, got {padding}")
         self.padding = float(padding)
+        self.fonts = fonts
+        self.font_size = font_size
+        self.wrap_width = wrap_width
+        self.line_spacing = line_spacing
+        self.direction = direction
+        self._validate_font_options()
+        object.__setattr__(self, "_font_initialized", True)
+
+    def __setattr__(self, name, value):
+        if name == "fonts" and isinstance(value, (list, tuple)):
+            value = tuple(value)
+        if getattr(self, "_font_initialized", False) and name in (
+            "fonts", "font_size", "wrap_width", "line_spacing", "direction", "text"
+        ):
+            candidate = copy.copy(self)
+            object.__setattr__(candidate, name, value)
+            candidate._validate_font_options()
+        object.__setattr__(self, name, value)
+
+    def _validate_font_options(self):
+        if not isinstance(self.text, str):
+            raise ValidationError("Text content must be a string")
+        if self.fonts is not None and (not isinstance(self.fonts, tuple) or not self.fonts
+                                     or not all(isinstance(f, FontAsset) for f in self.fonts)):
+            raise ValidationError("fonts must be None or a nonempty sequence of FontAsset values")
+        for name, value in (("font_size", self.font_size), ("line_spacing", self.line_spacing), ("wrap_width", self.wrap_width)):
+            if name == "wrap_width" and value is None:
+                continue
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:
+                raise ValidationError(f"{name} must be positive and finite")
+        if self.line_spacing < 1 or self.font_size > 4096:
+            raise ValidationError("line_spacing must be >= 1 and font_size <= 4096px")
+        if self.direction not in ("auto", "ltr", "rtl"):
+            raise ValidationError("direction must be auto, ltr or rtl")
+
+    def _font_layout(self):
+        self._validate_font_options()
+        from drawcv.typography.layout import layout_text
+        return layout_text(self.text, self.fonts, self.font_size, self.wrap_width,
+                           self.alignment.value, self.direction, self.line_spacing)
+
+    def measure(self) -> TextMetrics:
+        """Measure font text in local coordinates; Hershey retains its metric API."""
+        if self.fonts is None:
+            raise ValidationError("measure() requires font text; use get_line_metrics() for Hershey")
+        layout = self._font_layout()
+        plate_w = layout.width + 2*self.padding
+        x = self.position.x - {TextAlignment.LEFT: 0, TextAlignment.CENTER: plate_w/2,
+                                TextAlignment.RIGHT: plate_w}[self.alignment]
+        y = self.position.y
+        ox, oy = x+self.padding, y+self.padding
+        def shifted(box):
+            return BoundingBox(box.x+ox, box.y+oy, box.width, box.height) if box is not None else None
+        return TextMetrics(max((l.advance_width for l in layout.lines), default=0),
+            BoundingBox(ox, oy, layout.width, layout.height),
+            BoundingBox(x, y, plate_w, layout.height+2*self.padding), shifted(layout.ink),
+            tuple(TextLineMetrics(l.text, l.advance_width, l.baseline+oy,
+                                  shifted(l.line_box), shifted(l.ink_bounds)) for l in layout.lines))
+
 
     # -------------------------------------------------------------------------
     # Metrics and Geometry
@@ -138,6 +203,9 @@ class Text(Drawable):
 
     def get_line_metrics(self) -> list[tuple[str, int, int, int]]:
         """Return list of (line_text, width, height, baseline) for each line."""
+        if self.fonts is not None:
+            layout = self._font_layout()
+            return [(line.text, line.advance_width, layout.ascent, layout.descent) for line in layout.lines]
         lines = self.text.split("\n")
         metrics: list[tuple[str, int, int, int]] = []
         for line in lines:
@@ -152,6 +220,9 @@ class Text(Drawable):
 
     def get_text_bounds_dimensions(self) -> tuple[float, float, float]:
         """Compute (total_width, total_height, max_line_height)."""
+        if self.fonts is not None:
+            layout = self._font_layout()
+            return layout.width, layout.height, layout.ascent + layout.descent
         metrics = self.get_line_metrics()
         if not metrics:
             return 0.0, 0.0, 0.0
@@ -174,6 +245,9 @@ class Text(Drawable):
 
     def get_geometry_bounds(self) -> BoundingBox:
         """Intrinsic geometric bounds in local coordinates (including padding if any)."""
+        if self.fonts is not None:
+            metrics = self.measure()
+            return metrics.paragraph_bounds.union(metrics.ink_bounds) if metrics.ink_bounds else metrics.paragraph_bounds
         text_w, text_h, _ = self.get_text_bounds_dimensions()
         plate_w = text_w + 2.0 * self.padding
         plate_h = text_h + 2.0 * self.padding
@@ -195,6 +269,9 @@ class Text(Drawable):
     def get_bounds(self) -> BoundingBox:
         """World-space bounding box enclosing transformed text rectangle."""
         gb = self.get_geometry_bounds()
+        if self.fonts is not None:
+            # Bilinear resampling can contribute one local pixel beyond ink.
+            gb = BoundingBox(gb.x-1, gb.y-1, gb.width+2, gb.height+2)
         corners = [
             Point(gb.left, gb.top),
             Point(gb.right, gb.top),
@@ -260,6 +337,9 @@ class Text(Drawable):
             background_fill=copy.deepcopy(self.background_fill),
             background_radius=self.background_radius,
             padding=self.padding,
+            fonts=self.fonts, font_size=self.font_size, wrap_width=self.wrap_width,
+            line_spacing=self.line_spacing, direction=self.direction,
+            timing=copy.deepcopy(self.timing), render_progress=self.render_progress,
             id=str(uuid.uuid4()) if new_id else self.id,
             name=self.name,
             visible=self.visible,
@@ -276,6 +356,8 @@ class Text(Drawable):
 
     def _get_shape_state(self) -> dict[str, Any]:
         return {
+            "fonts": self.fonts, "font_size": self.font_size, "wrap_width": self.wrap_width,
+            "line_spacing": self.line_spacing, "direction": self.direction,
             "text": self.text,
             "position": self.position.copy(),
             "color": self.color.copy(),
@@ -289,6 +371,9 @@ class Text(Drawable):
         }
 
     def _apply_shape_state(self, state: dict[str, Any]) -> None:
+        for name in ("fonts", "font_size", "wrap_width", "line_spacing", "direction"):
+            if name in state:
+                setattr(self, name, state[name])
         if "text" in state:
             self.text = str(state["text"])
         if "position" in state:
@@ -330,6 +415,9 @@ class Text(Drawable):
             "background_radius": float(self.background_radius),
             "padding": float(self.padding),
         })
+        if self.fonts is not None or (self.font_size, self.wrap_width, self.line_spacing, self.direction) != (32, None, 1.2, 'auto'):
+            res.update(fonts=[f.to_dict() for f in self.fonts] if self.fonts is not None else None, font_size=self.font_size,
+                       wrap_width=self.wrap_width, line_spacing=self.line_spacing, direction=self.direction)
         return res
 
     @classmethod
@@ -352,6 +440,9 @@ class Text(Drawable):
             background_fill=bg_fill,
             background_radius=float(data.get("background_radius", 0.0)),
             padding=float(data.get("padding", 0.0)),
+            fonts=tuple(FontAsset.from_dict(f) for f in data["fonts"]) if data.get("fonts") is not None else None,
+            font_size=data.get("font_size", 32), wrap_width=data.get("wrap_width"),
+            line_spacing=data.get("line_spacing", 1.2), direction=data.get("direction", "auto"),
             **base_kwargs,
         )
 

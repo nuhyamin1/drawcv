@@ -128,9 +128,9 @@ Serialization, cloning, undo/redo, and non-destructive temporal sampling continu
 to use the existing retained model. Default custom renderers with a `render(scene)`
 signature remain supported by `render_at_time`.
 
-Solid-only scenes preserve legacy BGR raster behavior. Scenes with gradient paints
+Solid-only scenes preserve legacy BGR raster behavior. Scenes with gradient paints or font text
 use the corrected premultiplied pipeline for BGR too; see [gradients](gradients.md).
-Milestone 3 writes schema **1.3** for those paint descriptions. The opt-in BGRA path also
+Milestone 3 introduced schema **1.3** for paints; 4B writes **1.4** for font assets. The opt-in BGRA path also
 corrects legacy image/text opacity, image resizing, object opacity isolation, text
 ancestor transforms, and partially offscreen mask fitting. Consequently,
 `render(scene, alpha=True).flatten(background)` is not promised to match legacy BGR

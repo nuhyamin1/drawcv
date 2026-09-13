@@ -73,8 +73,8 @@ state. Use `scene.edit` for compound changes and geometry edits, and `scene.batc
 for multiple recorded commands. See [reliable edits](docs/reliability.md) for
 rollback guarantees and the limits of raw attribute/list mutation.
 
-New scenes use schema **1.3**, including gradient paints and stroke semantics.
-Schemas 1.0 through 1.2 load with compatible defaults. Older readers reject 1.3;
+New scenes use schema **1.4**, including embedded font assets, gradient paints and stroke semantics.
+Schemas 1.0 through 1.3 load with compatible defaults. Older readers reject 1.4;
 update readers before sharing new documents with them.
 
 ## Organize and position objects
@@ -132,6 +132,8 @@ python -m examples.transparent_output
 - [Alpha API and compositing conventions](docs/transparency.md).
 - [StrokeStyle API and conventions](docs/strokes.md).
 - [Public API guide](docs/api.md).
+- [Retained font typography: installation, metrics and layout](docs/typography.md).
+- [Typography backend evaluation](docs/typography-evaluation.md).
 - [Reliability and history](docs/reliability.md).
 - [Prioritized roadmap and verified findings](docs/roadmap.md).
 - Existing runnable examples: [retained editing](examples/phase1_retained_mode.py),
@@ -148,9 +150,9 @@ python -m examples.transparent_output
 | Paint | Solid, linear and radial fills; object/world coordinates; RGBA stops; fill rules | Gradient strokes, patterns, and configurable blend modes remain future work |
 | Freehand | Raw editable samples; pressure/velocity widths; simplification, smoothing, interpolation | No textured brush system |
 | Scene | Groups, layers, lookup, selection, relative positioning, affine transforms | Bounds may be conservative; hit testing is geometric and can select dash gaps |
-| Compositing | Opt-in straight BGRA/PNG output; premultiplied images, masks, blur, shadows, isolated opacity | Solid-only BGR retains legacy behavior; alpha export currently PNG only |
-| Typography | Hershey faces, multiline alignment, background plates | No supplied TTF/OTF fonts, shaping, font fallback, or reliable Thai typography |
-| Persistence | JSON 1.3; forward migration; cloning; undo/redo | Direct edits require transaction discipline; older readers need updating |
+| Compositing | Opt-in straight BGRA/PNG output; premultiplied images, masks, blur, shadows, isolated opacity | Scenes without gradients/font text retain legacy BGR; alpha export currently PNG only |
+| Typography | Hershey compatibility; optional TTF/OTF, Latin/Thai/Arabic shaping, ICU bidi, explicit fallback, wrapping and metrics | Other scripts, emoji, advanced format controls and glyph strokes remain unsupported |
+| Persistence | JSON 1.4; forward migration; cloning; undo/redo | Direct edits require transaction discipline; older readers need updating |
 | Animation | Timing, easing, numeric/value tracks, progressive drawing, video | No built-in enum/dash-array interpolation; codec availability varies |
 | Interchange | Raster images, editable JSON, video | No native SVG/PDF export |
 | Performance | Functional full-scene rendering | Full-canvas intermediates; representative benchmarks still needed |

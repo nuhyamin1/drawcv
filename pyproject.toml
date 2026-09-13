@@ -31,6 +31,14 @@ Repository = "https://github.com/nuhyamin1/drawcv"
 Issues = "https://github.com/nuhyamin1/drawcv/issues"
 
 [project.optional-dependencies]
+typography = [
+    "uharfbuzz>=0.56.1,<0.57",
+    "freetype-py>=2.5.1,<3",
+    "pyicu-wheels==2.15.2; sys_platform != 'darwin'",
+    "PyICU>=2.15.2,<3; sys_platform == 'darwin'",
+    "regex>=2026.9.10",
+    "pythainlp>=5.3.7,<6",
+]
 dev = [
     "pytest>=8.0.0",
 ]

@@ -1,0 +1,33 @@
+name: Typography compatibility
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  typography:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      QT_QPA_PLATFORM: offscreen
+      PYTHAINLP_READ_ONLY: "1"
+      PYTHAINLP_OFFLINE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ICU build prerequisites on macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          brew install icu4c pkg-config
+          echo "PKG_CONFIG_PATH=$(brew --prefix icu4c)/lib/pkgconfig" >> "$GITHUB_ENV"
+      - name: Install library and reference engines
+        shell: bash
+        run: |
+          python -m pip install ".[dev,typography]"
+          python -m pip install -r examples/typography-requirements.txt
+      - name: Run full regression suite
+        run: python -m pytest -q
+      - name: Render retained font example
+        run: python -m examples.retained_typography

@@ -1,0 +1,8 @@
+# Evaluation only; no changes to pydrawcv runtime dependencies.
+Pillow==12.3.0
+uharfbuzz==0.56.1
+freetype-py==2.5.1
+fonttools==4.65.0
+regex==2026.9.10
+pythainlp==5.3.7
+PySide6-Essentials==6.11.2

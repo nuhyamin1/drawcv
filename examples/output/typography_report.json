@@ -1,0 +1,695 @@
+{
+  "platform": "Windows-11-10.0.26220-SP0",
+  "python": "3.12.14",
+  "packages": {
+    "Pillow": "12.3.0",
+    "uharfbuzz": "0.56.1",
+    "freetype-py": "2.5.1",
+    "fonttools": "4.65.0",
+    "regex": "2026.9.10",
+    "pythainlp": "5.3.7",
+    "PySide6-Essentials": "6.11.2"
+  },
+  "pillow_features": {
+    "raqm": false,
+    "freetype2": true,
+    "harfbuzz": false,
+    "fribidi": false
+  },
+  "samples": [
+    {
+      "text": "AVATAR office",
+      "font": "notosans.ttf",
+      "advance": 253.234375,
+      "outline_bounds": [
+        0.0,
+        -30.59375,
+        251.203125,
+        0.390625
+      ],
+      "raster_bounds": [
+        0,
+        -31,
+        252,
+        1
+      ],
+      "glyphs": [
+        {
+          "gid": 36,
+          "cluster": 0,
+          "x": 0.0,
+          "y": 0.0,
+          "advance": 23.96875
+        },
+        {
+          "gid": 57,
+          "cluster": 1,
+          "x": 23.96875,
+          "y": 0.0,
+          "advance": 22.40625
+        },
+        {
+          "gid": 36,
+          "cluster": 2,
+          "x": 46.375,
+          "y": 0.0,
+          "advance": 22.765625
+        },
+        {
+          "gid": 55,
+          "cluster": 3,
+          "x": 69.140625,
+          "y": 0.0,
+          "advance": 19.4375
+        },
+        {
+          "gid": 36,
+          "cluster": 4,
+          "x": 88.578125,
+          "y": 0.0,
+          "advance": 25.5625
+        },
+        {
+          "gid": 53,
+          "cluster": 5,
+          "x": 114.140625,
+          "y": 0.0,
+          "advance": 24.875
+        },
+        {
+          "gid": 3,
+          "cluster": 6,
+          "x": 139.015625,
+          "y": 0.0,
+          "advance": 10.40625
+        },
+        {
+          "gid": 82,
+          "cluster": 7,
+          "x": 149.421875,
+          "y": 0.0,
+          "advance": 24.203125
+        },
+        {
+          "gid": 1656,
+          "cluster": 8,
+          "x": 173.625,
+          "y": 0.0,
+          "advance": 37.84375
+        },
+        {
+          "gid": 70,
+          "cluster": 11,
+          "x": 211.46875,
+          "y": 0.0,
+          "advance": 19.203125
+        },
+        {
+          "gid": 72,
+          "cluster": 12,
+          "x": 230.671875,
+          "y": 0.0,
+          "advance": 22.5625
+        }
+      ],
+      "qt_glyph_match": true,
+      "qt_advance_delta": 0.140625,
+      "pillow_basic_advance": 265.0
+    },
+    {
+      "text": "น้ำ กุ้ง กิ๊ง ปู่ ผู้",
+      "font": "notosansthai.ttf",
+      "advance": 223.46875,
+      "outline_bounds": [
+        3.234375,
+        -40.359375,
+        221.1875,
+        10.59375
+      ],
+      "raster_bounds": [
+        3,
+        -41,
+        222,
+        11
+      ],
+      "glyphs": [
+        {
+          "gid": 71,
+          "cluster": 0,
+          "x": 0.0,
+          "y": 0.0,
+          "advance": 24.515625
+        },
+        {
+          "gid": 59,
+          "cluster": 0,
+          "x": 24.515625,
+          "y": 0.0,
+          "advance": 0.0
+        },
+        {
+          "gid": 49,
+          "cluster": 0,
+          "x": 23.359375,
+          "y": 0.0,
+          "advance": 0.0
+        },
+        {
+          "gid": 86,
+          "cluster": 0,
+          "x": 24.515625,
+          "y": 0.0,
+          "advance": 16.234375
+        },
+        {
+          "gid": 111,
+          "cluster": 3,
+          "x": 40.75,
+          "y": 0.0,
+          "advance": 10.40625
+        },
+        {
+          "gid": 29,
+          "cluster": 4,
+          "x": 51.15625,
+          "y": 0.0,
+          "advance": 24.0
+        },
+        {
+          "gid": 97,
+          "cluster": 4,
+          "x": 75.515625,
+          "y": 0.0,
+          "advance": 0.0
+        },
+        {
+          "gid": 47,
+          "cluster": 4,
+          "x": 75.078125,
+          "y": 0.0,
+          "advance": 0.0
+        },
+        {
+          "gid": 58,
+          "cluster": 7,
+          "x": 75.15625,
+          "y": 0.0,
+          "advance": 21.484375
+        },
+        {
+          "gid": 111,
+          "cluster": 8,
+          "x": 96.640625,
+          "y": 0.0,
+          "advance": 10.40625
+        },
+        {
+          "gid": 29,
+          "cluster": 9,
+          "x": 107.046875,
+          "y": 0.0,
+          "advance": 24.0
+        },
+        {
+          "gid": 92,
+          "cluster": 9,
+          "x": 130.96875,
+          "y": 0.0,
+          "advance": 0.0
+        },
+        {
+          "gid": 52,
+          "cluster": 9,
+          "x": 130.96875,
+          "y": 2.359375,
+          "advance": 0.0
+        },
+        {
+          "gid": 58,
+          "cluster": 12,
+          "x": 131.046875,
+          "y": 0.0,
+          "advance": 21.484375
+        },
+        {
+          "gid": 111,
+          "cluster": 13,
+          "x": 152.53125,
+          "y": 0.0,
+          "advance": 10.40625
+        },
+        {
+          "gid": 80,
+          "cluster": 14,
+          "x": 162.9375,
+          "y": 0.0,
+          "advance": 24.203125
+        },
+        {
+          "gid": 103,
+          "cluster": 14,
+          "x": 186.578125,
+          "y": 0.0,
+          "advance": 0.0
+        },
+        {
+          "gid": 43,
+          "cluster": 14,
+          "x": 187.171875,
+          "y": 0.0,
+          "advance": 0.0
+        },
+        {
+          "gid": 111,
+          "cluster": 17,
+          "x": 187.140625,
+          "y": 0.0,
+          "advance": 10.40625
+        },
+        {
+          "gid": 78,
+          "cluster": 18,
+          "x": 197.546875,
+          "y": 0.0,
+          "advance": 25.921875
+        },
+        {
+          "gid": 103,
+          "cluster": 18,
+          "x": 223.5,
+          "y": 0.0,
+          "advance": 0.0
+        },
+        {
+          "gid": 47,
+          "cluster": 18,
+          "x": 223.5,
+          "y": 0.0,
+          "advance": 0.0
+        }
+      ],
+      "qt_glyph_match": true,
+      "qt_advance_delta": 0.15625,
+      "pillow_basic_advance": 222.0
+    },
+    {
+      "text": "السلام عليكم",
+      "font": "notosansarabic.ttf",
+      "advance": 197.484375,
+      "outline_bounds": [
+        0.390625,
+        -28.546875,
+        194.890625,
+        15.71875
+      ],
+      "raster_bounds": [
+        0,
+        -29,
+        195,
+        16
+      ],
+      "glyphs": [
+        {
+          "gid": 77,
+          "cluster": 11,
+          "x": 0.0,
+          "y": 0.0,
+          "advance": 22.484375
+        },
+        {
+          "gid": 60,
+          "cluster": 10,
+          "x": 22.484375,
+          "y": 0.0,
+          "advance": 20.3125
+        },
+        {
+          "gid": 319,
+          "cluster": 9,
+          "x": 44.359375,
+          "y": 0.203125,
+          "advance": 0.0
+        },
+        {
+          "gid": 18,
+          "cluster": 9,
+          "x": 42.796875,
+          "y": 0.0,
+          "advance": 14.921875
+        },
+        {
+          "gid": 70,
+          "cluster": 8,
+          "x": 57.71875,
+          "y": 0.0,
+          "advance": 12.0
+        },
+        {
+          "gid": 49,
+          "cluster": 7,
+          "x": 69.71875,
+          "y": 0.0,
+          "advance": 20.125
+        },
+        {
+          "gid": 3,
+          "cluster": 6,
+          "x": 89.84375,
+          "y": 0.0,
+          "advance": 10.40625
+        },
+        {
+          "gid": 74,
+          "cluster": 5,
+          "x": 100.25,
+          "y": 0.0,
+          "advance": 19.359375
+        },
+        {
+          "gid": 11,
+          "cluster": 4,
+          "x": 119.609375,
+          "y": 0.0,
+          "advance": 15.15625
+        },
+        {
+          "gid": 71,
+          "cluster": 3,
+          "x": 134.765625,
+          "y": 0.0,
+          "advance": 8.796875
+        },
+        {
+          "gid": 36,
+          "cluster": 2,
+          "x": 143.5625,
+          "y": 0.0,
+          "advance": 34.0
+        },
+        {
+          "gid": 72,
+          "cluster": 1,
+          "x": 177.5625,
+          "y": 0.0,
+          "advance": 10.40625
+        },
+        {
+          "gid": 8,
+          "cluster": 0,
+          "x": 187.96875,
+          "y": 0.0,
+          "advance": 9.515625
+        }
+      ],
+      "qt_glyph_match": true,
+      "qt_advance_delta": 0.109375,
+      "pillow_basic_advance": 286.0
+    },
+    {
+      "text": "Ág j office",
+      "font": "sourcesans3.otf",
+      "advance": 159.640625,
+      "outline_bounds": [
+        0.109375,
+        -33.625,
+        158.125,
+        8.953125
+      ],
+      "raster_bounds": [
+        0,
+        -34,
+        159,
+        9
+      ],
+      "glyphs": [
+        {
+          "gid": 55,
+          "cluster": 0,
+          "x": 0.0,
+          "y": 0.0,
+          "advance": 21.765625
+        },
+        {
+          "gid": 34,
+          "cluster": 1,
+          "x": 21.765625,
+          "y": 0.0,
+          "advance": 20.15625
+        },
+        {
+          "gid": 1,
+          "cluster": 2,
+          "x": 41.921875,
+          "y": 0.0,
+          "advance": 8.0
+        },
+        {
+          "gid": 37,
+          "cluster": 3,
+          "x": 49.921875,
+          "y": 0.0,
+          "advance": 9.875
+        },
+        {
+          "gid": 1,
+          "cluster": 4,
+          "x": 59.796875,
+          "y": 0.0,
+          "advance": 8.0
+        },
+        {
+          "gid": 42,
+          "cluster": 5,
+          "x": 67.796875,
+          "y": 0.0,
+          "advance": 21.6875
+        },
+        {
+          "gid": 687,
+          "cluster": 6,
+          "x": 89.484375,
+          "y": 0.0,
+          "advance": 23.078125
+        },
+        {
+          "gid": 36,
+          "cluster": 8,
+          "x": 112.5625,
+          "y": 0.0,
+          "advance": 9.84375
+        },
+        {
+          "gid": 30,
+          "cluster": 9,
+          "x": 122.40625,
+          "y": 0.0,
+          "advance": 17.390625
+        },
+        {
+          "gid": 32,
+          "cluster": 10,
+          "x": 139.796875,
+          "y": 0.0,
+          "advance": 19.84375
+        }
+      ],
+      "qt_glyph_match": true,
+      "qt_advance_delta": 0.0625,
+      "pillow_basic_advance": 162.0
+    }
+  ],
+  "fonts": [
+    {
+      "file": "notosans.ttf",
+      "family": "Noto Sans",
+      "outlines": "TrueType",
+      "variable": true
+    },
+    {
+      "file": "notosansthai.ttf",
+      "family": "Noto Sans Thai",
+      "outlines": "TrueType",
+      "variable": true
+    },
+    {
+      "file": "notosansarabic.ttf",
+      "family": "Noto Sans Arabic",
+      "outlines": "TrueType",
+      "variable": true
+    },
+    {
+      "file": "sourcesans3.otf",
+      "family": "Source Sans 3",
+      "outlines": "CFF",
+      "variable": false
+    }
+  ],
+  "thai_wrap": {
+    "source": "ภาษาไทยต้องตัดคำอย่างถูกต้อง เพื่อให้อ่านข้อความได้ง่ายขึ้น",
+    "width": 320,
+    "lines": [
+      "ภาษาไทยต้องตัดคำอย่าง",
+      "ถูกต้อง เพื่อให้อ่านข้อความ",
+      "ได้ง่ายขึ้น"
+    ],
+    "advances": [
+      290.78125,
+      314.109375,
+      108.21875
+    ],
+    "qt_native_advances": [
+      379.078125,
+      325.890625
+    ],
+    "qt_native_overflow": true
+  },
+  "fallback": [
+    {
+      "text": "DrawCV ",
+      "font": "notosans.ttf"
+    },
+    {
+      "text": "กิ๊ง",
+      "font": "notosansthai.ttf"
+    },
+    {
+      "text": " 123",
+      "font": "notosans.ttf"
+    }
+  ],
+  "qt_mixed_bidi": {
+    "text": "DrawCV العربية 123",
+    "runs": [
+      {
+        "family": "Noto Sans",
+        "glyphs": [
+          3
+        ],
+        "rtl": true,
+        "positions": [
+          [
+            204.3125,
+            49.453125
+          ]
+        ]
+      },
+      {
+        "family": "Noto Sans",
+        "glyphs": [
+          39,
+          85,
+          68,
+          90,
+          38,
+          57,
+          3,
+          20,
+          21,
+          22
+        ],
+        "rtl": false,
+        "positions": [
+          [
+            0.0,
+            49.453125
+          ],
+          [
+            26.265625,
+            49.453125
+          ],
+          [
+            40.40625,
+            49.453125
+          ],
+          [
+            60.59375,
+            49.453125
+          ],
+          [
+            88.875,
+            49.453125
+          ],
+          [
+            111.625,
+            49.453125
+          ],
+          [
+            133.21875,
+            49.453125
+          ],
+          [
+            142.578125,
+            49.453125
+          ],
+          [
+            163.15625,
+            49.453125
+          ],
+          [
+            183.734375,
+            49.453125
+          ]
+        ]
+      },
+      {
+        "family": "Noto Sans Arabic",
+        "glyphs": [
+          8,
+          72,
+          48,
+          31,
+          19,
+          317,
+          18,
+          319,
+          85,
+          288
+        ],
+        "rtl": true,
+        "positions": [
+          [
+            295.53125,
+            49.453125
+          ],
+          [
+            286.171875,
+            49.453125
+          ],
+          [
+            267.421875,
+            49.453125
+          ],
+          [
+            253.171875,
+            49.453125
+          ],
+          [
+            244.578125,
+            49.453125
+          ],
+          [
+            245.6875,
+            49.5625
+          ],
+          [
+            231.15625,
+            49.453125
+          ],
+          [
+            232.5625,
+            49.640625
+          ],
+          [
+            213.671875,
+            49.453125
+          ],
+          [
+            217.3125,
+            47.109375
+          ]
+        ]
+      }
+    ],
+    "missing_glyphs": 0
+  }
+}

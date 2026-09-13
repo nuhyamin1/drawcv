@@ -67,3 +67,9 @@ scene.add(ink)
 The object preserves raw samples. Processing options include `simplification="rdp"`,
 `smoothing="chaikin"`, and `interpolation="catmull_rom"` with their associated
 parameters; see the freehand source and runnable example for combinations.
+
+## Optional retained font text
+
+`Text(..., fonts=[FontAsset.from_file(path)], font_size=32, wrap_width=400)`
+opts into font shaping. `Text.measure()` distinguishes advance, layout, paragraph
+and ink bounds. See [typography contracts and installation](typography.md).

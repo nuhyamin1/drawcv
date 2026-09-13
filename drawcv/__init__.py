@@ -1,5 +1,6 @@
 """DrawCV — A highly manipulable 2D drawing library built on OpenCV and NumPy."""
 
+from drawcv.typography import FontAsset, TextMetrics, TextLineMetrics
 from drawcv.canvas import Canvas
 from drawcv.styles.paint import GradientStop, LinearGradient, RadialGradient
 from drawcv.core.bounds import BoundingBox
@@ -133,6 +134,7 @@ from drawcv.core.path_processing import (
 __version__ = "0.8.0"
 
 __all__ = [
+    "FontAsset", "TextMetrics", "TextLineMetrics",
     "GradientStop", "LinearGradient", "RadialGradient",
     "AddObjectCommand",
     "align_bottom",

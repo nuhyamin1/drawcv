@@ -91,7 +91,8 @@ PNG use an alpha-zero background and `render(scene, alpha=True)`.
 
 ## Persistence and animation
 
-New documents write schema **1.3**. Older 1.0–1.2 scenes migrate forward without
+Milestone 3 introduced schema **1.3**; 4B now writes **1.4** for font assets.
+Older 1.0–1.3 scenes migrate forward without
 changing solid fill dictionaries. Gradient fills serialize a typed `paint` object
 with geometry, space, and all stop positions/colors/alpha. Older readers reject
 1.3 instead of silently losing paint. Copy, clone, history, and temporal snapshots

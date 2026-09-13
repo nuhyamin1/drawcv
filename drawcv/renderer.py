@@ -82,7 +82,7 @@ class OpenCVRenderer:
 
         if not isinstance(alpha, bool):
             raise ValidationError("alpha must be a boolean")
-        paint_pipeline = alpha or self._contains_gradient(scene)
+        paint_pipeline = alpha or self._requires_alpha_pipeline(scene)
         if paint_pipeline:
             canvas = _IsolatedSurface(scene.width, scene.height, alpha_output=True)
             background_alpha = scene.background.a if alpha else 1.0
@@ -117,7 +117,7 @@ class OpenCVRenderer:
 
     def render_drawable(self, drawable: Drawable, canvas: Canvas) -> None:
         """Render a single drawable directly onto an existing Canvas."""
-        if canvas.has_alpha or self._contains_gradient(drawable):
+        if canvas.has_alpha or self._requires_alpha_pipeline(drawable):
             surface = _IsolatedSurface(canvas.width, canvas.height, alpha_output=True)
             pixels = canvas.buffer if canvas.has_alpha else np.dstack([canvas.buffer, np.full((canvas.height, canvas.width), 255, np.uint8)])
             surface.buffer[:] = premultiply(pixels)
@@ -694,7 +694,7 @@ class OpenCVRenderer:
 
         # 1. Background plate
         if text_obj.background_fill is not None and text_obj.background_fill.enabled and text_obj.background_fill.opacity > 0.0:
-            gb = text_obj.get_geometry_bounds()
+            gb = text_obj.measure().paragraph_bounds if text_obj.fonts is not None else text_obj.get_geometry_bounds()
             if text_obj.background_radius > 0.0:
                 plate_shape = RoundedRectangle(
                     x=gb.left,
@@ -724,6 +724,18 @@ class OpenCVRenderer:
             return
 
         text_bgr = text_obj.color.to_bgr()
+        if text_obj.fonts is not None:
+            layout = text_obj._font_layout()
+            if layout.ink is None:
+                return
+            metrics = text_obj.measure()
+            origin = np.array([[1., 0., metrics.layout_bounds.x + layout.left],
+                               [0., 1., metrics.layout_bounds.y + layout.top], [0., 0., 1.]])
+            matrix = text_obj.world_matrix @ origin
+            mask = cv2.warpAffine(layout.mask, matrix[:2], (canvas.width, canvas.height),
+                                  flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+            self._composite_mask(canvas, mask, text_bgr, text_alpha)
+            return
         font_face = self._get_cv_font(text_obj.font_family)
         metrics = text_obj.get_line_metrics()
         line_step = text_obj.get_text_bounds_dimensions()[2] * 1.4
@@ -790,7 +802,10 @@ class OpenCVRenderer:
     # Utility Helpers
     # -------------------------------------------------------------------------
 
-    def _contains_gradient(self, entity):
+    def _requires_alpha_pipeline(self, entity):
+        # Font text, like gradient paint, uses the corrected pipeline in BGR too.
+        if isinstance(entity, Text) and entity.fonts is not None:
+            return True
         for name in ("fill", "background_fill"):
             fill = getattr(entity, name, None)
             if fill is not None and not isinstance(fill.paint, Color):
@@ -798,7 +813,7 @@ class OpenCVRenderer:
         for name in ("layers", "children", "objects"):
             children = getattr(entity, name, None)
             if children is not None:
-                return any(self._contains_gradient(child) for child in children)
+                return any(self._requires_alpha_pipeline(child) for child in children)
         return False
 
     def _fill_polygon(self, drawable, canvas, points):
