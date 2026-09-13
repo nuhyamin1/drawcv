@@ -10,6 +10,7 @@ full signatures; this guide groups the public entry points by task.
 | Build/render a scene | `Scene(width, height, background)`, `OpenCVRenderer().render(scene, alpha=False)` | [Scene](../drawcv/scene.py), [renderer](../drawcv/renderer.py) |
 | Read/export pixels | `Canvas.buffer`, `has_alpha`, `to_numpy()`, `flatten(background)`, `save(path)` | [Canvas](../drawcv/canvas.py) |
 | Points/colors/bounds | `Point(x, y)`, `Color(r, g, b, a)`, `BoundingBox(x, y, width, height)` | [core](../drawcv/core) |
+| Gradient fills | `FillStyle(paint=LinearGradient(...))`, `RadialGradient(...)`, `GradientStop(...)` | [gradient reference](gradients.md) |
 | Style geometry | `StrokeStyle(...)`, `FillStyle(enabled=True, color=..., opacity=1)` | [stroke reference](strokes.md), [fill](../drawcv/styles/fill.py) |
 | Straight geometry | `Line(start=..., end=...)`, `Polyline(points=..., closed=False)`, `Polygon(vertices=...)` | [shapes](../drawcv/shapes) |
 | Closed shapes | `Rectangle(position=..., width=..., height=...)`, `RoundedRectangle(x=..., y=..., width=..., height=..., corner_radius=...)`, `Circle(center=..., radius=...)`, `Ellipse(center=..., radius_x=..., radius_y=...)` | [shapes](../drawcv/shapes) |

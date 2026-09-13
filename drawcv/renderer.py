@@ -7,6 +7,8 @@ import numpy as np
 from typing import Any
 
 from drawcv.canvas import Canvas
+from drawcv.core.color import Color
+from drawcv.core.paint_sampling import sample_gradient
 from drawcv.core.bounds import BoundingBox
 from drawcv.core.drawable import Drawable
 from drawcv.core.enums import (
@@ -80,10 +82,12 @@ class OpenCVRenderer:
 
         if not isinstance(alpha, bool):
             raise ValidationError("alpha must be a boolean")
-        if alpha:
+        paint_pipeline = alpha or self._contains_gradient(scene)
+        if paint_pipeline:
             canvas = _IsolatedSurface(scene.width, scene.height, alpha_output=True)
-            canvas.buffer[..., :3] = np.array(scene.background.to_bgr()) * scene.background.a
-            canvas.buffer[..., 3] = scene.background.a
+            background_alpha = scene.background.a if alpha else 1.0
+            canvas.buffer[..., :3] = np.array(scene.background.to_bgr()) * background_alpha
+            canvas.buffer[..., 3] = background_alpha
         else:
             canvas = Canvas(scene.width, scene.height)
             canvas.clear(scene.background)
@@ -106,17 +110,20 @@ class OpenCVRenderer:
                 for _, drawable in sorted_items:
                     self._render_single(drawable, canvas)
 
-        if alpha:
-            return Canvas(scene.width, scene.height, unpremultiply(canvas.buffer), alpha=True)
+        if paint_pipeline:
+            pixels = unpremultiply(canvas.buffer)
+            return Canvas(scene.width, scene.height, pixels if alpha else pixels[..., :3], alpha=alpha)
         return canvas
 
     def render_drawable(self, drawable: Drawable, canvas: Canvas) -> None:
         """Render a single drawable directly onto an existing Canvas."""
-        if canvas.has_alpha:
+        if canvas.has_alpha or self._contains_gradient(drawable):
             surface = _IsolatedSurface(canvas.width, canvas.height, alpha_output=True)
-            surface.buffer[:] = premultiply(canvas.buffer)
+            pixels = canvas.buffer if canvas.has_alpha else np.dstack([canvas.buffer, np.full((canvas.height, canvas.width), 255, np.uint8)])
+            surface.buffer[:] = premultiply(pixels)
             self._render_single(drawable, surface)
-            canvas.buffer[:] = unpremultiply(surface.buffer)
+            pixels = unpremultiply(surface.buffer)
+            canvas.buffer[:] = pixels if canvas.has_alpha else pixels[..., :3]
         else:
             self._render_single(drawable, canvas)
 
@@ -434,17 +441,7 @@ class OpenCVRenderer:
         bounds = rect.get_bounds()
 
         # 1. Render Fill if enabled
-        fill = rect.fill
-        if fill is not None and fill.enabled and fill.opacity > 0.0:
-            fill_alpha = fill.color.a * fill.opacity * self._get_render_opacity(rect)
-            if fill_alpha > 0.0:
-                fill_bgr = fill.color.to_bgr()
-                if self._is_direct_draw(canvas, fill_alpha):
-                    cv2.fillPoly(canvas.buffer, [pts], fill_bgr, cv2.LINE_AA)
-                else:
-                    mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-                    cv2.fillPoly(mask, [pts], 255, cv2.LINE_AA)
-                    self._composite_mask(canvas, mask, fill_bgr, fill_alpha, bounds)
+        self._fill_polygon(rect, canvas, pts)
 
         self._stroke_contours(rect, canvas, [(world_corners, True)])
 
@@ -458,17 +455,7 @@ class OpenCVRenderer:
         bounds = circle.get_bounds()
 
         # 1. Render Fill if enabled
-        fill = circle.fill
-        if fill is not None and fill.enabled and fill.opacity > 0.0:
-            fill_alpha = fill.color.a * fill.opacity * self._get_render_opacity(circle)
-            if fill_alpha > 0.0:
-                fill_bgr = fill.color.to_bgr()
-                if self._is_direct_draw(canvas, fill_alpha):
-                    cv2.fillPoly(canvas.buffer, [pts], fill_bgr, cv2.LINE_AA)
-                else:
-                    mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-                    cv2.fillPoly(mask, [pts], 255, cv2.LINE_AA)
-                    self._composite_mask(canvas, mask, fill_bgr, fill_alpha, bounds)
+        self._fill_polygon(circle, canvas, pts)
 
         self._stroke_contours(circle, canvas, [(world_pts, True)])
 
@@ -483,17 +470,7 @@ class OpenCVRenderer:
         bounds = ellipse.get_bounds()
 
         # 1. Fill
-        fill = ellipse.fill
-        if fill is not None and fill.enabled and fill.opacity > 0.0:
-            fill_alpha = fill.color.a * fill.opacity * self._get_render_opacity(ellipse)
-            if fill_alpha > 0.0:
-                fill_bgr = fill.color.to_bgr()
-                if self._is_direct_draw(canvas, fill_alpha):
-                    cv2.fillPoly(canvas.buffer, [pts], fill_bgr, cv2.LINE_AA)
-                else:
-                    mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-                    cv2.fillPoly(mask, [pts], 255, cv2.LINE_AA)
-                    self._composite_mask(canvas, mask, fill_bgr, fill_alpha, bounds)
+        self._fill_polygon(ellipse, canvas, pts)
 
         self._stroke_contours(ellipse, canvas, [(world_pts, True)])
 
@@ -506,17 +483,7 @@ class OpenCVRenderer:
         bounds = polygon.get_bounds()
 
         # 1. Fill
-        fill = polygon.fill
-        if fill is not None and fill.enabled and fill.opacity > 0.0:
-            fill_alpha = fill.color.a * fill.opacity * self._get_render_opacity(polygon)
-            if fill_alpha > 0.0:
-                fill_bgr = fill.color.to_bgr()
-                if self._is_direct_draw(canvas, fill_alpha):
-                    cv2.fillPoly(canvas.buffer, [pts], fill_bgr, cv2.LINE_AA)
-                else:
-                    mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-                    cv2.fillPoly(mask, [pts], 255, cv2.LINE_AA)
-                    self._composite_mask(canvas, mask, fill_bgr, fill_alpha, bounds)
+        self._fill_polygon(polygon, canvas, pts)
 
         self._stroke_contours(polygon, canvas, [(world_pts, True)])
 
@@ -530,17 +497,7 @@ class OpenCVRenderer:
         bounds = rect.get_bounds()
 
         # 1. Fill
-        fill = rect.fill
-        if fill is not None and fill.enabled and fill.opacity > 0.0:
-            fill_alpha = fill.color.a * fill.opacity * self._get_render_opacity(rect)
-            if fill_alpha > 0.0:
-                fill_bgr = fill.color.to_bgr()
-                if self._is_direct_draw(canvas, fill_alpha):
-                    cv2.fillPoly(canvas.buffer, [pts], fill_bgr, cv2.LINE_AA)
-                else:
-                    mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-                    cv2.fillPoly(mask, [pts], 255, cv2.LINE_AA)
-                    self._composite_mask(canvas, mask, fill_bgr, fill_alpha, bounds)
+        self._fill_polygon(rect, canvas, pts)
 
         self._stroke_contours(rect, canvas, [(world_pts, True)])
 
@@ -552,17 +509,8 @@ class OpenCVRenderer:
         is_closed = (arc.closure != ArcClosure.OPEN)
 
         # 1. Fill (only for CHORD or PIE)
-        fill = arc.fill
-        if is_closed and fill is not None and fill.enabled and fill.opacity > 0.0:
-            fill_alpha = fill.color.a * fill.opacity * self._get_render_opacity(arc)
-            if fill_alpha > 0.0:
-                fill_bgr = fill.color.to_bgr()
-                if self._is_direct_draw(canvas, fill_alpha):
-                    cv2.fillPoly(canvas.buffer, [pts], fill_bgr, cv2.LINE_AA)
-                else:
-                    mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-                    cv2.fillPoly(mask, [pts], 255, cv2.LINE_AA)
-                    self._composite_mask(canvas, mask, fill_bgr, fill_alpha, bounds)
+        if is_closed:
+            self._fill_polygon(arc, canvas, pts)
 
         self._stroke_contours(arc, canvas, [(world_pts, is_closed)])
 
@@ -587,18 +535,9 @@ class OpenCVRenderer:
 
         # 2. Arrowhead
         fill = arrow.fill
-        fill_alpha = (fill.color.a * fill.opacity * self._get_render_opacity(arrow)) if (fill and fill.enabled) else 0.0
-        fill_bgr = fill.color.to_bgr() if fill else stroke_bgr
-
         if arrow.head_style in (ArrowHeadStyle.TRIANGLE, ArrowHeadStyle.DIAMOND):
             pts_head = np.array([[int(round(p.x)), int(round(p.y))] for p in head_pts], dtype=np.int32).reshape((-1, 1, 2))
-            if fill_alpha > 0.0:
-                if self._is_direct_draw(canvas, fill_alpha):
-                    cv2.fillPoly(canvas.buffer, [pts_head], fill_bgr, cv2.LINE_AA)
-                else:
-                    mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-                    cv2.fillPoly(mask, [pts_head], 255, cv2.LINE_AA)
-                    self._composite_mask(canvas, mask, fill_bgr, fill_alpha, bounds)
+            self._fill_polygon(arrow, canvas, pts_head)
             self._stroke_contours(arrow, canvas, [(head_pts, True)], style=marker_stroke)
 
         elif arrow.head_style == ArrowHeadStyle.OPEN:
@@ -608,13 +547,13 @@ class OpenCVRenderer:
             c = head_pts[0]
             r = max(1, int(round(head_pts[1].x)))
             c_int = (int(round(c.x)), int(round(c.y)))
-            if fill_alpha > 0.0:
-                if self._is_direct_draw(canvas, fill_alpha):
-                    cv2.circle(canvas.buffer, c_int, r, fill_bgr, -1, cv2.LINE_AA)
+            if fill is not None and fill.enabled and fill.opacity > 0:
+                if isinstance(fill.paint, Color) and self._is_direct_draw(canvas, fill.color.a * fill.opacity * self._get_render_opacity(arrow)):
+                    cv2.circle(canvas.buffer, c_int, r, fill.color.to_bgr(), -1, cv2.LINE_AA)
                 else:
                     mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
                     cv2.circle(mask, c_int, r, 255, -1, cv2.LINE_AA)
-                    self._composite_mask(canvas, mask, fill_bgr, fill_alpha, bounds)
+                    self._fill_mask(arrow, canvas, mask)
             ring = flatten_arc(c, r, r, 0, 360, tolerance=0.25)
             self._stroke_contours(arrow, canvas, [(ring, True)], style=marker_stroke)
 
@@ -631,14 +570,9 @@ class OpenCVRenderer:
 
         # 1. Fill using topological fill rule evaluator
         fill = path.fill
-        if fill is not None and fill.enabled and fill.opacity > 0.0:
-            fill_alpha = fill.color.a * fill.opacity * self._get_render_opacity(path)
-            if fill_alpha > 0.0:
-                fill_bgr = fill.color.to_bgr()
-                mask = evaluate_fill_rule_mask(
-                    world_contours, path.fill_rule, canvas.width, canvas.height, supersample=2
-                )
-                self._composite_mask(canvas, mask, fill_bgr, fill_alpha, bounds)
+        if fill is not None and fill.enabled and fill.opacity > 0:
+            mask = evaluate_fill_rule_mask(world_contours, path.fill_rule, canvas.width, canvas.height, supersample=2)
+            self._fill_mask(path, canvas, mask)
 
         self._stroke_contours(path, canvas, contours)
 
@@ -855,6 +789,47 @@ class OpenCVRenderer:
     # -------------------------------------------------------------------------
     # Utility Helpers
     # -------------------------------------------------------------------------
+
+    def _contains_gradient(self, entity):
+        for name in ("fill", "background_fill"):
+            fill = getattr(entity, name, None)
+            if fill is not None and not isinstance(fill.paint, Color):
+                return True
+        for name in ("layers", "children", "objects"):
+            children = getattr(entity, name, None)
+            if children is not None:
+                return any(self._contains_gradient(child) for child in children)
+        return False
+
+    def _fill_polygon(self, drawable, canvas, points):
+        fill = drawable.fill
+        if fill is None or not fill.enabled or fill.opacity <= 0:
+            return
+        if isinstance(fill.paint, Color):
+            alpha = fill.color.a * fill.opacity * self._get_render_opacity(drawable)
+            if alpha <= 0:
+                return
+            if self._is_direct_draw(canvas, alpha):
+                cv2.fillPoly(canvas.buffer, [points], fill.color.to_bgr(), cv2.LINE_AA)
+                return
+        mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
+        cv2.fillPoly(mask, [points], 255, cv2.LINE_AA)
+        self._fill_mask(drawable, canvas, mask)
+
+    def _fill_mask(self, drawable, canvas, mask):
+        fill = drawable.fill
+        opacity = fill.opacity * self._get_render_opacity(drawable)
+        if isinstance(fill.paint, Color):
+            self._composite_mask(canvas, mask, fill.color.to_bgr(), opacity * fill.color.a, drawable.get_bounds())
+            return
+        source = sample_gradient(fill.paint, drawable.world_matrix, canvas.width, canvas.height)
+        source *= (mask.astype(np.float32) / 255 * opacity)[..., None]
+        a = source[..., 3:4]
+        if getattr(canvas, "is_isolated", False):
+            canvas.buffer[..., :3] = source[..., :3] + canvas.buffer[..., :3]*(1-a)
+            canvas.buffer[..., 3:4] = a + canvas.buffer[..., 3:4]*(1-a)
+        else:
+            canvas.buffer[:] = np.rint(source[..., :3] + canvas.buffer*(1-a)).clip(0, 255).astype(np.uint8)
 
     def _curve_tolerance(self, drawable):
         scale = float(np.linalg.norm(drawable.world_matrix[:2, :2], ord=2))

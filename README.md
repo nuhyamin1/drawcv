@@ -73,8 +73,8 @@ state. Use `scene.edit` for compound changes and geometry edits, and `scene.batc
 for multiple recorded commands. See [reliable edits](docs/reliability.md) for
 rollback guarantees and the limits of raw attribute/list mutation.
 
-New scenes use schema **1.2**, including dash arrays/offsets and miter limits.
-Schemas 1.0 and 1.1 load with compatible defaults. Older readers reject 1.2;
+New scenes use schema **1.3**, including gradient paints and stroke semantics.
+Schemas 1.0 through 1.2 load with compatible defaults. Older readers reject 1.3;
 update readers before sharing new documents with them.
 
 ## Organize and position objects
@@ -128,6 +128,7 @@ python -m examples.transparent_output
 
 - [Stroke comparison source](examples/stroke_styles.py) and [editable scene](examples/output/stroke_styles.json).
 - [Transparent PNG example](examples/transparent_output.py) and [external-composition preview](examples/output/transparent_output_preview.png).
+- [Gradient paints and coordinate contracts](docs/gradients.md); [runnable gallery](examples/gradient_fills.py).
 - [Alpha API and compositing conventions](docs/transparency.md).
 - [StrokeStyle API and conventions](docs/strokes.md).
 - [Public API guide](docs/api.md).
@@ -144,12 +145,12 @@ python -m examples.transparent_output
 | --- | --- | --- |
 | Geometry | Lines, polygons, circles/ellipses, arcs, rectangles, arrows, quadratic/cubic curves, compound paths | Curves rasterize as approximations |
 | Strokes | Butt/round/square caps, round/bevel/miter joins, miter limits, dashed and variable-width outlines | Screen-space widths; arrowhead outlines stay solid |
-| Paint | Solid fills, color alpha, opacity, fill rules | Gradients, patterns, and configurable blend modes planned |
+| Paint | Solid, linear and radial fills; object/world coordinates; RGBA stops; fill rules | Gradient strokes, patterns, and configurable blend modes remain future work |
 | Freehand | Raw editable samples; pressure/velocity widths; simplification, smoothing, interpolation | No textured brush system |
 | Scene | Groups, layers, lookup, selection, relative positioning, affine transforms | Bounds may be conservative; hit testing is geometric and can select dash gaps |
-| Compositing | Opt-in straight BGRA/PNG output; premultiplied images, masks, blur, shadows, isolated opacity | Default BGR retains legacy behavior; alpha export currently PNG only |
+| Compositing | Opt-in straight BGRA/PNG output; premultiplied images, masks, blur, shadows, isolated opacity | Solid-only BGR retains legacy behavior; alpha export currently PNG only |
 | Typography | Hershey faces, multiline alignment, background plates | No supplied TTF/OTF fonts, shaping, font fallback, or reliable Thai typography |
-| Persistence | JSON 1.2; forward migration; cloning; undo/redo | Direct edits require transaction discipline; older readers need updating |
+| Persistence | JSON 1.3; forward migration; cloning; undo/redo | Direct edits require transaction discipline; older readers need updating |
 | Animation | Timing, easing, numeric/value tracks, progressive drawing, video | No built-in enum/dash-array interpolation; codec availability varies |
 | Interchange | Raster images, editable JSON, video | No native SVG/PDF export |
 | Performance | Functional full-scene rendering | Full-canvas intermediates; representative benchmarks still needed |

@@ -188,7 +188,7 @@ def test_style_roundtrip_clone_history_and_numeric_animation():
     scene.animate(obj, "stroke.miter_limit", 2, 6, duration=2)
     saved = scene.to_dict()
     loaded = Scene.from_dict(json.loads(json.dumps(saved)))
-    assert saved["version"] == "1.2"
+    assert saved["version"] == "1.3"
     assert np.array_equal(scene.render_at_time(.5).buffer, loaded.render_at_time(.5).buffer)
     assert np.array_equal(scene.render_at_time(.5).buffer, scene.render_at_time(.5).buffer)
     assert scene.to_dict() == saved

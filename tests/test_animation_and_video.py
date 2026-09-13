@@ -194,7 +194,7 @@ def test_schema_1_0_to_1_1_migration():
 
     # Re-serialization writes the current stroke-aware schema.
     doc = scene.to_dict()
-    assert doc["version"] == "1.2"
+    assert doc["version"] == "1.3"
 
 
 def test_typed_animation_tracks_round_trip():

@@ -11,7 +11,7 @@ from drawcv.core.exceptions import (
     UnsupportedVersionError,
 )
 
-CURRENT_SCHEMA_VERSION = "1.2"
+CURRENT_SCHEMA_VERSION = "1.3"
 CURRENT_FORMAT_IDENTIFIER = "drawcv"
 
 _DRAWABLE_REGISTRY: dict[str, type] = {}
@@ -225,3 +225,12 @@ def _migrate_1_1_to_1_2(data: dict[str, Any]) -> dict[str, Any]:
 
 
 SchemaMigrator.register_migration("1.1", _migrate_1_1_to_1_2)
+
+
+def _migrate_1_2_to_1_3(data):
+    migrated = copy.deepcopy(data)
+    migrated["version"] = "1.3"
+    return migrated
+
+
+SchemaMigrator.register_migration("1.2", _migrate_1_2_to_1_3)

@@ -58,7 +58,7 @@ Test duration is not a representative rendering benchmark.
 Implemented `alpha=True` on Canvas construction, scene rendering, temporal rendering,
 frame iteration, and PNG sequences. Public BGRA is straight uint8; internal filtering
 and composition are premultiplied float32. `Canvas.flatten(background)` provides an
-explicit opaque export. JSON stays at 1.2 because output format is not scene state.
+explicit opaque export. This milestone kept JSON at 1.2 because output format is not scene state.
 
 The opt-in path corrects legacy opacity/filtering/transform cases while leaving
 default BGR behavior intact. Seven representative BGR frames match the pre-milestone
@@ -82,17 +82,27 @@ alpha and colors numerically, including fully transparent and fractional pixels,
 and composite exported images over both light and dark backgrounds for visual QA.
 Retain BGR regression coverage and make video alpha limitations explicit.
 
-## Milestone 3 — Richer paint
+## Milestone 3 — Gradient fills (implemented)
 
-Next deliverable: linear and radial gradient paints using the same coverage
-and compositing pipeline. Choose object-local versus world coordinates explicitly;
-define how group transforms, non-uniform scale, stops, alpha interpolation, spread,
-and degenerate radii/vectors behave. Require JSON/clone/history/animation tests and
-examples on paths, transformed objects, and partially transparent groups.
+`LinearGradient`, `RadialGradient`, and immutable RGBA `GradientStop` values are
+first-class fill paints. Object-local/world coordinates, affine behavior, ordered
+duplicate stops, padded spread, and straight-channel interpolation were fixed
+before integration. FillStyle retains the solid `color=` API; the renderer samples
+paint independently of coverage. Gradient scenes use premultiplied composition
+in both output formats; solid-only BGR rendering retains its previous path.
 
-Only after those contracts pass: design reusable image patterns and useful blend
-modes. Define whether blending applies per primitive or at an isolated group and
-how it interacts with mask/effect ordering. Avoid silently substituting source-over.
+Schema 1.3 preserves gradient type, geometry, space, stops, and alpha. Geometry
+animation, clone/history, and observational sampling are covered. Gradient strokes,
+focal points, repeat/reflect, stop-list morphing, patterns, and blend modes remain
+outside this milestone. See the [gradient contract](gradients.md) and
+[runnable gallery](../examples/gradient_fills.py).
+
+Verification: **380 tests pass**, including 41 gradient cases. Seven representative
+solid-only BGR frames match the pre-milestone checkout byte-for-byte. PNG tests
+check external white/black/color composites within one channel value and preserve
+constant-hue transparent edges. The gallery was rendered and visually inspected.
+Environment: Python 3.12.14, OpenCV 5.0.0, NumPy 2.5.3; lower supported versions
+were not separately exercised. Full-canvas sampling remains an optimization target.
 
 ## Milestone 4 — Typography
 

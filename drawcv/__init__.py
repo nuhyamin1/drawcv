@@ -1,6 +1,7 @@
 """DrawCV — A highly manipulable 2D drawing library built on OpenCV and NumPy."""
 
 from drawcv.canvas import Canvas
+from drawcv.styles.paint import GradientStop, LinearGradient, RadialGradient
 from drawcv.core.bounds import BoundingBox
 from drawcv.core.color import Color
 from drawcv.core.drawable import Drawable
@@ -132,6 +133,7 @@ from drawcv.core.path_processing import (
 __version__ = "0.8.0"
 
 __all__ = [
+    "GradientStop", "LinearGradient", "RadialGradient",
     "AddObjectCommand",
     "align_bottom",
     "align_center_x",

@@ -122,13 +122,15 @@ images with different hidden RGB under alpha zero through every interpolation mo
 
 ## Compatibility and persistence
 
-No Scene fields or JSON version changed: schema **1.2** already stores background
+Milestone 2 required no Scene fields or JSON version change: schema **1.2** stored background
 and color alpha. Output format is a render/export choice, not document content.
 Serialization, cloning, undo/redo, and non-destructive temporal sampling continue
 to use the existing retained model. Default custom renderers with a `render(scene)`
 signature remain supported by `render_at_time`.
 
-The default BGR path preserves legacy raster behavior. The opt-in BGRA path also
+Solid-only scenes preserve legacy BGR raster behavior. Scenes with gradient paints
+use the corrected premultiplied pipeline for BGR too; see [gradients](gradients.md).
+Milestone 3 writes schema **1.3** for those paint descriptions. The opt-in BGRA path also
 corrects legacy image/text opacity, image resizing, object opacity isolation, text
 ancestor transforms, and partially offscreen mask fitting. Consequently,
 `render(scene, alpha=True).flatten(background)` is not promised to match legacy BGR

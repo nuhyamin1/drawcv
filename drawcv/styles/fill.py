@@ -1,72 +1,78 @@
-"""Fill style specification for interior shape rendering."""
-
-from __future__ import annotations
-from dataclasses import dataclass, field
-from typing import Any
-
+"""Fill appearance and retained paint, independent of rasterization."""
+from dataclasses import dataclass
 from drawcv.core.color import Color
 from drawcv.core.exceptions import ValidationError
 from drawcv.core.validation import validated_setattr
+from drawcv.styles.paint import LinearGradient, RadialGradient, paint_from_dict
+
+_UNSET = object()
 
 
-@dataclass
+@dataclass(init=False)
 class FillStyle:
-    """Fill appearance style for closed shapes.
-    
-    Attributes:
-        enabled: Whether fill is active.
-        color: Fill color.
-        opacity: Fill opacity multiplier in range [0.0, 1.0].
-    """
-    enabled: bool = True
-    color: Color = field(default_factory=Color.white)
-    opacity: float = 1.0
+    """Fill description with a backward-compatible solid color shorthand."""
+    enabled: bool
+    opacity: float
+    _paint: Color | LinearGradient | RadialGradient
 
-    def __post_init__(self):
+    def __init__(self, enabled=True, color=_UNSET, opacity=1.0, *, paint=_UNSET):
+        if color is not _UNSET and paint is not _UNSET:
+            raise ValidationError("Specify color or paint, not both")
+        if color is not _UNSET and not isinstance(color, Color):
+            raise ValidationError("Fill color must be a Color; use paint for gradients")
+        self.enabled = enabled
+        self.opacity = opacity
+        self.paint = paint if paint is not _UNSET else (color if color is not _UNSET else Color.white())
         self._validate()
         object.__setattr__(self, "_initialized", True)
 
-    def _validate(self):
-        if not isinstance(self.enabled, bool):
-            raise ValidationError(f"FillStyle 'enabled' must be a boolean, got {type(self.enabled).__name__}")
-        if not isinstance(self.color, Color):
-            raise ValidationError(f"FillStyle 'color' must be a Color, got {type(self.color).__name__}")
-        if not isinstance(self.opacity, (int, float)) or isinstance(self.opacity, bool):
-            raise ValidationError(f"FillStyle 'opacity' must be numeric, got {type(self.opacity).__name__}")
-        if not (0.0 <= float(self.opacity) <= 1.0):
-            raise ValidationError(f"FillStyle 'opacity' must be in range [0.0, 1.0], got {self.opacity}")
+    @property
+    def paint(self):
+        """The active Color, LinearGradient, or RadialGradient."""
+        return self._paint
+
+    @property
+    def color(self):
+        """Solid color shorthand; gradients have no single color."""
+        if not isinstance(self.paint, Color):
+            raise ValidationError("Gradient fills have no single color; use fill.paint")
+        return self.paint
 
     def __setattr__(self, name, value):
-        validated_setattr(self, name, value)
+        if name in ("color", "paint"):
+            allowed = (Color,) if name == "color" else (Color, LinearGradient, RadialGradient)
+            if not isinstance(value, allowed):
+                raise ValidationError(f"Invalid fill {name}")
+            object.__setattr__(self, "_paint", value)
+        else:
+            validated_setattr(self, name, value)
 
-    def copy(self) -> FillStyle:
-        """Return an independent copy of this FillStyle."""
-        return FillStyle(
-            enabled=self.enabled,
-            color=self.color.copy(),
-            opacity=self.opacity,
-        )
+    def _validate(self):
+        if not isinstance(self.enabled, bool):
+            raise ValidationError("Fill enabled must be boolean")
+        if isinstance(self.opacity, bool) or not isinstance(self.opacity, (int, float)) or not 0 <= self.opacity <= 1:
+            raise ValidationError("Fill opacity must be numeric in [0, 1]")
+        if not isinstance(self.paint, (Color, LinearGradient, RadialGradient)):
+            raise ValidationError("Invalid fill paint")
 
-    def to_dict(self) -> dict[str, Any]:
-        """Return a plain JSON-compatible dictionary representation."""
-        return {
-            "enabled": bool(self.enabled),
-            "color": self.color.to_dict(),
-            "opacity": float(self.opacity),
-        }
+    def copy(self):
+        return FillStyle(enabled=self.enabled, opacity=self.opacity, paint=self.paint.copy())
+
+    def to_dict(self):
+        result = {"enabled": self.enabled, "opacity": float(self.opacity)}
+        result["color" if isinstance(self.paint, Color) else "paint"] = self.paint.to_dict()
+        return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any] | None) -> FillStyle:
-        """Construct a FillStyle from a dictionary."""
+    def from_dict(cls, data):
         if data is None:
             return cls()
         if not isinstance(data, dict):
-            raise ValidationError(f"FillStyle data must be a dict, got {type(data).__name__}")
-
-        color_val = Color.from_dict(data["color"]) if "color" in data else Color.white()
-        return cls(
-            enabled=bool(data.get("enabled", True)),
-            color=color_val,
-            opacity=float(data.get("opacity", 1.0)),
-        )
-
+            raise ValidationError("FillStyle data must be a dict")
+        if "paint" in data:
+            if "color" in data:
+                raise ValidationError("Fill data cannot contain both color and paint")
+            return cls(enabled=data.get("enabled", True), opacity=data.get("opacity", 1.0),
+                       paint=paint_from_dict(data["paint"]))
+        return cls(enabled=bool(data.get("enabled", True)), opacity=float(data.get("opacity", 1.0)),
+                   color=Color.from_dict(data["color"]) if "color" in data else Color.white())
