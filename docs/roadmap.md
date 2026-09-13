@@ -46,19 +46,34 @@ The focused tests include pixel probes and image comparisons. Fourteen selected
 regressions fail against the original source (caps, compositing, mutation, and
 rollback). See [stroke semantics](strokes.md) and [reliability scope](reliability.md).
 
-Verification: the final suite passes **299 tests** (240 existing plus 59 new
+Milestone 1 verification: its suite passed **299 tests** (240 existing plus 59 new
 parameterized cases). The stroke example was executed, exported as PNG/JSON, and
 visually inspected for caps, joins, dash gaps, and pressure taper. Tests ran on
 Python 3.12.14, OpenCV 5.0.0, and NumPy 2.5.3; lower supported dependency versions
 were not separately exercised. The standard command is `python -m pytest -q`.
 Test duration is not a representative rendering benchmark.
 
-## Milestone 2 — Output alpha, then paint
+## Milestone 2 — Transparent output (implemented)
 
-**First deliverable:** an explicit alpha-preserving Canvas/render option with
-unchanged default BGR behavior. Decide and document the public straight-alpha
-BGRA representation versus internal premultiplied intermediates. Keep conversion
-at well-defined boundaries and define flattening against an opaque background.
+Implemented `alpha=True` on Canvas construction, scene rendering, temporal rendering,
+frame iteration, and PNG sequences. Public BGRA is straight uint8; internal filtering
+and composition are premultiplied float32. `Canvas.flatten(background)` provides an
+explicit opaque export. JSON stays at 1.2 because output format is not scene state.
+
+The opt-in path corrects legacy opacity/filtering/transform cases while leaving
+default BGR behavior intact. Seven representative BGR frames match the pre-milestone
+checkout byte-for-byte. Alpha tests include external PNG composition over white,
+black, and color, hidden RGB through all interpolation modes, nested opacity,
+mask/clip coverage, blur/shadows, and observational temporal rendering. The PNG
+contact sheet was independently composited and visually inspected. See
+[alpha contracts and limitations](transparency.md).
+
+Milestone 2 verification: **339 tests pass** (299 existing plus 40 alpha cases),
+with Python 3.12.14, OpenCV 5.0.0, and NumPy 2.5.3. PNG decode matches the exported
+BGRA buffer exactly; external red-edge composites match pre-quantization opaque
+BGRA renders within one channel value. Source/clone/history/temporal state checks
+and the seven-frame BGR compatibility comparison also pass. Lower supported
+dependency versions were not separately exercised.
 
 Acceptance scenes must cover transparent backgrounds; overlapping translucent
 strokes/fills; imported BGRA pixels with hidden RGB; nested group/layer opacity;
@@ -67,7 +82,9 @@ alpha and colors numerically, including fully transparent and fractional pixels,
 and composite exported images over both light and dark backgrounds for visual QA.
 Retain BGR regression coverage and make video alpha limitations explicit.
 
-**Second deliverable:** linear and radial gradient paints using the same coverage
+## Milestone 3 — Richer paint
+
+Next deliverable: linear and radial gradient paints using the same coverage
 and compositing pipeline. Choose object-local versus world coordinates explicitly;
 define how group transforms, non-uniform scale, stops, alpha interpolation, spread,
 and degenerate radii/vectors behave. Require JSON/clone/history/animation tests and
@@ -77,7 +94,7 @@ Only after those contracts pass: design reusable image patterns and useful blend
 modes. Define whether blending applies per primitive or at an isolated group and
 how it interacts with mask/effect ordering. Avoid silently substituting source-over.
 
-## Milestone 3 — Typography
+## Milestone 4 — Typography
 
 Begin with a backend feasibility fixture, not a new font-name enum. Compare
 available shaping/rasterization integrations for user-supplied TTF/OTF fonts,
@@ -94,7 +111,7 @@ reference. Document unsupported scripts and fallback behavior precisely.
 Preserve a documented Hershey compatibility path. A font backend must resolve
 measurement and layout as well as rasterization before it is considered complete.
 
-## Milestone 4 — Interchange, performance, artistic range
+## Milestone 5 — Interchange, performance, artistic range
 
 1. **SVG first:** build an export matrix mapping retained geometry, fills, stroke
    semantics, transforms, groups, text, clips, and masks. Specify raster embedding

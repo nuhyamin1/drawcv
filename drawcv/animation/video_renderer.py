@@ -19,14 +19,18 @@ class VideoRenderer:
         scene: Scene,
         duration: float | None = None,
         fps: int = 30,
+        *,
+        alpha: bool = False,
     ) -> Generator[Canvas, None, None]:
-        """Generate Canvas frames sampled at authoritative timestamps.
+        """Generate BGR Canvas frames (or straight BGRA with alpha=True).
 
         Frame count: N = math.ceil(duration * fps) for duration > 0.
         Timestamps: t_k = k / fps for k in [0, N-1].
         """
         if not isinstance(scene, Scene):
             raise ValidationError(f"Expected Scene, got {type(scene).__name__}")
+        if not isinstance(alpha, bool):
+            raise ValidationError("alpha must be a boolean")
         if not isinstance(fps, int) or isinstance(fps, bool) or fps <= 0:
             raise ValidationError(f"fps must be a positive integer, got {fps}")
 
@@ -49,7 +53,7 @@ class VideoRenderer:
         num_frames = math.ceil(effective_duration * fps)
         for k in range(num_frames):
             time_k = k / float(fps)
-            yield scene.render_at_time(time_k)
+            yield scene.render_at_time(time_k, alpha=True) if alpha else scene.render_at_time(time_k)
 
     @classmethod
     def render_image_sequence(
@@ -59,13 +63,19 @@ class VideoRenderer:
         pattern: str = "frame_%04d.png",
         duration: float | None = None,
         fps: int = 30,
+        *,
+        alpha: bool = False,
     ) -> list[Path]:
-        """Render scene into a sequence of numbered image files on disk."""
+        """Render numbered images; alpha=True requires a PNG filename pattern."""
+        if not isinstance(alpha, bool):
+            raise ValidationError("alpha must be a boolean")
+        if alpha and Path(pattern).suffix.lower() != ".png":
+            raise ValidationError("Alpha image sequences require a PNG filename pattern")
         out_dir = Path(output_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
 
         paths: list[Path] = []
-        for idx, canvas in enumerate(cls.render_frames(scene, duration=duration, fps=fps)):
+        for idx, canvas in enumerate(cls.render_frames(scene, duration=duration, fps=fps, alpha=alpha)):
             frame_filename = pattern % idx
             frame_path = out_dir / frame_filename
             canvas.save(frame_path)

@@ -40,8 +40,17 @@ renderer.render(scene).save("diagram.png")
 ```
 
 The scene remains editable after export. `Canvas.buffer` is a uint8 BGR array;
-`Canvas.to_numpy()` returns a copy. Output alpha is not yet preserved, even when
-`scene.background` has alpha zero. See the [roadmap](docs/roadmap.md).
+`Canvas.to_numpy()` returns a copy. For transparent PNG output, set a transparent
+scene background and explicitly request BGRA:
+
+```python
+scene.background = Color(0, 0, 0, 0)
+transparent = renderer.render(scene, alpha=True)
+transparent.save("diagram-transparent.png")
+transparent.flatten(Color.white()).save("diagram-white.jpg")
+```
+
+See [transparent output and alpha semantics](docs/transparency.md).
 
 ## Edit, undo, and save the scene
 
@@ -114,9 +123,12 @@ Run examples as modules from the repository root:
 ```bash
 python -m examples.stroke_styles
 python -m examples.progressive_drawing
+python -m examples.transparent_output
 ```
 
 - [Stroke comparison source](examples/stroke_styles.py) and [editable scene](examples/output/stroke_styles.json).
+- [Transparent PNG example](examples/transparent_output.py) and [external-composition preview](examples/output/transparent_output_preview.png).
+- [Alpha API and compositing conventions](docs/transparency.md).
 - [StrokeStyle API and conventions](docs/strokes.md).
 - [Public API guide](docs/api.md).
 - [Reliability and history](docs/reliability.md).
@@ -135,7 +147,7 @@ python -m examples.progressive_drawing
 | Paint | Solid fills, color alpha, opacity, fill rules | Gradients, patterns, and configurable blend modes planned |
 | Freehand | Raw editable samples; pressure/velocity widths; simplification, smoothing, interpolation | No textured brush system |
 | Scene | Groups, layers, lookup, selection, relative positioning, affine transforms | Bounds may be conservative; hit testing is geometric and can select dash gaps |
-| Compositing | Images, clipping, masks, blur, shadows, isolated group/layer opacity | Public Canvas/PNG output currently BGR, without retained alpha |
+| Compositing | Opt-in straight BGRA/PNG output; premultiplied images, masks, blur, shadows, isolated opacity | Default BGR retains legacy behavior; alpha export currently PNG only |
 | Typography | Hershey faces, multiline alignment, background plates | No supplied TTF/OTF fonts, shaping, font fallback, or reliable Thai typography |
 | Persistence | JSON 1.2; forward migration; cloning; undo/redo | Direct edits require transaction discipline; older readers need updating |
 | Animation | Timing, easing, numeric/value tracks, progressive drawing, video | No built-in enum/dash-array interpolation; codec availability varies |

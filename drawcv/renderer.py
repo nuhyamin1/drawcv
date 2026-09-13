@@ -22,6 +22,8 @@ from drawcv.core.enums import (
 )
 from drawcv.core.exceptions import RenderError, ValidationError
 from drawcv.core.geometry import Point
+from drawcv.core.alpha import premultiply, unpremultiply, clamp_premultiplied
+from drawcv.core.transform import Transform
 from drawcv.core.stroking import stroke_mask
 from drawcv.core.geometry_utils import _FONT_FAMILY_TO_CV, evaluate_fill_rule_mask, flatten_arc
 from drawcv.effects.blur import BlurEffect
@@ -49,11 +51,12 @@ from drawcv.shapes.text import Text
 
 class _IsolatedSurface:
     """Internal float32 BGRA offscreen render target for isolated compositing passes."""
-    def __init__(self, width: int, height: int):
+    def __init__(self, width: int, height: int, *, alpha_output: bool = False):
         self.width = width
         self.height = height
         self.buffer = np.zeros((height, width, 4), dtype=np.float32)
         self.is_isolated = True
+        self.alpha_output = alpha_output
 
 
 class OpenCVRenderer:
@@ -66,13 +69,24 @@ class OpenCVRenderer:
     def __init__(self):
         self._current_isolating_ancestor: Any | None = None
 
-    def render(self, scene: Scene) -> Canvas:
-        """Render the given Scene and return a new Canvas instance."""
+    def render(self, scene: Scene, *, alpha: bool = False) -> Canvas:
+        """Render a Scene to legacy BGR, or opt-in straight BGRA with alpha=True.
+
+        BGRA rendering uses premultiplied float surfaces until final quantization;
+        scene.background alpha is honored without modifying authored scene state.
+        """
         if not isinstance(scene, Scene):
             raise ValidationError(f"Expected Scene, got {type(scene).__name__}")
 
-        canvas = Canvas(scene.width, scene.height)
-        canvas.clear(scene.background)
+        if not isinstance(alpha, bool):
+            raise ValidationError("alpha must be a boolean")
+        if alpha:
+            canvas = _IsolatedSurface(scene.width, scene.height, alpha_output=True)
+            canvas.buffer[..., :3] = np.array(scene.background.to_bgr()) * scene.background.a
+            canvas.buffer[..., 3] = scene.background.a
+        else:
+            canvas = Canvas(scene.width, scene.height)
+            canvas.clear(scene.background)
 
         # 1. Iterate through layers in ascending z_order (creation order as tie-breaker)
         for layer in scene.layers:
@@ -92,11 +106,19 @@ class OpenCVRenderer:
                 for _, drawable in sorted_items:
                     self._render_single(drawable, canvas)
 
+        if alpha:
+            return Canvas(scene.width, scene.height, unpremultiply(canvas.buffer), alpha=True)
         return canvas
 
     def render_drawable(self, drawable: Drawable, canvas: Canvas) -> None:
         """Render a single drawable directly onto an existing Canvas."""
-        self._render_single(drawable, canvas)
+        if canvas.has_alpha:
+            surface = _IsolatedSurface(canvas.width, canvas.height, alpha_output=True)
+            surface.buffer[:] = premultiply(canvas.buffer)
+            self._render_single(drawable, surface)
+            canvas.buffer[:] = unpremultiply(surface.buffer)
+        else:
+            self._render_single(drawable, canvas)
 
     # -------------------------------------------------------------------------
     # Compositing & Isolation Dispatch
@@ -153,7 +175,9 @@ class OpenCVRenderer:
             self._render_single(sliced, canvas)
             return
 
-        if self._needs_isolated_compositing(drawable):
+        if self._needs_isolated_compositing(drawable) or (
+            getattr(canvas, "alpha_output", False) and drawable.opacity < 1.0
+        ):
             self._render_isolated(drawable, canvas)
             return
 
@@ -239,7 +263,8 @@ class OpenCVRenderer:
             return
 
         # 1. Allocate isolated float32 BGRA surface
-        base_surface = _IsolatedSurface(destination.width, destination.height)
+        alpha_output = getattr(destination, "alpha_output", False)
+        base_surface = _IsolatedSurface(destination.width, destination.height, alpha_output=alpha_output)
 
         # 2. Render base primitives into isolated surface with entity opacity withheld
         prev_ancestor = self._current_isolating_ancestor
@@ -283,7 +308,8 @@ class OpenCVRenderer:
             if shadow_effect.blur_radius > 0.0:
                 sigma = float(shadow_effect.blur_radius)
                 ksize = int(math.ceil(sigma * 3.0)) * 2 + 1
-                blurred_alpha = cv2.GaussianBlur(shifted_alpha, (ksize, ksize), sigmaX=sigma, sigmaY=sigma)
+                blurred_alpha = cv2.GaussianBlur(shifted_alpha, (ksize, ksize), sigmaX=sigma, sigmaY=sigma,
+                    borderType=cv2.BORDER_CONSTANT if alpha_output else cv2.BORDER_DEFAULT)
             else:
                 blurred_alpha = shifted_alpha
 
@@ -298,11 +324,13 @@ class OpenCVRenderer:
             if blur_effect.blur_type == BlurType.GAUSSIAN:
                 sig = blur_effect.sigma
                 base_buffer[y1:y2, x1:x2] = cv2.GaussianBlur(
-                    base_buffer[y1:y2, x1:x2], (k, k), sigmaX=sig, sigmaY=sig
+                    base_buffer[y1:y2, x1:x2], (k, k), sigmaX=sig, sigmaY=sig,
+                    borderType=cv2.BORDER_CONSTANT if alpha_output else cv2.BORDER_DEFAULT
                 )
             else:
                 base_buffer[y1:y2, x1:x2] = cv2.blur(
-                    base_buffer[y1:y2, x1:x2], (k, k)
+                    base_buffer[y1:y2, x1:x2], (k, k),
+                    borderType=cv2.BORDER_CONSTANT if alpha_output else cv2.BORDER_DEFAULT
                 )
 
         # c. Merge Shadow Behind Base
@@ -333,7 +361,15 @@ class OpenCVRenderer:
                 pw = px2 - px1
                 ph = py2 - py1
                 if pw > 0 and ph > 0:
-                    cov = mask_obj.get_coverage(pw, ph)
+                    if alpha_output:
+                        # Fit to the full object bounds, then crop to the canvas;
+                        # otherwise moving partly offscreen stretches the mask.
+                        bx, by = int(math.floor(pb.left)), int(math.floor(pb.top))
+                        bw = int(math.ceil(pb.right)) - bx
+                        bh = int(math.ceil(pb.bottom)) - by
+                        cov = mask_obj.get_coverage(bw, bh)[py1-by:py2-by, px1-bx:px2-bx]
+                    else:
+                        cov = mask_obj.get_coverage(pw, ph)
                     full_mask[py1:py2, px1:px2] = cov
             else:
                 full_mask = mask_obj.get_coverage(destination.width, destination.height)
@@ -346,11 +382,11 @@ class OpenCVRenderer:
             clip_obj = entity.clip
             clip_mask = np.zeros((destination.height, destination.width), dtype=np.uint8)
             if isinstance(clip_obj, ClipRect):
-                corners = [entity.to_world(c) for c in clip_obj.corners]
+                corners = [c if isinstance(entity, Layer) else entity.to_world(c) for c in clip_obj.corners]
                 pts = np.array([[int(round(p.x)), int(round(p.y))] for p in corners], dtype=np.int32).reshape((-1, 1, 2))
                 cv2.fillPoly(clip_mask, [pts], 255)
             elif isinstance(clip_obj, ClipPath):
-                pts_world = [entity.to_world(p) for p in clip_obj.points]
+                pts_world = [p if isinstance(entity, Layer) else entity.to_world(p) for p in clip_obj.points]
                 pts = np.array([[int(round(p.x)), int(round(p.y))] for p in pts_world], dtype=np.int32).reshape((-1, 1, 2))
                 cv2.fillPoly(clip_mask, [pts], 255)
 
@@ -358,7 +394,8 @@ class OpenCVRenderer:
             base_buffer[y1:y2, x1:x2][sub_clip == 0] = 0.0
 
         # f. Entity Opacity (4-channel scale)
-        entity_op = float(entity.opacity)
+        entity_op = (self._get_render_opacity(entity)
+                     if alpha_output and isinstance(entity, Drawable) else float(entity.opacity))
         if entity_op < 1.0:
             base_buffer[y1:y2, x1:x2] *= entity_op
 
@@ -616,7 +653,8 @@ class OpenCVRenderer:
     def _render_image(self, img_obj: ImageObject, canvas: Canvas | _IsolatedSurface) -> None:
         """Render an ImageObject supporting crop, scaling, affine transforms, and source alpha."""
         render_opacity = self._get_render_opacity(img_obj)
-        eff_alpha = img_obj.opacity * render_opacity if self._current_isolating_ancestor is not img_obj else 1.0
+        eff_alpha = (render_opacity if getattr(canvas, "alpha_output", False) else
+                     (img_obj.opacity * render_opacity if self._current_isolating_ancestor is not img_obj else 1.0))
         if eff_alpha <= 0.0:
             return
 
@@ -633,26 +671,41 @@ class OpenCVRenderer:
         dh = max(1, int(round(img_obj.display_height)))
         cv_interp = self._get_cv_interpolation(img_obj.interpolation)
 
-        if src_img.shape[1] != dw or src_img.shape[0] != dh:
-            src_img = cv2.resize(src_img, (dw, dh), interpolation=cv_interp)
-
-        # Normalize to BGR float32 and Alpha float32
-        if src_img.ndim == 2:
-            bgr_f = cv2.cvtColor(src_img, cv2.COLOR_GRAY2BGR).astype(np.float32)
-            alpha_f = np.ones((dh, dw), dtype=np.float32) * float(eff_alpha)
-        elif src_img.shape[2] == 1:
-            bgr_f = cv2.cvtColor(src_img, cv2.COLOR_GRAY2BGR).astype(np.float32)
-            alpha_f = np.ones((dh, dw), dtype=np.float32) * float(eff_alpha)
-        elif src_img.shape[2] == 3:
-            bgr_f = src_img.astype(np.float32)
-            alpha_f = np.ones((dh, dw), dtype=np.float32) * float(eff_alpha)
+        alpha_output = getattr(canvas, "alpha_output", False)
+        if alpha_output:
+            # Discard hidden RGB before ANY filtering, including display resize.
+            if src_img.ndim == 2 or src_img.shape[2] == 1:
+                bgr = cv2.cvtColor(src_img, cv2.COLOR_GRAY2BGR)
+                source = np.dstack([bgr, np.full(bgr.shape[:2], 255, dtype=np.uint8)])
+            elif src_img.shape[2] == 3:
+                source = np.dstack([src_img, np.full(src_img.shape[:2], 255, dtype=np.uint8)])
+            else:
+                source = src_img
+            pm_bgra = premultiply(source) * eff_alpha
+            if source.shape[1] != dw or source.shape[0] != dh:
+                pm_bgra = cv2.resize(pm_bgra, (dw, dh), interpolation=cv_interp)
+            pm_bgra = clamp_premultiplied(pm_bgra)
         else:
-            bgr_f = src_img[:, :, :3].astype(np.float32)
-            alpha_f = (src_img[:, :, 3].astype(np.float32) / 255.0) * float(eff_alpha)
+            if src_img.shape[1] != dw or src_img.shape[0] != dh:
+                src_img = cv2.resize(src_img, (dw, dh), interpolation=cv_interp)
 
-        # Premultiply
-        pm_bgr = bgr_f * alpha_f[:, :, None]
-        pm_bgra = np.dstack([pm_bgr, alpha_f])
+            # Normalize to BGR float32 and Alpha float32
+            if src_img.ndim == 2:
+                bgr_f = cv2.cvtColor(src_img, cv2.COLOR_GRAY2BGR).astype(np.float32)
+                alpha_f = np.ones((dh, dw), dtype=np.float32) * float(eff_alpha)
+            elif src_img.shape[2] == 1:
+                bgr_f = cv2.cvtColor(src_img, cv2.COLOR_GRAY2BGR).astype(np.float32)
+                alpha_f = np.ones((dh, dw), dtype=np.float32) * float(eff_alpha)
+            elif src_img.shape[2] == 3:
+                bgr_f = src_img.astype(np.float32)
+                alpha_f = np.ones((dh, dw), dtype=np.float32) * float(eff_alpha)
+            else:
+                bgr_f = src_img[:, :, :3].astype(np.float32)
+                alpha_f = (src_img[:, :, 3].astype(np.float32) / 255.0) * float(eff_alpha)
+
+            # Premultiply
+            pm_bgr = bgr_f * alpha_f[:, :, None]
+            pm_bgra = np.dstack([pm_bgr, alpha_f])
 
         # Warp to world coordinates
         gx, gy = img_obj.position.x, img_obj.position.y
@@ -668,6 +721,9 @@ class OpenCVRenderer:
             pm_bgra, M_warp, (canvas.width, canvas.height),
             flags=cv_interp, borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0)
         )
+
+        if alpha_output:
+            warped = clamp_premultiplied(warped)
 
         bounds = img_obj.get_bounds()
         x1 = max(0, int(math.floor(bounds.left)))
@@ -696,7 +752,9 @@ class OpenCVRenderer:
     def _render_text(self, text_obj: Text, canvas: Canvas | _IsolatedSurface) -> None:
         """Render a Text drawable supporting background plate, multiline, and alignment."""
         render_opacity = self._get_render_opacity(text_obj)
-        eff_alpha = text_obj.opacity * render_opacity if self._current_isolating_ancestor is not text_obj else 1.0
+        alpha_output = getattr(canvas, "alpha_output", False)
+        eff_alpha = (render_opacity if alpha_output else
+                     (text_obj.opacity * render_opacity if self._current_isolating_ancestor is not text_obj else 1.0))
         if eff_alpha <= 0.0:
             return
 
@@ -711,7 +769,7 @@ class OpenCVRenderer:
                     height=gb.height,
                     corner_radius=text_obj.background_radius,
                     fill=text_obj.background_fill,
-                    transform=text_obj.transform,
+                    transform=Transform.from_matrix(text_obj.world_matrix) if alpha_output else text_obj.transform,
                     opacity=eff_alpha,
                 )
                 self._render_rounded_rectangle(plate_shape, canvas)
@@ -721,7 +779,7 @@ class OpenCVRenderer:
                     width=gb.width,
                     height=gb.height,
                     fill=text_obj.background_fill,
-                    transform=text_obj.transform,
+                    transform=Transform.from_matrix(text_obj.world_matrix) if alpha_output else text_obj.transform,
                     opacity=eff_alpha,
                 )
                 self._render_rectangle(plate_shape, canvas)
@@ -743,9 +801,14 @@ class OpenCVRenderer:
             not math.isclose(text_obj.transform.scale_y, 1.0, rel_tol=1e-4)
         )
 
+        if alpha_output:
+            has_complex_transform = not np.allclose(text_obj.world_matrix[:2, :2], np.eye(2), atol=1e-8, rtol=0)
+
         if not has_complex_transform:
             tx = text_obj.transform.translation_x
             ty = text_obj.transform.translation_y
+            if alpha_output:
+                tx, ty = text_obj.world_matrix[:2, 2]
             for i, (line_str, w_i, h_i, b_i) in enumerate(metrics):
                 if not line_str:
                     continue

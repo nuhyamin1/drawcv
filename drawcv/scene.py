@@ -830,14 +830,17 @@ class Scene:
 
         self.timeline.evaluate(time, self)
 
-    def render_at_time(self, time: float, renderer: Any | None = None) -> Any:
+    def render_at_time(self, time: float, renderer: Any | None = None, *, alpha: bool = False) -> Any:
         """Observational, strictly non-destructive evaluation and rendering at a timestamp.
 
+        Set alpha=True for straight BGRA output from an alpha-capable renderer.
         Captures the exact semantic state of all animated objects and timing progress,
         temporarily evaluates the scene at time t with history suspended, renders the frame,
         and unconditionally restores authored state in a finally block.
         """
         from drawcv.renderer import OpenCVRenderer
+        if not isinstance(alpha, bool):
+            raise ValidationError("alpha must be a boolean")
         active_renderer = renderer if renderer is not None else OpenCVRenderer()
 
         with self.history.suspended():
@@ -857,7 +860,9 @@ class Scene:
 
             try:
                 self.sample(time)
-                return active_renderer.render(self)
+                # Preserve compatibility with existing custom renderers that
+                # implement render(scene) without output options.
+                return active_renderer.render(self, alpha=True) if alpha else active_renderer.render(self)
             finally:
                 # 3. Restore all render_progress values
                 for d, orig_progress in timing_snapshots:

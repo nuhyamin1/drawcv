@@ -7,8 +7,8 @@ full signatures; this guide groups the public entry points by task.
 
 | Task | Entry points | Source |
 | --- | --- | --- |
-| Build/render a scene | `Scene(width, height, background)`, `OpenCVRenderer().render(scene)` | [Scene](../drawcv/scene.py), [renderer](../drawcv/renderer.py) |
-| Read/export pixels | `Canvas.buffer`, `to_numpy()`, `save(path)` | [Canvas](../drawcv/canvas.py) |
+| Build/render a scene | `Scene(width, height, background)`, `OpenCVRenderer().render(scene, alpha=False)` | [Scene](../drawcv/scene.py), [renderer](../drawcv/renderer.py) |
+| Read/export pixels | `Canvas.buffer`, `has_alpha`, `to_numpy()`, `flatten(background)`, `save(path)` | [Canvas](../drawcv/canvas.py) |
 | Points/colors/bounds | `Point(x, y)`, `Color(r, g, b, a)`, `BoundingBox(x, y, width, height)` | [core](../drawcv/core) |
 | Style geometry | `StrokeStyle(...)`, `FillStyle(enabled=True, color=..., opacity=1)` | [stroke reference](strokes.md), [fill](../drawcv/styles/fill.py) |
 | Straight geometry | `Line(start=..., end=...)`, `Polyline(points=..., closed=False)`, `Polygon(vertices=...)` | [shapes](../drawcv/shapes) |
@@ -25,6 +25,9 @@ full signatures; this guide groups the public entry points by task.
 | Images/text | `ImageObject(image=..., position=...)`, `Text(text=..., position=..., color=...)` | [image](../drawcv/shapes/image.py), [text](../drawcv/shapes/text.py) |
 | Clip/mask/effects | Drawable `clip`, `mask`, `effects`; `ClipRect`, `ClipPath`, `Mask`, `BlurEffect`, `ShadowEffect` | [effects](../drawcv/effects) |
 | Animate/export | `Timing`, `scene.animate`, `sample`, `render_at_time`, `VideoRenderer` | [animation](../drawcv/animation) |
+
+See [transparent output](transparency.md) for BGRA Canvas construction, temporal frames,
+PNG export, channel order, and straight/premultiplied alpha semantics.
 
 Useful enums: `CapStyle`, `JoinStyle`, `LineType`, `FillRule`, `ArcClosure`,
 `ArrowHeadStyle`, `ImageInterpolation`, `BlurType`, `MaskMapping`, `TextAlignment`.
