@@ -102,7 +102,7 @@ solid-only BGR frames match the pre-milestone checkout byte-for-byte. PNG tests
 check external white/black/color composites within one channel value and preserve
 constant-hue transparent edges. The gallery was rendered and visually inspected.
 Environment: Python 3.12.14, OpenCV 5.0.0, NumPy 2.5.3; lower supported versions
-were not separately exercised. Full-canvas sampling remains an optimization target.
+were not separately exercised. Milestone 5B later limits paint sampling to coverage regions.
 
 ## Milestone 4 — Typography (4A evaluated; 4B integrated)
 
@@ -137,7 +137,16 @@ independently verifies output; 473 tests pass locally, including 36 SVG cases.
 The gallery was rendered and inspected. Cross-platform CI execution is pending.
 See [SVG contracts and mapping](svg.md).
 
-**Next: 5B performance measurement.** PDF and textured brushes remain later scopes.
+**5B performance measurement and targeted optimization are implemented.** Eight
+deterministic workloads record raw timing samples, median/p95, separate memory and
+profile passes, environment/source fingerprints and exact frame hashes. Coverage
+regions bound gradient work and unbounded mask blending; freehand resolves transforms
+once per call; explicit pivots avoid unused geometry queries. All benchmark frames
+match the baseline exactly across two after-runs. The suite passes 508 tests.
+See [measured gains, memory evidence and limits](performance.md). Remote CI and lower
+supported dependency versions remain unverified.
+
+**Next: 5C PDF export evaluation.** Textured brushes remain a separate later scope.
 
 1. **SVG first:** build an export matrix mapping retained geometry, fills, stroke
    semantics, transforms, groups, text, clips, and masks. Specify raster embedding

@@ -105,9 +105,10 @@ radius must stay positive and endpoints distinct. Arbitrary stop arrays, stops,
 space strings, and whole gradient objects are not built-in animation value types;
 those tracks are rejected. Use explicit `scene.edit` changes for stop lists.
 
-Full-canvas paint buffers are currently allocated when sampling. This milestone
-does not introduce caching or claim a performance improvement. Extremely large
-coordinates remain subject to floating-point and raster limits.
+Milestone 5B limits paint sampling to actual mask coverage while preserving global
+pixel coordinates. Masks and effect surfaces can still be canvas-sized; no retained
+paint cache is introduced. See [measured performance](performance.md). Extremely
+large coordinates remain subject to floating-point and raster limits.
 
 ## Runnable example and verification
 

@@ -1,0 +1,1359 @@
+{
+  "format_version": 1,
+  "environment": {
+    "platform": "Windows-11-10.0.26220-SP0",
+    "cpu": "11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz",
+    "logical_cpus": 8,
+    "python": "3.12.14",
+    "numpy": "2.5.3",
+    "opencv": "5.0.0",
+    "opencv_threads": 1,
+    "git_head": "a710723e8bcaebf2aa373ad50ccdc84eadaee485",
+    "renderer_source_sha256": "72543b8cf2379d49a64e406a9467fcf3fc59405774bcdb959b2da16f3418d114",
+    "library_source_sha256": "79c412349967711ef7b215fb80ea9e9aa8921325754baae32c998f0926bbc019"
+  },
+  "results": [
+    {
+      "case": "dense_bgr",
+      "scene": {
+        "width": 640,
+        "height": 360,
+        "objects_including_groups": 1200,
+        "max_depth": 1,
+        "raw_points": 0,
+        "timeline_tracks": 0
+      },
+      "scene_sha256": "2fdd88ef84bc13f11831a0e1ba14d51e27c8f20ef0f75c158b7a86fb520a1016",
+      "alpha": false,
+      "frame_hashes": [
+        "66b78558afb1902240e353b52c4604410b28b4f213be0ac77c3adbfed586ad5d"
+      ],
+      "warmup_frames": 2,
+      "samples": 9,
+      "times_seconds": null,
+      "frame_ms": [
+        215.8417,
+        205.7438,
+        225.6199,
+        210.1229,
+        200.2853,
+        217.5923,
+        216.6407,
+        214.3235,
+        207.4485
+      ],
+      "median_ms": 214.3235,
+      "p95_ms": 222.40886,
+      "min_ms": 200.2853,
+      "max_ms": 225.6199,
+      "memory_before_warmup": {
+        "rss_bytes": 47206400,
+        "peak_rss_bytes": 52916224
+      },
+      "memory_after_timing": {
+        "rss_bytes": 47509504,
+        "peak_rss_bytes": 52916224
+      },
+      "traced_peak_bytes": 882948,
+      "traced_positive_retained_blocks": 2056,
+      "traced_positive_retained_bytes": 805736,
+      "profile": [
+        {
+          "file": "render.py",
+          "line": 76,
+          "function": "frame",
+          "calls": 1,
+          "self_seconds": 0.0001167,
+          "cumulative_seconds": 0.40333660000000005
+        },
+        {
+          "file": "renderer.py",
+          "line": 74,
+          "function": "render",
+          "calls": 1,
+          "self_seconds": 0.0010323,
+          "cumulative_seconds": 0.4032197
+        },
+        {
+          "file": "renderer.py",
+          "line": 166,
+          "function": "_render_single",
+          "calls": 1200,
+          "self_seconds": 0.0019085,
+          "cumulative_seconds": 0.39696750000000003
+        },
+        {
+          "file": "renderer.py",
+          "line": 218,
+          "function": "_render_single_primitive",
+          "calls": 1200,
+          "self_seconds": 0.0014636,
+          "cumulative_seconds": 0.3911895
+        },
+        {
+          "file": "renderer.py",
+          "line": 432,
+          "function": "_render_rectangle",
+          "calls": 1200,
+          "self_seconds": 0.0088736,
+          "cumulative_seconds": 0.38867060000000003
+        },
+        {
+          "file": "drawable.py",
+          "line": 198,
+          "function": "to_world",
+          "calls": 9600,
+          "self_seconds": 0.010156400000000001,
+          "cumulative_seconds": 0.3070415
+        },
+        {
+          "file": "transform.py",
+          "line": 178,
+          "function": "transform_point",
+          "calls": 9600,
+          "self_seconds": 0.027725100000000003,
+          "cumulative_seconds": 0.2057546
+        },
+        {
+          "file": "rectangle.py",
+          "line": 81,
+          "function": "get_bounds",
+          "calls": 1200,
+          "self_seconds": 0.0056524,
+          "cumulative_seconds": 0.192453
+        },
+        {
+          "file": "transform.py",
+          "line": 82,
+          "function": "get_matrix",
+          "calls": 9600,
+          "self_seconds": 0.0844231,
+          "cumulative_seconds": 0.14697790000000002
+        },
+        {
+          "file": "bounds.py",
+          "line": 26,
+          "function": "__init__",
+          "calls": 12000,
+          "self_seconds": 0.049758100000000006,
+          "cumulative_seconds": 0.07198070000000001
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method numpy.array>",
+          "calls": 58800,
+          "self_seconds": 0.06534340000000001,
+          "cumulative_seconds": 0.06534340000000001
+        },
+        {
+          "file": "geometry.py",
+          "line": 18,
+          "function": "__init__",
+          "calls": 26400,
+          "self_seconds": 0.044672800000000006,
+          "cumulative_seconds": 0.0640718
+        },
+        {
+          "file": "rectangle.py",
+          "line": 72,
+          "function": "get_geometry_bounds",
+          "calls": 9600,
+          "self_seconds": 0.005843,
+          "cumulative_seconds": 0.0638012
+        },
+        {
+          "file": "bounds.py",
+          "line": 80,
+          "function": "center",
+          "calls": 9600,
+          "self_seconds": 0.0053896000000000005,
+          "cumulative_seconds": 0.0273293
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method builtins.isinstance>",
+          "calls": 162011,
+          "self_seconds": 0.0202055,
+          "cumulative_seconds": 0.022451500000000003
+        }
+      ]
+    },
+    {
+      "case": "small_strokes",
+      "scene": {
+        "width": 640,
+        "height": 360,
+        "objects_including_groups": 480,
+        "max_depth": 1,
+        "raw_points": 0,
+        "timeline_tracks": 0
+      },
+      "scene_sha256": "c3b8b49e65ef51158935a7f61294f97fd9f8dcf9dabf446a04f7b0a8c333a92c",
+      "alpha": true,
+      "frame_hashes": [
+        "491aab59ad8c8bf78075e526a936f5604fb56a83b194883fef209bf2e8e18a6d"
+      ],
+      "warmup_frames": 2,
+      "samples": 9,
+      "times_seconds": null,
+      "frame_ms": [
+        5986.3686,
+        5665.6401,
+        5996.1271,
+        6172.7753,
+        5959.397,
+        5849.3843,
+        5909.8471,
+        6355.4209,
+        6496.4008
+      ],
+      "median_ms": 5986.3686,
+      "p95_ms": 6440.00884,
+      "min_ms": 5665.6401,
+      "max_ms": 6496.4008,
+      "memory_before_warmup": {
+        "rss_bytes": 45072384,
+        "peak_rss_bytes": 46850048
+      },
+      "memory_after_timing": {
+        "rss_bytes": 45920256,
+        "peak_rss_bytes": 65351680
+      },
+      "traced_peak_bytes": 18505390,
+      "traced_positive_retained_blocks": 1050,
+      "traced_positive_retained_bytes": 979818,
+      "profile": [
+        {
+          "file": "render.py",
+          "line": 76,
+          "function": "frame",
+          "calls": 1,
+          "self_seconds": 0.00026440000000000003,
+          "cumulative_seconds": 6.758668800000001
+        },
+        {
+          "file": "renderer.py",
+          "line": 74,
+          "function": "render",
+          "calls": 1,
+          "self_seconds": 0.0043717,
+          "cumulative_seconds": 6.758404100000001
+        },
+        {
+          "file": "renderer.py",
+          "line": 166,
+          "function": "_render_single",
+          "calls": 480,
+          "self_seconds": 0.0028923,
+          "cumulative_seconds": 6.726731900000001
+        },
+        {
+          "file": "renderer.py",
+          "line": 218,
+          "function": "_render_single_primitive",
+          "calls": 480,
+          "self_seconds": 0.0027234,
+          "cumulative_seconds": 6.716363800000001
+        },
+        {
+          "file": "renderer.py",
+          "line": 432,
+          "function": "_render_rectangle",
+          "calls": 480,
+          "self_seconds": 0.0088213,
+          "cumulative_seconds": 6.712803
+        },
+        {
+          "file": "renderer.py",
+          "line": 853,
+          "function": "_stroke_contours",
+          "calls": 480,
+          "self_seconds": 0.1242183,
+          "cumulative_seconds": 6.5078503
+        },
+        {
+          "file": "renderer.py",
+          "line": 908,
+          "function": "_composite_mask",
+          "calls": 480,
+          "self_seconds": 6.0769837,
+          "cumulative_seconds": 6.2339969
+        },
+        {
+          "file": "drawable.py",
+          "line": 198,
+          "function": "to_world",
+          "calls": 3840,
+          "self_seconds": 0.0057995,
+          "cumulative_seconds": 0.15876410000000002
+        },
+        {
+          "file": "stroking.py",
+          "line": 77,
+          "function": "stroke_mask",
+          "calls": 480,
+          "self_seconds": 0.040379700000000004,
+          "cumulative_seconds": 0.14812720000000001
+        },
+        {
+          "file": "transform.py",
+          "line": 178,
+          "function": "transform_point",
+          "calls": 3840,
+          "self_seconds": 0.015539200000000001,
+          "cumulative_seconds": 0.10915770000000001
+        },
+        {
+          "file": "rectangle.py",
+          "line": 81,
+          "function": "get_bounds",
+          "calls": 480,
+          "self_seconds": 0.004828300000000001,
+          "cumulative_seconds": 0.0919848
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<method 'astype' of 'numpy.ndarray' objects>",
+          "calls": 4321,
+          "self_seconds": 0.0871576,
+          "cumulative_seconds": 0.0871576
+        },
+        {
+          "file": "transform.py",
+          "line": 82,
+          "function": "get_matrix",
+          "calls": 3840,
+          "self_seconds": 0.046213500000000005,
+          "cumulative_seconds": 0.0791008
+        },
+        {
+          "file": "fromnumeric.py",
+          "line": 2474,
+          "function": "any",
+          "calls": 960,
+          "self_seconds": 0.0020818,
+          "cumulative_seconds": 0.0785865
+        },
+        {
+          "file": "fromnumeric.py",
+          "line": 86,
+          "function": "_wrapreduction_any_all",
+          "calls": 960,
+          "self_seconds": 0.0036886,
+          "cumulative_seconds": 0.07650470000000001
+        }
+      ]
+    },
+    {
+      "case": "small_gradients",
+      "scene": {
+        "width": 640,
+        "height": 360,
+        "objects_including_groups": 72,
+        "max_depth": 1,
+        "raw_points": 0,
+        "timeline_tracks": 0
+      },
+      "scene_sha256": "2cde4483dcee86ffc539b5c37290293d79f9c064483630b8b55781b9be240597",
+      "alpha": true,
+      "frame_hashes": [
+        "c453703f23d4e74cec3b7aed815b8606ad3d0b811ccfd5bac6c504696c4864e6"
+      ],
+      "warmup_frames": 2,
+      "samples": 9,
+      "times_seconds": null,
+      "frame_ms": [
+        4326.0893,
+        4950.0044,
+        4365.5941,
+        4376.1578,
+        4325.047,
+        4369.8969,
+        4420.3189,
+        4326.0121,
+        4381.5215
+      ],
+      "median_ms": 4369.8969,
+      "p95_ms": 4738.1302,
+      "min_ms": 4325.047,
+      "max_ms": 4950.0044,
+      "memory_before_warmup": {
+        "rss_bytes": 43282432,
+        "peak_rss_bytes": 43282432
+      },
+      "memory_after_timing": {
+        "rss_bytes": 43859968,
+        "peak_rss_bytes": 84951040
+      },
+      "traced_peak_bytes": 40872616,
+      "traced_positive_retained_blocks": 289,
+      "traced_positive_retained_bytes": 942448,
+      "profile": [
+        {
+          "file": "render.py",
+          "line": 76,
+          "function": "frame",
+          "calls": 1,
+          "self_seconds": 0.00018570000000000001,
+          "cumulative_seconds": 4.761358100000001
+        },
+        {
+          "file": "renderer.py",
+          "line": 74,
+          "function": "render",
+          "calls": 1,
+          "self_seconds": 0.0023524,
+          "cumulative_seconds": 4.761172
+        },
+        {
+          "file": "renderer.py",
+          "line": 166,
+          "function": "_render_single",
+          "calls": 72,
+          "self_seconds": 0.00040980000000000004,
+          "cumulative_seconds": 4.7313434
+        },
+        {
+          "file": "renderer.py",
+          "line": 218,
+          "function": "_render_single_primitive",
+          "calls": 72,
+          "self_seconds": 0.0003501,
+          "cumulative_seconds": 4.7298774
+        },
+        {
+          "file": "renderer.py",
+          "line": 432,
+          "function": "_render_rectangle",
+          "calls": 72,
+          "self_seconds": 0.0018294000000000001,
+          "cumulative_seconds": 4.7294051
+        },
+        {
+          "file": "renderer.py",
+          "line": 819,
+          "function": "_fill_polygon",
+          "calls": 72,
+          "self_seconds": 0.0195257,
+          "cumulative_seconds": 4.695963900000001
+        },
+        {
+          "file": "renderer.py",
+          "line": 834,
+          "function": "_fill_mask",
+          "calls": 72,
+          "self_seconds": 1.0243718000000002,
+          "cumulative_seconds": 4.6735975000000005
+        },
+        {
+          "file": "paint_sampling.py",
+          "line": 6,
+          "function": "sample_gradient",
+          "calls": 72,
+          "self_seconds": 3.2281294000000003,
+          "cumulative_seconds": 3.6271050000000002
+        },
+        {
+          "file": "fromnumeric.py",
+          "line": 48,
+          "function": "_wrapfunc",
+          "calls": 218,
+          "self_seconds": 0.0005323,
+          "cumulative_seconds": 0.17125710000000002
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<method 'astype' of 'numpy.ndarray' objects>",
+          "calls": 217,
+          "self_seconds": 0.1213266,
+          "cumulative_seconds": 0.1213266
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<method 'clip' of 'numpy.ndarray' objects>",
+          "calls": 219,
+          "self_seconds": 0.0005878000000000001,
+          "cumulative_seconds": 0.1155467
+        },
+        {
+          "file": "_methods.py",
+          "line": 96,
+          "function": "_clip",
+          "calls": 219,
+          "self_seconds": 0.1139932,
+          "cumulative_seconds": 0.1149589
+        },
+        {
+          "file": "fromnumeric.py",
+          "line": 1459,
+          "function": "searchsorted",
+          "calls": 72,
+          "self_seconds": 0.0002942,
+          "cumulative_seconds": 0.0940309
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<method 'searchsorted' of 'numpy.ndarray' objects>",
+          "calls": 72,
+          "self_seconds": 0.0933062,
+          "cumulative_seconds": 0.0933062
+        },
+        {
+          "file": "fromnumeric.py",
+          "line": 2245,
+          "function": "clip",
+          "calls": 146,
+          "self_seconds": 0.0005115,
+          "cumulative_seconds": 0.0780319
+        }
+      ]
+    },
+    {
+      "case": "long_freehand",
+      "scene": {
+        "width": 640,
+        "height": 360,
+        "objects_including_groups": 1,
+        "max_depth": 1,
+        "raw_points": 6000,
+        "timeline_tracks": 0
+      },
+      "scene_sha256": "4bcdeef0949eb06327c641fcf183a2299616916dfe3f97df337934674edbe138",
+      "alpha": true,
+      "frame_hashes": [
+        "aed241fef38c9ee406e92f859c44a7a266ed94226650485bce638e8bf0b3921d"
+      ],
+      "warmup_frames": 2,
+      "samples": 9,
+      "times_seconds": null,
+      "frame_ms": [
+        4071.9112,
+        4282.2386,
+        4108.6368,
+        4097.248,
+        4321.4956,
+        7149.8187,
+        7064.1167,
+        5459.4503,
+        6027.0474
+      ],
+      "median_ms": 4321.4956,
+      "p95_ms": 7115.537899999999,
+      "min_ms": 4071.9112,
+      "max_ms": 7149.8187,
+      "memory_before_warmup": {
+        "rss_bytes": 45826048,
+        "peak_rss_bytes": 50089984
+      },
+      "memory_after_timing": {
+        "rss_bytes": 49565696,
+        "peak_rss_bytes": 68980736
+      },
+      "traced_peak_bytes": 18567002,
+      "traced_positive_retained_blocks": 2158,
+      "traced_positive_retained_bytes": 1055626,
+      "profile": [
+        {
+          "file": "render.py",
+          "line": 76,
+          "function": "frame",
+          "calls": 1,
+          "self_seconds": 0.0002886,
+          "cumulative_seconds": 6.0790614000000005
+        },
+        {
+          "file": "renderer.py",
+          "line": 74,
+          "function": "render",
+          "calls": 1,
+          "self_seconds": 0.0019690000000000003,
+          "cumulative_seconds": 6.0787725
+        },
+        {
+          "file": "renderer.py",
+          "line": 166,
+          "function": "_render_single",
+          "calls": 1,
+          "self_seconds": 8.5e-06,
+          "cumulative_seconds": 6.0497034
+        },
+        {
+          "file": "renderer.py",
+          "line": 218,
+          "function": "_render_single_primitive",
+          "calls": 1,
+          "self_seconds": 0.0004827,
+          "cumulative_seconds": 6.0496891
+        },
+        {
+          "file": "renderer.py",
+          "line": 579,
+          "function": "_render_freehand",
+          "calls": 1,
+          "self_seconds": 0.0107586,
+          "cumulative_seconds": 6.0491948
+        },
+        {
+          "file": "drawable.py",
+          "line": 198,
+          "function": "to_world",
+          "calls": 6000,
+          "self_seconds": 0.2448768,
+          "cumulative_seconds": 5.5944064000000004
+        },
+        {
+          "file": "freehand.py",
+          "line": 332,
+          "function": "get_geometry_bounds",
+          "calls": 6000,
+          "self_seconds": 2.5479756,
+          "cumulative_seconds": 5.0450984000000005
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method builtins.max>",
+          "calls": 12000,
+          "self_seconds": 1.2165289000000001,
+          "cumulative_seconds": 1.2165289000000001
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method builtins.min>",
+          "calls": 12000,
+          "self_seconds": 1.2113147,
+          "cumulative_seconds": 1.2113147
+        },
+        {
+          "file": "renderer.py",
+          "line": 853,
+          "function": "_stroke_contours",
+          "calls": 1,
+          "self_seconds": 0.002942,
+          "cumulative_seconds": 0.38773100000000005
+        },
+        {
+          "file": "stroking.py",
+          "line": 77,
+          "function": "stroke_mask",
+          "calls": 1,
+          "self_seconds": 0.109061,
+          "cumulative_seconds": 0.37152810000000003
+        },
+        {
+          "file": "transform.py",
+          "line": 178,
+          "function": "transform_point",
+          "calls": 6000,
+          "self_seconds": 0.0361655,
+          "cumulative_seconds": 0.2701875
+        },
+        {
+          "file": "transform.py",
+          "line": 82,
+          "function": "get_matrix",
+          "calls": 6000,
+          "self_seconds": 0.11491960000000001,
+          "cumulative_seconds": 0.19894840000000003
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method numpy.array>",
+          "calls": 42001,
+          "self_seconds": 0.0890708,
+          "cumulative_seconds": 0.0890708
+        },
+        {
+          "file": "stroking.py",
+          "line": 85,
+          "function": "disk",
+          "calls": 6000,
+          "self_seconds": 0.037104200000000004,
+          "cumulative_seconds": 0.080122
+        }
+      ]
+    },
+    {
+      "case": "dense_dashes",
+      "scene": {
+        "width": 640,
+        "height": 360,
+        "objects_including_groups": 24,
+        "max_depth": 1,
+        "raw_points": 1680,
+        "timeline_tracks": 0
+      },
+      "scene_sha256": "0b52ee0af583c6733e6b828585b307ef9d782f27bab35d8015cc1e7ad46a8203",
+      "alpha": true,
+      "frame_hashes": [
+        "73a5108f9c65de84e9a5a4ff08791e62feee60f8a9788c489ef5f442b9307f29"
+      ],
+      "warmup_frames": 2,
+      "samples": 9,
+      "times_seconds": null,
+      "frame_ms": [
+        572.0193,
+        553.0986,
+        742.6927,
+        917.0889,
+        904.0571,
+        1014.2321,
+        869.38,
+        918.7314,
+        913.1217
+      ],
+      "median_ms": 904.0571,
+      "p95_ms": 976.0318199999999,
+      "min_ms": 553.0986,
+      "max_ms": 1014.2321,
+      "memory_before_warmup": {
+        "rss_bytes": 44032000,
+        "peak_rss_bytes": 44032000
+      },
+      "memory_after_timing": {
+        "rss_bytes": 44470272,
+        "peak_rss_bytes": 63942656
+      },
+      "traced_peak_bytes": 18449950,
+      "traced_positive_retained_blocks": 336,
+      "traced_positive_retained_bytes": 938126,
+      "profile": [
+        {
+          "file": "render.py",
+          "line": 76,
+          "function": "frame",
+          "calls": 1,
+          "self_seconds": 0.0003601,
+          "cumulative_seconds": 1.2197702000000001
+        },
+        {
+          "file": "renderer.py",
+          "line": 74,
+          "function": "render",
+          "calls": 1,
+          "self_seconds": 0.0044591000000000006,
+          "cumulative_seconds": 1.2194093000000001
+        },
+        {
+          "file": "renderer.py",
+          "line": 166,
+          "function": "_render_single",
+          "calls": 24,
+          "self_seconds": 0.0001955,
+          "cumulative_seconds": 1.1597790000000001
+        },
+        {
+          "file": "renderer.py",
+          "line": 218,
+          "function": "_render_single_primitive",
+          "calls": 24,
+          "self_seconds": 8.27e-05,
+          "cumulative_seconds": 1.1591754
+        },
+        {
+          "file": "renderer.py",
+          "line": 490,
+          "function": "_render_polyline",
+          "calls": 24,
+          "self_seconds": 0.0014992,
+          "cumulative_seconds": 1.1588905
+        },
+        {
+          "file": "renderer.py",
+          "line": 853,
+          "function": "_stroke_contours",
+          "calls": 24,
+          "self_seconds": 0.0076807,
+          "cumulative_seconds": 1.0385113000000001
+        },
+        {
+          "file": "stroking.py",
+          "line": 77,
+          "function": "stroke_mask",
+          "calls": 24,
+          "self_seconds": 0.17993900000000002,
+          "cumulative_seconds": 0.5984953000000001
+        },
+        {
+          "file": "renderer.py",
+          "line": 908,
+          "function": "_composite_mask",
+          "calls": 24,
+          "self_seconds": 0.4169024,
+          "cumulative_seconds": 0.4322048
+        },
+        {
+          "file": "stroking.py",
+          "line": 85,
+          "function": "disk",
+          "calls": 10009,
+          "self_seconds": 0.0722294,
+          "cumulative_seconds": 0.1528188
+        },
+        {
+          "file": "drawable.py",
+          "line": 198,
+          "function": "to_world",
+          "calls": 1680,
+          "self_seconds": 0.0043271,
+          "cumulative_seconds": 0.11888000000000001
+        },
+        {
+          "file": "stroking.py",
+          "line": 13,
+          "function": "dash_contour",
+          "calls": 4445,
+          "self_seconds": 0.06590610000000001,
+          "cumulative_seconds": 0.0994064
+        },
+        {
+          "file": "stroking.py",
+          "line": 81,
+          "function": "polygon",
+          "calls": 5588,
+          "self_seconds": 0.028610600000000003,
+          "cumulative_seconds": 0.0766267
+        },
+        {
+          "file": "transform.py",
+          "line": 178,
+          "function": "transform_point",
+          "calls": 1680,
+          "self_seconds": 0.0086522,
+          "cumulative_seconds": 0.06379030000000001
+        },
+        {
+          "file": "_linalg.py",
+          "line": 2598,
+          "function": "norm",
+          "calls": 8900,
+          "self_seconds": 0.0282605,
+          "cumulative_seconds": 0.0599415
+        },
+        {
+          "file": "alpha.py",
+          "line": 24,
+          "function": "unpremultiply",
+          "calls": 1,
+          "self_seconds": 0.027779500000000002,
+          "cumulative_seconds": 0.0545804
+        }
+      ]
+    },
+    {
+      "case": "deep_transparency",
+      "scene": {
+        "width": 640,
+        "height": 360,
+        "objects_including_groups": 9,
+        "max_depth": 7,
+        "raw_points": 0,
+        "timeline_tracks": 0
+      },
+      "scene_sha256": "a17cf84db94683d42225ac90afa46b7ee0438a91575abbf2223997672f410cb7",
+      "alpha": true,
+      "frame_hashes": [
+        "04a27810824d6e1f6561a4e450430e5aa940c4321cd742f7f63133bddda725b6"
+      ],
+      "warmup_frames": 2,
+      "samples": 9,
+      "times_seconds": null,
+      "frame_ms": [
+        4184.1358,
+        3893.5295,
+        3776.02,
+        3724.1195,
+        3757.9542,
+        3800.2947,
+        3833.1663,
+        3862.7147,
+        3777.6308
+      ],
+      "median_ms": 3800.2947,
+      "p95_ms": 4067.89328,
+      "min_ms": 3724.1195,
+      "max_ms": 4184.1358,
+      "memory_before_warmup": {
+        "rss_bytes": 42389504,
+        "peak_rss_bytes": 42389504
+      },
+      "memory_after_timing": {
+        "rss_bytes": 42749952,
+        "peak_rss_bytes": 61206528
+      },
+      "traced_peak_bytes": 26271204,
+      "traced_positive_retained_blocks": 204,
+      "traced_positive_retained_bytes": 930568,
+      "profile": [
+        {
+          "file": "render.py",
+          "line": 76,
+          "function": "frame",
+          "calls": 1,
+          "self_seconds": 0.0001661,
+          "cumulative_seconds": 6.547886200000001
+        },
+        {
+          "file": "renderer.py",
+          "line": 74,
+          "function": "render",
+          "calls": 1,
+          "self_seconds": 0.0021355000000000002,
+          "cumulative_seconds": 6.547719600000001
+        },
+        {
+          "file": "renderer.py",
+          "line": 166,
+          "function": "_render_single",
+          "calls": 9,
+          "self_seconds": 0.0004872,
+          "cumulative_seconds": 6.5159979
+        },
+        {
+          "file": "renderer.py",
+          "line": 255,
+          "function": "_render_isolated",
+          "calls": 6,
+          "self_seconds": 0.0041856,
+          "cumulative_seconds": 6.5158966000000005
+        },
+        {
+          "file": "group.py",
+          "line": 197,
+          "function": "get_geometry_bounds",
+          "calls": 19800,
+          "self_seconds": 0.052082500000000004,
+          "cumulative_seconds": 6.471469000000001
+        },
+        {
+          "file": "drawable.py",
+          "line": 144,
+          "function": "get_bounds_in_parent",
+          "calls": 40590,
+          "self_seconds": 0.261542,
+          "cumulative_seconds": 6.4654525000000005
+        },
+        {
+          "file": "renderer.py",
+          "line": 207,
+          "function": "_render_group_children",
+          "calls": 6,
+          "self_seconds": 3.9e-05,
+          "cumulative_seconds": 6.0599333
+        },
+        {
+          "file": "group.py",
+          "line": 215,
+          "function": "get_local_bounds",
+          "calls": 9405,
+          "self_seconds": 0.0044211,
+          "cumulative_seconds": 5.6427544
+        },
+        {
+          "file": "drawable.py",
+          "line": 198,
+          "function": "to_world",
+          "calls": 840,
+          "self_seconds": 0.0019605,
+          "cumulative_seconds": 4.74188
+        },
+        {
+          "file": "transform.py",
+          "line": 178,
+          "function": "transform_point",
+          "calls": 163200,
+          "self_seconds": 0.5303901000000001,
+          "cumulative_seconds": 3.9393612000000005
+        },
+        {
+          "file": "renderer.py",
+          "line": 218,
+          "function": "_render_single_primitive",
+          "calls": 3,
+          "self_seconds": 2.25e-05,
+          "cumulative_seconds": 3.6778342000000004
+        },
+        {
+          "file": "renderer.py",
+          "line": 448,
+          "function": "_render_circle",
+          "calls": 3,
+          "self_seconds": 0.0002347,
+          "cumulative_seconds": 3.6778042
+        },
+        {
+          "file": "circle.py",
+          "line": 75,
+          "function": "get_bounds",
+          "calls": 42,
+          "self_seconds": 0.00041160000000000003,
+          "cumulative_seconds": 3.3059267
+        },
+        {
+          "file": "transform.py",
+          "line": 82,
+          "function": "get_matrix",
+          "calls": 163515,
+          "self_seconds": 1.5914679,
+          "cumulative_seconds": 2.8216194000000003
+        },
+        {
+          "file": "drawable.py",
+          "line": 189,
+          "function": "world_matrix",
+          "calls": 315,
+          "self_seconds": 0.0013061000000000001,
+          "cumulative_seconds": 1.764534
+        }
+      ]
+    },
+    {
+      "case": "masks_effects",
+      "scene": {
+        "width": 640,
+        "height": 360,
+        "objects_including_groups": 16,
+        "max_depth": 1,
+        "raw_points": 0,
+        "timeline_tracks": 0
+      },
+      "scene_sha256": "b21498f921dba203355fa93d5beed0c46621b8795e2af18bacdffe170de91d48",
+      "alpha": true,
+      "frame_hashes": [
+        "3aa6408c2791f047fc9fac06f8d52ff419daec0c9e063ccfec11b04a72af9410"
+      ],
+      "warmup_frames": 2,
+      "samples": 9,
+      "times_seconds": null,
+      "frame_ms": [
+        1185.1939,
+        1179.756,
+        1163.491,
+        1169.9253,
+        1197.604,
+        1198.5082,
+        1181.9639,
+        1182.7784,
+        1186.1984
+      ],
+      "median_ms": 1182.7784,
+      "p95_ms": 1198.14652,
+      "min_ms": 1163.491,
+      "max_ms": 1198.5082,
+      "memory_before_warmup": {
+        "rss_bytes": 42913792,
+        "peak_rss_bytes": 42913792
+      },
+      "memory_after_timing": {
+        "rss_bytes": 44179456,
+        "peak_rss_bytes": 85016576
+      },
+      "traced_peak_bytes": 44548912,
+      "traced_positive_retained_blocks": 161,
+      "traced_positive_retained_bytes": 933096,
+      "profile": [
+        {
+          "file": "render.py",
+          "line": 76,
+          "function": "frame",
+          "calls": 1,
+          "self_seconds": 0.00019710000000000002,
+          "cumulative_seconds": 1.5346418000000002
+        },
+        {
+          "file": "renderer.py",
+          "line": 74,
+          "function": "render",
+          "calls": 1,
+          "self_seconds": 0.0024493,
+          "cumulative_seconds": 1.5344444000000002
+        },
+        {
+          "file": "renderer.py",
+          "line": 166,
+          "function": "_render_single",
+          "calls": 16,
+          "self_seconds": 0.016988200000000002,
+          "cumulative_seconds": 1.4997165000000001
+        },
+        {
+          "file": "renderer.py",
+          "line": 255,
+          "function": "_render_isolated",
+          "calls": 16,
+          "self_seconds": 0.1127866,
+          "cumulative_seconds": 1.4826469
+        },
+        {
+          "file": "renderer.py",
+          "line": 218,
+          "function": "_render_single_primitive",
+          "calls": 16,
+          "self_seconds": 0.0001033,
+          "cumulative_seconds": 1.2807158
+        },
+        {
+          "file": "renderer.py",
+          "line": 432,
+          "function": "_render_rectangle",
+          "calls": 16,
+          "self_seconds": 0.0003954,
+          "cumulative_seconds": 1.2805805000000001
+        },
+        {
+          "file": "renderer.py",
+          "line": 819,
+          "function": "_fill_polygon",
+          "calls": 16,
+          "self_seconds": 0.0042394,
+          "cumulative_seconds": 1.2726606
+        },
+        {
+          "file": "renderer.py",
+          "line": 834,
+          "function": "_fill_mask",
+          "calls": 16,
+          "self_seconds": 0.29179950000000004,
+          "cumulative_seconds": 1.2674294000000002
+        },
+        {
+          "file": "paint_sampling.py",
+          "line": 6,
+          "function": "sample_gradient",
+          "calls": 16,
+          "self_seconds": 0.8597134000000001,
+          "cumulative_seconds": 0.9691302
+        },
+        {
+          "file": "fromnumeric.py",
+          "line": 48,
+          "function": "_wrapfunc",
+          "calls": 50,
+          "self_seconds": 0.0001696,
+          "cumulative_seconds": 0.0537407
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<method 'clip' of 'numpy.ndarray' objects>",
+          "calls": 51,
+          "self_seconds": 0.00021150000000000002,
+          "cumulative_seconds": 0.042640700000000004
+        },
+        {
+          "file": "_methods.py",
+          "line": 96,
+          "function": "_clip",
+          "calls": 51,
+          "self_seconds": 0.0421141,
+          "cumulative_seconds": 0.0424292
+        },
+        {
+          "file": "_shape_base_impl.py",
+          "line": 655,
+          "function": "dstack",
+          "calls": 16,
+          "self_seconds": 0.0348208,
+          "cumulative_seconds": 0.035082100000000005
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<method 'astype' of 'numpy.ndarray' objects>",
+          "calls": 65,
+          "self_seconds": 0.034722300000000005,
+          "cumulative_seconds": 0.034722300000000005
+        },
+        {
+          "file": "alpha.py",
+          "line": 24,
+          "function": "unpremultiply",
+          "calls": 1,
+          "self_seconds": 0.017175700000000002,
+          "cumulative_seconds": 0.031908900000000004
+        }
+      ]
+    },
+    {
+      "case": "animation",
+      "scene": {
+        "width": 640,
+        "height": 360,
+        "objects_including_groups": 24,
+        "max_depth": 1,
+        "raw_points": 0,
+        "timeline_tracks": 48
+      },
+      "scene_sha256": "394dab798b68566f8375537bad12a34675007f7e1d5f43f619de8a02daa184a6",
+      "alpha": true,
+      "frame_hashes": [
+        "6b1d1ab89ce9597522fdc5e355eff800127cd6e4a04a22d2db7d557caeb607ae",
+        "cc06a2b707d57fbb7561743daf6562965606d7aca412014a0ebd7da9dee45530",
+        "10401f0511672f3dfe355e2dffb4213f1cc210a9375f9c55e21c8cd009c2d813"
+      ],
+      "warmup_frames": 2,
+      "samples": 9,
+      "times_seconds": [
+        0.0,
+        0.5,
+        1.0
+      ],
+      "frame_ms": [
+        1648.9161,
+        1948.3495,
+        2181.0773,
+        1819.8502,
+        1751.4712,
+        1738.0027,
+        1644.6123,
+        1483.524,
+        1480.3844
+      ],
+      "median_ms": 1738.0027,
+      "p95_ms": 2087.98618,
+      "min_ms": 1480.3844,
+      "max_ms": 2181.0773,
+      "memory_before_warmup": {
+        "rss_bytes": 42860544,
+        "peak_rss_bytes": 42860544
+      },
+      "memory_after_timing": {
+        "rss_bytes": 43315200,
+        "peak_rss_bytes": 84594688
+      },
+      "traced_peak_bytes": 40916534,
+      "traced_positive_retained_blocks": 1056,
+      "traced_positive_retained_bytes": 983188,
+      "profile": [
+        {
+          "file": "render.py",
+          "line": 76,
+          "function": "frame",
+          "calls": 1,
+          "self_seconds": 4.18e-05,
+          "cumulative_seconds": 1.4944781
+        },
+        {
+          "file": "scene.py",
+          "line": 833,
+          "function": "render_at_time",
+          "calls": 1,
+          "self_seconds": 0.00025360000000000004,
+          "cumulative_seconds": 1.4944343
+        },
+        {
+          "file": "renderer.py",
+          "line": 74,
+          "function": "render",
+          "calls": 1,
+          "self_seconds": 0.0020449,
+          "cumulative_seconds": 1.4873179
+        },
+        {
+          "file": "renderer.py",
+          "line": 166,
+          "function": "_render_single",
+          "calls": 24,
+          "self_seconds": 0.00016350000000000002,
+          "cumulative_seconds": 1.4575678
+        },
+        {
+          "file": "renderer.py",
+          "line": 218,
+          "function": "_render_single_primitive",
+          "calls": 24,
+          "self_seconds": 0.00012900000000000002,
+          "cumulative_seconds": 1.4570178
+        },
+        {
+          "file": "renderer.py",
+          "line": 432,
+          "function": "_render_rectangle",
+          "calls": 24,
+          "self_seconds": 0.0008515,
+          "cumulative_seconds": 1.4568349
+        },
+        {
+          "file": "renderer.py",
+          "line": 819,
+          "function": "_fill_polygon",
+          "calls": 24,
+          "self_seconds": 0.0043276,
+          "cumulative_seconds": 1.4449065
+        },
+        {
+          "file": "renderer.py",
+          "line": 834,
+          "function": "_fill_mask",
+          "calls": 24,
+          "self_seconds": 0.3354936,
+          "cumulative_seconds": 1.4394441
+        },
+        {
+          "file": "paint_sampling.py",
+          "line": 6,
+          "function": "sample_gradient",
+          "calls": 24,
+          "self_seconds": 0.9686954000000001,
+          "cumulative_seconds": 1.0952812
+        },
+        {
+          "file": "fromnumeric.py",
+          "line": 48,
+          "function": "_wrapfunc",
+          "calls": 74,
+          "self_seconds": 0.00018270000000000002,
+          "cumulative_seconds": 0.05975660000000001
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<method 'clip' of 'numpy.ndarray' objects>",
+          "calls": 75,
+          "self_seconds": 0.00021280000000000002,
+          "cumulative_seconds": 0.043149700000000006
+        },
+        {
+          "file": "_methods.py",
+          "line": 96,
+          "function": "_clip",
+          "calls": 75,
+          "self_seconds": 0.0425987,
+          "cumulative_seconds": 0.0429369
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<method 'astype' of 'numpy.ndarray' objects>",
+          "calls": 73,
+          "self_seconds": 0.039675100000000005,
+          "cumulative_seconds": 0.039675100000000005
+        },
+        {
+          "file": "fromnumeric.py",
+          "line": 1459,
+          "function": "searchsorted",
+          "calls": 24,
+          "self_seconds": 0.0001084,
+          "cumulative_seconds": 0.030588300000000002
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<method 'searchsorted' of 'numpy.ndarray' objects>",
+          "calls": 24,
+          "self_seconds": 0.0303374,
+          "cumulative_seconds": 0.0303374
+        }
+      ]
+    }
+  ]
+}

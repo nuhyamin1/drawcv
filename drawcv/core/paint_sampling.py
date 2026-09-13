@@ -3,8 +3,15 @@ import numpy as np
 from drawcv.styles.paint import LinearGradient
 
 
-def sample_gradient(paint, matrix, width, height):
+def sample_gradient(paint, matrix, width, height, *, origin=(0, 0)):
+    """Sample a rectangular region at global integer pixel centers.
+
+    An offset grid preserves object/world paint coordinates when the renderer
+    limits work to the actual coverage region. Arithmetic matches the full grid.
+    """
     y, x = np.indices((height, width), dtype=float)
+    x += origin[0]
+    y += origin[1]
     if paint.space == "object":
         inverse = np.linalg.inv(matrix)
         x, y = (inverse[0, 0]*x + inverse[0, 1]*y + inverse[0, 2],

@@ -134,6 +134,7 @@ python -m examples.transparent_output
 - [Public API guide](docs/api.md).
 - [Retained font typography: installation, metrics and layout](docs/typography.md).
 - [SVG export: editable vectors, raster fallbacks and strict mode](docs/svg.md); [gallery](examples/svg_export.py).
+- [Measured rendering performance](docs/performance.md); [reproducible benchmark commands](benchmarks/README.md).
 - [Typography backend evaluation](docs/typography-evaluation.md).
 - [Reliability and history](docs/reliability.md).
 - [Prioritized roadmap and verified findings](docs/roadmap.md).
@@ -156,7 +157,7 @@ python -m examples.transparent_output
 | Persistence | JSON 1.4; forward migration; cloning; undo/redo | Direct edits require transaction discipline; older readers need updating |
 | Animation | Timing, easing, numeric/value tracks, progressive drawing, video | No built-in enum/dash-array interpolation; codec availability varies |
 | Interchange | SVG paths/gradients/clips with reported PNG fallbacks; raster images, editable JSON, video | No SVG import or PDF export; text/effects use PNG in SVG |
-| Performance | Functional full-scene rendering | Full-canvas intermediates; representative benchmarks still needed |
+| Performance | Profiled benchmarks; coverage-region blending/gradients; cheaper transform resolution | Full-canvas masks/effect surfaces remain; no dirty-region redraw |
 
 Raster boundary pixels can differ from earlier releases because caps/joins now
 have real geometry. These improvements are local source changes; no package has

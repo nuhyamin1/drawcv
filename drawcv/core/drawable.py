@@ -147,8 +147,9 @@ class Drawable(ABC):
         Evaluated bottom-up: maps intrinsic local geometry through this object's local transform
         without traversing ancestor group transforms.
         """
-        geom_bounds = self.get_geometry_bounds()
-        local_pivot = self.transform.pivot if self.transform.pivot is not None else geom_bounds.center
+        local_pivot = self.transform.pivot
+        if local_pivot is None:
+            local_pivot = self.get_geometry_bounds().center
         corners = self.get_local_bounds().corners
         pts = [self.transform.transform_point(c, default_pivot=local_pivot) for c in corners]
         min_x = min(p.x for p in pts)
@@ -189,7 +190,9 @@ class Drawable(ABC):
     @property
     def world_matrix(self) -> np.ndarray:
         """Derive the 3x3 affine transformation matrix M mapping local space to world space."""
-        default_pivot = self.get_geometry_bounds().center
+        default_pivot = self.transform.pivot
+        if default_pivot is None:
+            default_pivot = self.get_geometry_bounds().center
         local_matrix = self.transform.get_matrix(default_pivot=default_pivot)
         if self._parent is not None:
             return self._parent.world_matrix @ local_matrix
@@ -197,7 +200,9 @@ class Drawable(ABC):
 
     def to_world(self, local_point: Point) -> Point:
         """Map a Point from object local space to world space."""
-        default_pivot = self.get_geometry_bounds().center
+        default_pivot = self.transform.pivot
+        if default_pivot is None:
+            default_pivot = self.get_geometry_bounds().center
         pt = self.transform.transform_point(local_point, default_pivot=default_pivot)
         if self._parent is not None:
             return self._parent.to_world(pt)

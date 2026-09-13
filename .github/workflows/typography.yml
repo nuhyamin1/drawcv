@@ -1,4 +1,4 @@
-name: Typography and SVG compatibility
+name: Rendering compatibility
 on: [push, pull_request, workflow_dispatch]
 jobs:
   typography:
@@ -34,3 +34,5 @@ jobs:
         run: python -m examples.retained_typography
       - name: Render SVG export gallery
         run: python -m examples.svg_export
+      - name: Exercise benchmark harness without performance gates
+        run: python -m benchmarks.render --cases small_gradients --warmup 1 --samples 3 --output scratch/benchmark-smoke.json

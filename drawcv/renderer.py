@@ -580,9 +580,40 @@ class OpenCVRenderer:
         points = freehand.get_processed_points()
         if freehand.stroke is None:
             return
-        world = [freehand.to_world(Point(p.x, p.y)) for p in points]
+        world = self._world_points(freehand, points)
         widths = freehand.get_point_widths(points) if freehand.variable_width else None
         self._stroke_contours(freehand, canvas, [(world, False)], widths=widths)
+
+    @staticmethod
+    def _world_points(drawable, points):
+        """Resolve invariant bounds/matrices once, without caching across calls.
+
+        Keep each ancestor's matrix-vector operation and Point conversion in the
+        same order as to_world. Combining matrices or vectorizing the dot products
+        can change rounding at raster boundaries. Custom to_world methods retain
+        their existing dispatch behavior.
+        """
+        if not points:
+            return []
+        matrices = []
+        current = drawable
+        while current is not None:
+            if (getattr(current.to_world, "__func__", None) is not Drawable.to_world or
+                    getattr(current.transform.transform_point, "__func__", None) is not Transform.transform_point):
+                return [drawable.to_world(Point(p.x, p.y)) for p in points]
+            pivot = current.transform.pivot
+            if pivot is None:
+                pivot = current.get_geometry_bounds().center
+            matrices.append(current.transform.get_matrix(default_pivot=pivot))
+            current = current._parent
+        result = []
+        for p in points:
+            point = Point(p.x, p.y)
+            for matrix in matrices:
+                vector = matrix @ np.array([point.x, point.y, 1.0], dtype=np.float64)
+                point = Point(vector[0], vector[1])
+            result.append(point)
+        return result
 
     def _render_image(self, img_obj: ImageObject, canvas: Canvas | _IsolatedSurface) -> None:
         """Render an ImageObject supporting crop, scaling, affine transforms, and source alpha."""
@@ -837,14 +868,19 @@ class OpenCVRenderer:
         if isinstance(fill.paint, Color):
             self._composite_mask(canvas, mask, fill.color.to_bgr(), opacity * fill.color.a, drawable.get_bounds())
             return
-        source = sample_gradient(fill.paint, drawable.world_matrix, canvas.width, canvas.height)
-        source *= (mask.astype(np.float32) / 255 * opacity)[..., None]
+        x, y, width, height = cv2.boundingRect(mask)
+        if width == 0 or height == 0:
+            return
+        region = np.s_[y:y+height, x:x+width]
+        source = sample_gradient(fill.paint, drawable.world_matrix, width, height, origin=(x, y))
+        source *= (mask[region].astype(np.float32) / 255 * opacity)[..., None]
         a = source[..., 3:4]
+        destination = canvas.buffer[region]
         if getattr(canvas, "is_isolated", False):
-            canvas.buffer[..., :3] = source[..., :3] + canvas.buffer[..., :3]*(1-a)
-            canvas.buffer[..., 3:4] = a + canvas.buffer[..., 3:4]*(1-a)
+            destination[..., :3] = source[..., :3] + destination[..., :3]*(1-a)
+            destination[..., 3:4] = a + destination[..., 3:4]*(1-a)
         else:
-            canvas.buffer[:] = np.rint(source[..., :3] + canvas.buffer*(1-a)).clip(0, 255).astype(np.uint8)
+            destination[:] = np.rint(source[..., :3] + destination*(1-a)).clip(0, 255).astype(np.uint8)
 
     def _curve_tolerance(self, drawable):
         scale = float(np.linalg.norm(drawable.world_matrix[:2, :2], ord=2))
@@ -924,7 +960,8 @@ class OpenCVRenderer:
             x2 = min(canvas.width, int(math.ceil(bbox.right)) + margin + 1)
             y2 = min(canvas.height, int(math.ceil(bbox.bottom)) + margin + 1)
         else:
-            x1, y1, x2, y2 = 0, 0, canvas.width, canvas.height
+            x1, y1, width, height = cv2.boundingRect(mask)
+            x2, y2 = x1 + width, y1 + height
 
         if x2 <= x1 or y2 <= y1:
             return
