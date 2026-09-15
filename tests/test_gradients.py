@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from drawcv import (Scene, OpenCVRenderer, Point, Color, FillStyle, Rectangle,
     Group, Transform, GradientStop, LinearGradient, RadialGradient, ValidationError,
-    Mask, MaskMapping, ClipRect, BlurEffect, ShadowEffect, Path, Circle)
+    Mask, MaskMapping, ClipRect, BlurEffect, ShadowEffect, Path, Circle, CURRENT_SCHEMA_VERSION)
 from drawcv import Ellipse, RoundedRectangle, Polygon, Arc, ArcClosure, Arrow, ArrowHeadStyle, StrokeStyle, Text, Canvas
 
 STOPS = (GradientStop(0, Color.red()), GradientStop(1, Color.blue()))
@@ -183,7 +183,7 @@ def test_persistence_clone_history_and_animation(paint):
     copied = obj.clone()
     assert copied.fill.paint == obj.fill.paint and copied.fill.paint is not obj.fill.paint
     loaded = Scene.from_json(scene.to_json())
-    assert scene.to_dict()["version"] == "1.4"
+    assert scene.to_dict()["version"] == CURRENT_SCHEMA_VERSION
     assert np.array_equal(original, renderer.render(loaded, alpha=True).buffer)
     with scene.edit(obj):
         obj.fill.paint.stops = (GradientStop(0, Color.green()), GradientStop(1, Color.white()))
@@ -254,7 +254,7 @@ def test_schema_12_solid_scene_migration():
     old = scene.to_dict()
     old["version"] = "1.2"
     loaded = Scene.from_dict(old)
-    assert loaded.to_dict()["version"] == "1.4"
+    assert loaded.to_dict()["version"] == CURRENT_SCHEMA_VERSION
     assert np.array_equal(OpenCVRenderer().render(scene).buffer, OpenCVRenderer().render(loaded).buffer)
 
 

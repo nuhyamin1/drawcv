@@ -5,6 +5,7 @@ from typing import Any, Iterator, TypeVar
 
 from drawcv.core.bounds import BoundingBox
 from drawcv.core.drawable import Drawable
+from drawcv.core.enums import BlendMode, coerce_blend_mode
 from drawcv.core.exceptions import ObjectNotFoundError, ValidationError
 
 T = TypeVar("T", bound=Drawable)
@@ -20,7 +21,6 @@ class Layer:
     def __init__(
         self,
         name: str,
-        *,
         visible: bool = True,
         locked: bool = False,
         opacity: float = 1.0,
@@ -29,18 +29,30 @@ class Layer:
         clip: Any | None = None,
         mask: Any | None = None,
         effects: list[Any] | None = None,
+        *,
+        blend_mode: BlendMode | str = BlendMode.NORMAL,
     ):
         self._validate_params(name, visible, locked, opacity, z_order, effects)
         self.name = name
         self.visible = visible
         self.locked = locked
         self.opacity = float(opacity)
+        self.blend_mode = coerce_blend_mode(blend_mode)
         self.z_order = z_order
         self.clip = clip
         self.mask = mask
         self.effects: list[Any] = list(effects) if effects is not None else []
         self._scene: Any | None = scene
         self._objects: list[Drawable] = []
+
+    @property
+    def blend_mode(self) -> BlendMode:
+        """Blending mode used when compositing this layer into the destination."""
+        return self._blend_mode
+
+    @blend_mode.setter
+    def blend_mode(self, value: Any) -> None:
+        self._blend_mode = coerce_blend_mode(value)
 
     def _validate_params(self, name: str, visible: bool, locked: bool, opacity: float, z_order: int, effects: Any | None = None):
         if not isinstance(name, str) or not name.strip():
@@ -245,6 +257,7 @@ class Layer:
             "visible": bool(self.visible),
             "locked": bool(self.locked),
             "opacity": float(self.opacity),
+            "blend_mode": self.blend_mode.value,
             "z_order": int(self.z_order),
             "clip": self.clip.to_dict() if self.clip is not None else None,
             "mask": self.mask.to_dict() if self.mask is not None else None,
@@ -266,6 +279,7 @@ class Layer:
             visible=bool(data.get("visible", True)),
             locked=bool(data.get("locked", False)),
             opacity=float(data.get("opacity", 1.0)),
+            blend_mode=coerce_blend_mode(data.get("blend_mode", BlendMode.NORMAL)),
             z_order=int(data.get("z_order", 0)),
             scene=scene,
             clip=clip_val,

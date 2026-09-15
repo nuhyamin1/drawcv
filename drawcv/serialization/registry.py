@@ -11,7 +11,7 @@ from drawcv.core.exceptions import (
     UnsupportedVersionError,
 )
 
-CURRENT_SCHEMA_VERSION = "1.4"
+CURRENT_SCHEMA_VERSION = "1.5"
 CURRENT_FORMAT_IDENTIFIER = "drawcv"
 
 _DRAWABLE_REGISTRY: dict[str, type] = {}
@@ -243,3 +243,32 @@ def _migrate_1_3_to_1_4(data):
 
 
 SchemaMigrator.register_migration("1.3", _migrate_1_3_to_1_4)
+
+
+def _migrate_1_4_to_1_5(data: dict[str, Any]) -> dict[str, Any]:
+    """Forward-migrate document schema 1.4 to 1.5 supplying blend_mode='normal' default."""
+    migrated = copy.deepcopy(data)
+    migrated["version"] = "1.5"
+
+    def _patch_drawable(d: dict[str, Any]) -> None:
+        if not isinstance(d, dict):
+            return
+        if "blend_mode" not in d:
+            d["blend_mode"] = "normal"
+        if d.get("type") == "group" and "children" in d:
+            for child in d.get("children", []):
+                _patch_drawable(child)
+
+    scene_data = migrated.get("scene", {})
+    for layer in scene_data.get("layers", []):
+        if isinstance(layer, dict):
+            if "blend_mode" not in layer:
+                layer["blend_mode"] = "normal"
+            for obj_data in layer.get("objects", []):
+                _patch_drawable(obj_data)
+
+    return migrated
+
+
+SchemaMigrator.register_migration("1.4", _migrate_1_4_to_1_5)
+

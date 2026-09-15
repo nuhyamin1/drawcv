@@ -10,6 +10,7 @@ from typing import Any
 import numpy as np
 
 from drawcv.core.bounds import BoundingBox
+from drawcv.core.enums import BlendMode, coerce_blend_mode
 from drawcv.core.exceptions import ValidationError
 from drawcv.core.validation import atomic_transforms
 from drawcv.core.geometry import Point
@@ -30,6 +31,7 @@ class Drawable(ABC):
     visible: bool = True
     locked: bool = False
     opacity: float = 1.0
+    blend_mode: BlendMode = field(default=BlendMode.NORMAL, kw_only=True)
     z_index: int = 0
     tags: set[str] = field(default_factory=set)
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -42,6 +44,11 @@ class Drawable(ABC):
     _parent: Any | None = field(default=None, repr=False, compare=False)
     _layer: Any | None = field(default=None, repr=False, compare=False)
     _scene: Any | None = field(default=None, repr=False, compare=False)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if name == "blend_mode":
+            value = coerce_blend_mode(value)
+        super().__setattr__(name, value)
 
     def __post_init__(self):
         self._validate_common()
@@ -59,6 +66,7 @@ class Drawable(ABC):
             raise ValidationError("Drawable 'opacity' must be a numeric float")
         if not (0.0 <= float(self.opacity) <= 1.0):
             raise ValidationError(f"Drawable 'opacity' must be in range [0.0, 1.0], got {self.opacity}")
+        self.blend_mode = coerce_blend_mode(self.blend_mode)
         if not isinstance(self.z_index, int) or isinstance(self.z_index, bool):
             raise ValidationError("Drawable 'z_index' must be an integer")
         if not isinstance(self.tags, set):
@@ -414,6 +422,7 @@ class Drawable(ABC):
             "visible": self.visible,
             "locked": self.locked,
             "opacity": float(self.opacity),
+            "blend_mode": self.blend_mode,
             "z_index": int(self.z_index),
             "tags": sorted(list(self.tags)),
             "metadata": copy.deepcopy(self.metadata),
@@ -433,6 +442,8 @@ class Drawable(ABC):
         self.visible = bool(state.get("visible", True))
         self.locked = bool(state.get("locked", False))
         self.opacity = float(state.get("opacity", 1.0))
+        if "blend_mode" in state:
+            self.blend_mode = coerce_blend_mode(state["blend_mode"])
         self.z_index = int(state.get("z_index", 0))
         self.tags = set(state.get("tags", []))
         self.metadata = copy.deepcopy(state.get("metadata", {}))
@@ -474,6 +485,7 @@ class Drawable(ABC):
             "visible": bool(self.visible),
             "locked": bool(self.locked),
             "opacity": float(self.opacity),
+            "blend_mode": self.blend_mode.value,
             "z_index": int(self.z_index),
             "tags": sorted(list(self.tags)),
             "metadata": copy.deepcopy(self.metadata),
@@ -505,6 +517,7 @@ class Drawable(ABC):
             "visible": bool(data.get("visible", True)),
             "locked": bool(data.get("locked", False)),
             "opacity": float(data.get("opacity", 1.0)),
+            "blend_mode": coerce_blend_mode(data.get("blend_mode", BlendMode.NORMAL)),
             "z_index": int(data.get("z_index", 0)),
             "tags": set(data.get("tags", [])),
             "metadata": copy.deepcopy(data.get("metadata", {})),

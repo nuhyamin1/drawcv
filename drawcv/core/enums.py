@@ -91,3 +91,33 @@ class PathBooleanOp(Enum):
     INTERSECTION = "intersection"
     DIFFERENCE = "difference"
     XOR = "xor"
+
+
+class BlendMode(Enum):
+    """Retained-mode compositing blend modes."""
+    NORMAL = "normal"
+    MULTIPLY = "multiply"
+    SCREEN = "screen"
+    OVERLAY = "overlay"
+    DARKEN = "darken"
+    LIGHTEN = "lighten"
+    COLOR_DODGE = "color_dodge"
+    COLOR_BURN = "color_burn"
+    HARD_LIGHT = "hard_light"
+    SOFT_LIGHT = "soft_light"
+    DIFFERENCE = "difference"
+    EXCLUSION = "exclusion"
+
+
+def coerce_blend_mode(value: object) -> BlendMode:
+    """Internal validator and normalizer for BlendMode instances or string names."""
+    if isinstance(value, BlendMode):
+        return value
+    if isinstance(value, str):
+        try:
+            return BlendMode(value.strip().lower().replace("-", "_"))
+        except ValueError:
+            from drawcv.core.exceptions import ValidationError
+            raise ValidationError(f"Invalid BlendMode '{value}'")
+    from drawcv.core.exceptions import ValidationError
+    raise ValidationError(f"blend_mode must be a BlendMode or str, got {type(value).__name__}")

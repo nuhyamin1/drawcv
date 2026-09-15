@@ -7,6 +7,7 @@ import uuid
 
 from drawcv.core.bounds import BoundingBox
 from drawcv.core.drawable import Drawable
+from drawcv.core.enums import BlendMode
 from drawcv.core.exceptions import ObjectNotFoundError, ValidationError
 from drawcv.core.geometry import Point
 from drawcv.core.transform import Transform
@@ -39,6 +40,7 @@ class Group(Drawable):
         effects: list[Any] | None = None,
         timing: Any | None = None,
         render_progress: float = 1.0,
+        blend_mode: BlendMode | str = BlendMode.NORMAL,
         **kwargs: Any,
     ):
         super_kwargs: dict[str, Any] = {
@@ -46,6 +48,7 @@ class Group(Drawable):
             "visible": visible,
             "locked": locked,
             "opacity": opacity,
+            "blend_mode": blend_mode,
             "z_index": z_index,
             "clip": clip,
             "mask": mask,
@@ -318,6 +321,7 @@ class Group(Drawable):
             visible=self.visible,
             locked=self.locked,
             opacity=self.opacity,
+            blend_mode=self.blend_mode,
             z_index=self.z_index,
             tags=set(self.tags),
             metadata=copy.deepcopy(self.metadata),

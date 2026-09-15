@@ -9,6 +9,7 @@ from drawcv.core.drawable import Drawable
 from drawcv.core.enums import (
     ArcClosure,
     ArrowHeadStyle,
+    BlendMode,
     BlurType,
     CapStyle,
     FillRule,
@@ -157,6 +158,7 @@ __all__ = [
     "Arrow",
     "ArrowHeadStyle",
     "BezierCurve",
+    "BlendMode",
     "BlurEffect",
     "BlurType",
     "BoundingBox",

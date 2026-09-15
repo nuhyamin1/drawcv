@@ -11,7 +11,7 @@ pytest.importorskip('icu')
 pytest.importorskip('regex')
 from drawcv import (FontAsset, Text, Point, Color, Scene, OpenCVRenderer, Group,
     Transform, TextAlignment, FillStyle, ClipRect, Mask, MaskMapping, BlurEffect,
-    ShadowEffect, ValidationError, Canvas)
+    ShadowEffect, ValidationError, Canvas, CURRENT_SCHEMA_VERSION)
 from drawcv.typography.layout import clear_text_cache, text_cache_info, _resolve, _runs
 from pathlib import Path
 
@@ -164,7 +164,7 @@ def test_font_json_is_portable_after_source_removal(tmp_path):
     encoded = s.to_json()
     path.unlink()
     loaded = Scene.from_json(encoded)
-    assert loaded.to_dict()['version'] == '1.4'
+    assert loaded.to_dict()['version'] == CURRENT_SCHEMA_VERSION
     assert np.array_equal(original, OpenCVRenderer().render(loaded, alpha=True).buffer)
     font = t.fonts[0].to_dict()
     font['sha256'] = '0'*64

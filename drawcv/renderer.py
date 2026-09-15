@@ -14,6 +14,7 @@ from drawcv.core.drawable import Drawable
 from drawcv.core.enums import (
     ArcClosure,
     ArrowHeadStyle,
+    BlendMode,
     BlurType,
     FillRule,
     FontFamily,
@@ -25,6 +26,7 @@ from drawcv.core.enums import (
 from drawcv.core.exceptions import RenderError, ValidationError
 from drawcv.core.geometry import Point
 from drawcv.core.alpha import premultiply, unpremultiply, clamp_premultiplied
+from drawcv.compositing import composite_blend
 from drawcv.core.transform import Transform
 from drawcv.core.stroking import stroke_mask
 from drawcv.core.geometry_utils import _FONT_FAMILY_TO_CV, evaluate_fill_rule_mask, flatten_arc
@@ -133,6 +135,8 @@ class OpenCVRenderer:
 
     def _needs_isolated_compositing(self, entity: Drawable | Layer) -> bool:
         """Determine whether an entity requires an isolated offscreen buffer pass."""
+        if getattr(entity, "blend_mode", BlendMode.NORMAL) != BlendMode.NORMAL:
+            return True
         if entity.clip is not None:
             return True
         if entity.mask is not None:
@@ -406,21 +410,15 @@ class OpenCVRenderer:
         if entity_op < 1.0:
             base_buffer[y1:y2, x1:x2] *= entity_op
 
-        # g. Destination Composite (premultiplied source-over)
-        sub_src = base_buffer[y1:y2, x1:x2]
-        src_rgb = sub_src[:, :, :3]
-        src_a = sub_src[:, :, 3:4]
-
-        if getattr(destination, "is_isolated", False):
-            sub_dst = destination.buffer[y1:y2, x1:x2]
-            dst_rgb = sub_dst[:, :, :3]
-            dst_a = sub_dst[:, :, 3:4]
-            sub_dst[:, :, :3] = src_rgb + dst_rgb * (1.0 - src_a)
-            sub_dst[:, :, 3] = (src_a + dst_a * (1.0 - src_a))[:, :, 0]
-        else:
-            sub_dst = destination.buffer[y1:y2, x1:x2].astype(np.float32)
-            blended = sub_dst * (1.0 - src_a) + src_rgb
-            destination.buffer[y1:y2, x1:x2] = np.clip(np.round(blended), 0, 255).astype(np.uint8)
+        # g. Destination Composite (premultiplied source-over or advanced blend mode)
+        mode = getattr(entity, "blend_mode", BlendMode.NORMAL)
+        composite_blend(
+            destination.buffer,
+            base_buffer,
+            (x1, y1, x2, y2),
+            mode=mode,
+            is_destination_isolated=getattr(destination, "is_isolated", False),
+        )
 
     # -------------------------------------------------------------------------
     # Centralized Shape Renderers

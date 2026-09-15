@@ -16,6 +16,7 @@ from drawcv.core.geometry import Point
 from drawcv.core.transform import Transform
 from drawcv.group import Group
 from drawcv.scene import Scene
+from drawcv.serialization.registry import CURRENT_SCHEMA_VERSION
 from drawcv.shapes.circle import Circle
 from drawcv.shapes.line import Line
 from drawcv.shapes.rectangle import Rectangle
@@ -194,7 +195,7 @@ def test_schema_1_0_to_1_1_migration():
 
     # Re-serialization writes the current stroke-aware schema.
     doc = scene.to_dict()
-    assert doc["version"] == "1.4"
+    assert doc["version"] == CURRENT_SCHEMA_VERSION
 
 
 def test_typed_animation_tracks_round_trip():

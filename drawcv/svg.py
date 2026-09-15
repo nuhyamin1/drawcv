@@ -11,7 +11,7 @@ import numpy as np
 
 from drawcv.core.alpha import unpremultiply
 from drawcv.core.color import Color
-from drawcv.core.enums import ArcClosure, FillRule
+from drawcv.core.enums import ArcClosure, BlendMode, FillRule
 from drawcv.core.exceptions import RenderError, ValidationError
 from drawcv.core.geometry_utils import flatten_arc
 from drawcv.effects.clipping import ClipPath, ClipRect
@@ -135,6 +135,9 @@ class _Writer:
             entity.render_progress = 1.0
         reason = self.fallback_reason(entity)
         group = ET.SubElement(parent, "g", {"id": self.identifier(), "data-drawcv-id": source_id})
+        blend_mode = getattr(entity, "blend_mode", BlendMode.NORMAL)
+        if blend_mode != BlendMode.NORMAL:
+            group.set("style", f"mix-blend-mode: {blend_mode.value.replace('_', '-')};")
         if reason:
             if self.strict:
                 raise RenderError(f"SVG requires raster fallback for {source_id}: {reason}")

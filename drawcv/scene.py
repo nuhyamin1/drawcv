@@ -8,6 +8,7 @@ from typing import Any, Callable, Generator, Iterator, TypeVar
 
 from drawcv.core.color import Color
 from drawcv.core.drawable import Drawable
+from drawcv.core.enums import BlendMode
 from drawcv.core.exceptions import ObjectNotFoundError, ValidationError
 from drawcv.core.geometry import Point
 from drawcv.core.transform import Transform
@@ -79,6 +80,8 @@ class Scene:
         clip: Any | None = None,
         mask: Any | None = None,
         effects: list[Any] | None = None,
+        *,
+        blend_mode: BlendMode | str = BlendMode.NORMAL,
     ) -> Layer:
         """Create and register a new rendering Layer."""
         if not isinstance(name, str) or not name.strip():
@@ -103,6 +106,7 @@ class Scene:
             clip=clip,
             mask=mask,
             effects=effects,
+            blend_mode=blend_mode,
         )
         self._layers[clean_name] = layer
         self._layer_order.append(clean_name)

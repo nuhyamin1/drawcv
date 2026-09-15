@@ -83,6 +83,8 @@ class AnimationTrack:
             raise ValidationError("AnimationTrack 'target_id' must be a non-empty string")
         if not isinstance(property_path, str) or not property_path:
             raise ValidationError("AnimationTrack 'property_path' must be a non-empty string")
+        if property_path == "blend_mode" or property_path.endswith(".blend_mode"):
+            raise ValidationError("Animation of discrete property 'blend_mode' is not supported")
 
         self.target_id = target_id
         self.property_path = property_path
