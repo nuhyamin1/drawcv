@@ -83,3 +83,11 @@ class MaskMapping(Enum):
     """Coordinate mapping mode for grayscale masks."""
     FIT_BOUNDS = "fit_bounds"  # Stretches mask bilinearly over entity's pre-effect bounds
     ABSOLUTE = "absolute"      # Aligns mask 1:1 with entity local origin
+
+
+class PathBooleanOp(Enum):
+    """Boolean operations between 2D vector paths."""
+    UNION = "union"
+    INTERSECTION = "intersection"
+    DIFFERENCE = "difference"
+    XOR = "xor"

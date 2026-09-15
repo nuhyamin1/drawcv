@@ -40,3 +40,9 @@ class UnknownDrawableTypeError(SerializationError, KeyError):
     """Raised when an unrecognized drawable type identifier is encountered in serialized data."""
     pass
 
+
+class PathBooleanError(DrawCVError):
+    """Raised when a path boolean operation fails in the geometry backend."""
+    pass
+
+

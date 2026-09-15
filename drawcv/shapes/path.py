@@ -9,7 +9,7 @@ from typing import Sequence
 
 from drawcv.core.bounds import BoundingBox
 from drawcv.core.drawable import Drawable
-from drawcv.core.enums import FillRule
+from drawcv.core.enums import FillRule, PathBooleanOp
 from drawcv.core.exceptions import ValidationError
 from drawcv.core.geometry import Point
 from drawcv.core.geometry_utils import (
@@ -230,6 +230,39 @@ class Path(Drawable):
             sp.commands.append(Close())
             sp.closed = True
         return self
+
+    # -------------------------------------------------------------------------
+    # Vector Path Boolean Operations
+    # -------------------------------------------------------------------------
+
+    def boolean(self, other: Path, operation: PathBooleanOp | str) -> Path:
+        """Execute a 2D vector path boolean operation against another Path.
+        
+        Args:
+            other: Secondary Path operand.
+            operation: Boolean operation ('union', 'intersection', 'difference', 'xor' or PathBooleanOp).
+            
+        Returns:
+            A new detached Path representing the world-space boolean geometry with identity transform.
+        """
+        from drawcv.core.path_boolean import apply_path_boolean
+        return apply_path_boolean(self, other, operation)
+
+    def union(self, other: Path) -> Path:
+        """Return the geometric union of this Path and another Path."""
+        return self.boolean(other, PathBooleanOp.UNION)
+
+    def intersection(self, other: Path) -> Path:
+        """Return the geometric intersection of this Path and another Path."""
+        return self.boolean(other, PathBooleanOp.INTERSECTION)
+
+    def difference(self, other: Path) -> Path:
+        """Return the geometric difference (subtraction: self - other) of this Path and another Path."""
+        return self.boolean(other, PathBooleanOp.DIFFERENCE)
+
+    def xor(self, other: Path) -> Path:
+        """Return the symmetric difference (exclusive-or) of this Path and another Path."""
+        return self.boolean(other, PathBooleanOp.XOR)
 
     # -------------------------------------------------------------------------
     # Screen-Space Flattening

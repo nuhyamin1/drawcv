@@ -127,6 +127,7 @@ python -m examples.transparent_output
 ```
 
 - [Stroke comparison source](examples/stroke_styles.py) and [editable scene](examples/output/stroke_styles.json).
+- [Vector path boolean operations and coordinate contracts](docs/path-boolean.md); [runnable gallery](examples/path_boolean_operations.py).
 - [Transparent PNG example](examples/transparent_output.py) and [external-composition preview](examples/output/transparent_output_preview.png).
 - [Gradient paints and coordinate contracts](docs/gradients.md); [runnable gallery](examples/gradient_fills.py).
 - [Alpha API and compositing conventions](docs/transparency.md).
@@ -147,7 +148,7 @@ python -m examples.transparent_output
 
 | Area | Available | Limits / next work |
 | --- | --- | --- |
-| Geometry | Lines, polygons, circles/ellipses, arcs, rectangles, arrows, quadratic/cubic curves, compound paths | Curves rasterize as approximations |
+| Geometry | Lines, polygons, circles/ellipses, arcs, rectangles, arrows, quadratic/cubic curves, compound paths, vector booleans (union, intersection, difference, XOR) | Curves rasterize as approximations during OpenCV rendering |
 | Strokes | Butt/round/square caps, round/bevel/miter joins, miter limits, dashed and variable-width outlines | Screen-space widths; arrowhead outlines stay solid |
 | Paint | Solid, linear and radial fills; object/world coordinates; RGBA stops; fill rules | Gradient strokes, patterns, and configurable blend modes remain future work |
 | Freehand | Raw editable samples; pressure/velocity widths; simplification, smoothing, interpolation | No textured brush system |

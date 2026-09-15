@@ -17,12 +17,14 @@ from drawcv.core.enums import (
     JoinStyle,
     LineType,
     MaskMapping,
+    PathBooleanOp,
     TextAlignment,
 )
 from drawcv.core.exceptions import (
     DrawCVError,
     InvalidFormatError,
     ObjectNotFoundError,
+    PathBooleanError,
     RenderError,
     SerializationError,
     UnknownDrawableTypeError,
@@ -212,6 +214,8 @@ __all__ = [
     "ObjectNotFoundError",
     "OpenCVRenderer",
     "Path",
+    "PathBooleanError",
+    "PathBooleanOp",
     "PathCommand",
     "place_above",
     "place_below",

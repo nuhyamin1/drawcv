@@ -1,0 +1,2135 @@
+{
+  "format": "drawcv",
+  "scene": {
+    "background": {
+      "a": 1.0,
+      "b": 32,
+      "g": 24,
+      "r": 20
+    },
+    "height": 680,
+    "layers": [
+      {
+        "clip": null,
+        "effects": [],
+        "locked": false,
+        "mask": null,
+        "name": "default",
+        "objects": [
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 255,
+              "g": 255,
+              "r": 255
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.75,
+            "id": "0e5885c8-29a9-4871-8d53-5e47c95d16b7",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 30.0,
+              "y": 42.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "DrawCV Vector Path Boolean Operations",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 185,
+              "g": 165,
+              "r": 150
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.42,
+            "id": "d0c50488-96de-45ef-a283-528887e28f27",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 30.0,
+              "y": 68.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "True retained 2D constructive vector geometry powered by Skia PathOps backend",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "clip": null,
+            "effects": [],
+            "fill": {
+              "color": {
+                "a": 1.0,
+                "b": 75,
+                "g": 95,
+                "r": 245
+              },
+              "enabled": true,
+              "opacity": 0.85
+            },
+            "fill_rule": "even_odd",
+            "id": "22df8337-9c82-49f5-9e05-d476522679ac",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "render_progress": 1.0,
+            "stroke": {
+              "cap_style": "round",
+              "color": {
+                "a": 1.0,
+                "b": 255,
+                "g": 245,
+                "r": 240
+              },
+              "dash_array": [],
+              "dash_offset": 0.0,
+              "join_style": "round",
+              "line_type": "AA",
+              "miter_limit": 4.0,
+              "opacity": 1.0,
+              "width": 2.5
+            },
+            "subpaths": [
+              {
+                "closed": true,
+                "commands": [
+                  {
+                    "point": {
+                      "x": 110.0,
+                      "y": 127.0
+                    },
+                    "type": "move_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 136.5096679904,
+                      "y": 127.0
+                    },
+                    "control2": {
+                      "x": 158.0,
+                      "y": 148.4903320096
+                    },
+                    "end": {
+                      "x": 158.0,
+                      "y": 175.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 158.0,
+                      "y": 201.5096679904
+                    },
+                    "control2": {
+                      "x": 136.5096679904,
+                      "y": 223.0
+                    },
+                    "end": {
+                      "x": 110.0,
+                      "y": 223.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 83.4903320096,
+                      "y": 223.0
+                    },
+                    "control2": {
+                      "x": 62.0,
+                      "y": 201.5096679904
+                    },
+                    "end": {
+                      "x": 62.0,
+                      "y": 175.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 62.0,
+                      "y": 148.4903320096
+                    },
+                    "control2": {
+                      "x": 83.4903320096,
+                      "y": 127.0
+                    },
+                    "end": {
+                      "x": 110.0,
+                      "y": 127.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "type": "close"
+                  }
+                ]
+              }
+            ],
+            "tags": [],
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "path",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "clip": null,
+            "effects": [],
+            "fill": {
+              "color": {
+                "a": 1.0,
+                "b": 230,
+                "g": 185,
+                "r": 50
+              },
+              "enabled": true,
+              "opacity": 0.85
+            },
+            "fill_rule": "even_odd",
+            "id": "348c8c53-37d8-4157-907e-0c056f4eb92d",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "render_progress": 1.0,
+            "stroke": {
+              "cap_style": "round",
+              "color": {
+                "a": 1.0,
+                "b": 255,
+                "g": 245,
+                "r": 240
+              },
+              "dash_array": [],
+              "dash_offset": 0.0,
+              "join_style": "round",
+              "line_type": "AA",
+              "miter_limit": 4.0,
+              "opacity": 1.0,
+              "width": 2.5
+            },
+            "subpaths": [
+              {
+                "closed": true,
+                "commands": [
+                  {
+                    "point": {
+                      "x": 165.0,
+                      "y": 127.0
+                    },
+                    "type": "move_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 191.5096679904,
+                      "y": 127.0
+                    },
+                    "control2": {
+                      "x": 213.0,
+                      "y": 148.4903320096
+                    },
+                    "end": {
+                      "x": 213.0,
+                      "y": 175.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 213.0,
+                      "y": 201.5096679904
+                    },
+                    "control2": {
+                      "x": 191.5096679904,
+                      "y": 223.0
+                    },
+                    "end": {
+                      "x": 165.0,
+                      "y": 223.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 138.4903320096,
+                      "y": 223.0
+                    },
+                    "control2": {
+                      "x": 117.0,
+                      "y": 201.5096679904
+                    },
+                    "end": {
+                      "x": 117.0,
+                      "y": 175.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 117.0,
+                      "y": 148.4903320096
+                    },
+                    "control2": {
+                      "x": 138.4903320096,
+                      "y": 127.0
+                    },
+                    "end": {
+                      "x": 165.0,
+                      "y": 127.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "type": "close"
+                  }
+                ]
+              }
+            ],
+            "tags": [],
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "path",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 235,
+              "g": 220,
+              "r": 210
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.42,
+            "id": "b328fa7f-da8a-4398-97b4-5a9557642792",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 55.0,
+              "y": 260.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "1. SOURCE OPERANDS",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 165,
+              "g": 145,
+              "r": 130
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.35,
+            "id": "79f00f44-71b5-497a-81e5-5a635189c408",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 55.0,
+              "y": 278.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "Two overlapping circles",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "clip": null,
+            "effects": [],
+            "fill": {
+              "color": {
+                "a": 1.0,
+                "b": 75,
+                "g": 95,
+                "r": 245
+              },
+              "enabled": true,
+              "opacity": 1.0
+            },
+            "fill_rule": "non_zero",
+            "id": "6dc226a2-c7e5-4879-a74d-eebc7365673c",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "render_progress": 1.0,
+            "stroke": {
+              "cap_style": "round",
+              "color": {
+                "a": 1.0,
+                "b": 255,
+                "g": 245,
+                "r": 240
+              },
+              "dash_array": [],
+              "dash_offset": 0.0,
+              "join_style": "round",
+              "line_type": "AA",
+              "miter_limit": 4.0,
+              "opacity": 1.0,
+              "width": 2.5
+            },
+            "subpaths": [
+              {
+                "closed": true,
+                "commands": [
+                  {
+                    "point": {
+                      "x": 382.5,
+                      "y": 135.65350341796875
+                    },
+                    "type": "move_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 390.288330078125,
+                      "y": 130.19996643066406
+                    },
+                    "control2": {
+                      "x": 399.7704772949219,
+                      "y": 127.0
+                    },
+                    "end": {
+                      "x": 410.0,
+                      "y": 127.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 436.5096740722656,
+                      "y": 127.0
+                    },
+                    "control2": {
+                      "x": 458.0,
+                      "y": 148.49032592773438
+                    },
+                    "end": {
+                      "x": 458.0,
+                      "y": 175.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 458.0,
+                      "y": 201.50967407226562
+                    },
+                    "control2": {
+                      "x": 436.5096740722656,
+                      "y": 223.0
+                    },
+                    "end": {
+                      "x": 410.0,
+                      "y": 223.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 399.7704772949219,
+                      "y": 223.0
+                    },
+                    "control2": {
+                      "x": 390.288330078125,
+                      "y": 219.80003356933594
+                    },
+                    "end": {
+                      "x": 382.5,
+                      "y": 214.34649658203125
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 374.711669921875,
+                      "y": 219.80003356933594
+                    },
+                    "control2": {
+                      "x": 365.2295227050781,
+                      "y": 223.0
+                    },
+                    "end": {
+                      "x": 355.0,
+                      "y": 223.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 328.4903259277344,
+                      "y": 223.0
+                    },
+                    "control2": {
+                      "x": 307.0,
+                      "y": 201.50967407226562
+                    },
+                    "end": {
+                      "x": 307.0,
+                      "y": 175.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 307.0,
+                      "y": 148.49032592773438
+                    },
+                    "control2": {
+                      "x": 328.4903259277344,
+                      "y": 127.0
+                    },
+                    "end": {
+                      "x": 355.0,
+                      "y": 127.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 365.2295227050781,
+                      "y": 127.0
+                    },
+                    "control2": {
+                      "x": 374.711669921875,
+                      "y": 130.19996643066406
+                    },
+                    "end": {
+                      "x": 382.5,
+                      "y": 135.65350341796875
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "type": "close"
+                  }
+                ]
+              }
+            ],
+            "tags": [],
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "path",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 235,
+              "g": 220,
+              "r": 210
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.42,
+            "id": "ec40fa5c-6677-4516-86e3-ba4bdf49c3c3",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 315.0,
+              "y": 260.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "2. UNION (A | B)",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 165,
+              "g": 145,
+              "r": 130
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.35,
+            "id": "bdf06aa3-cc3d-4122-9969-bb4423ec8f5b",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 315.0,
+              "y": 278.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "Merged boundary contour",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "clip": null,
+            "effects": [],
+            "fill": {
+              "color": {
+                "a": 1.0,
+                "b": 240,
+                "g": 90,
+                "r": 165
+              },
+              "enabled": true,
+              "opacity": 1.0
+            },
+            "fill_rule": "non_zero",
+            "id": "4b462e31-7883-4a66-8124-8070285a0e9e",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "render_progress": 1.0,
+            "stroke": {
+              "cap_style": "round",
+              "color": {
+                "a": 1.0,
+                "b": 255,
+                "g": 245,
+                "r": 240
+              },
+              "dash_array": [],
+              "dash_offset": 0.0,
+              "join_style": "round",
+              "line_type": "AA",
+              "miter_limit": 4.0,
+              "opacity": 1.0,
+              "width": 2.5
+            },
+            "subpaths": [
+              {
+                "closed": true,
+                "commands": [
+                  {
+                    "point": {
+                      "x": 627.5,
+                      "y": 135.65350341796875
+                    },
+                    "type": "move_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 639.89501953125,
+                      "y": 144.33273315429688
+                    },
+                    "control2": {
+                      "x": 648.0,
+                      "y": 158.71986389160156
+                    },
+                    "end": {
+                      "x": 648.0,
+                      "y": 175.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 648.0,
+                      "y": 191.28013610839844
+                    },
+                    "control2": {
+                      "x": 639.89501953125,
+                      "y": 205.66726684570312
+                    },
+                    "end": {
+                      "x": 627.5,
+                      "y": 214.34649658203125
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 615.10498046875,
+                      "y": 205.66726684570312
+                    },
+                    "control2": {
+                      "x": 607.0,
+                      "y": 191.28013610839844
+                    },
+                    "end": {
+                      "x": 607.0,
+                      "y": 175.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 607.0,
+                      "y": 158.71986389160156
+                    },
+                    "control2": {
+                      "x": 615.10498046875,
+                      "y": 144.33273315429688
+                    },
+                    "end": {
+                      "x": 627.5,
+                      "y": 135.65350341796875
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "type": "close"
+                  }
+                ]
+              }
+            ],
+            "tags": [],
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "path",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 235,
+              "g": 220,
+              "r": 210
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.42,
+            "id": "67d005d5-d98d-48f5-943c-2860b1f1d146",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 550.0,
+              "y": 260.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "3. INTERSECTION (A & B)",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 165,
+              "g": 145,
+              "r": 130
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.35,
+            "id": "4e746359-9316-44ab-b9a4-1a6fc0b70889",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 550.0,
+              "y": 278.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "Overlapping lens region",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "clip": null,
+            "effects": [],
+            "fill": {
+              "color": {
+                "a": 1.0,
+                "b": 75,
+                "g": 95,
+                "r": 245
+              },
+              "enabled": true,
+              "opacity": 1.0
+            },
+            "fill_rule": "non_zero",
+            "id": "ae22883f-6f94-488d-b0f7-c666ea595548",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "render_progress": 1.0,
+            "stroke": {
+              "cap_style": "round",
+              "color": {
+                "a": 1.0,
+                "b": 255,
+                "g": 245,
+                "r": 240
+              },
+              "dash_array": [],
+              "dash_offset": 0.0,
+              "join_style": "round",
+              "line_type": "AA",
+              "miter_limit": 4.0,
+              "opacity": 1.0,
+              "width": 2.5
+            },
+            "subpaths": [
+              {
+                "closed": true,
+                "commands": [
+                  {
+                    "point": {
+                      "x": 872.5,
+                      "y": 135.65350341796875
+                    },
+                    "type": "move_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 860.10498046875,
+                      "y": 144.33273315429688
+                    },
+                    "control2": {
+                      "x": 852.0,
+                      "y": 158.71986389160156
+                    },
+                    "end": {
+                      "x": 852.0,
+                      "y": 175.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 852.0,
+                      "y": 191.28013610839844
+                    },
+                    "control2": {
+                      "x": 860.10498046875,
+                      "y": 205.66726684570312
+                    },
+                    "end": {
+                      "x": 872.5,
+                      "y": 214.34649658203125
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 864.711669921875,
+                      "y": 219.80003356933594
+                    },
+                    "control2": {
+                      "x": 855.2294921875,
+                      "y": 223.0
+                    },
+                    "end": {
+                      "x": 845.0,
+                      "y": 223.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 818.4903564453125,
+                      "y": 223.0
+                    },
+                    "control2": {
+                      "x": 797.0,
+                      "y": 201.50967407226562
+                    },
+                    "end": {
+                      "x": 797.0,
+                      "y": 175.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 797.0,
+                      "y": 148.49032592773438
+                    },
+                    "control2": {
+                      "x": 818.4903564453125,
+                      "y": 127.0
+                    },
+                    "end": {
+                      "x": 845.0,
+                      "y": 127.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 855.2294921875,
+                      "y": 127.0
+                    },
+                    "control2": {
+                      "x": 864.711669921875,
+                      "y": 130.19996643066406
+                    },
+                    "end": {
+                      "x": 872.5,
+                      "y": 135.65350341796875
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "type": "close"
+                  }
+                ]
+              }
+            ],
+            "tags": [],
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "path",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 235,
+              "g": 220,
+              "r": 210
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.42,
+            "id": "4b983184-8b67-4f27-8639-16450ebf9b3e",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 795.0,
+              "y": 260.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "4. DIFFERENCE (A - B)",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 165,
+              "g": 145,
+              "r": 130
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.35,
+            "id": "ef3c21dc-1e84-4729-9bfa-bb47f20063f3",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 795.0,
+              "y": 278.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "Crescent cutout (A minus B)",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "clip": null,
+            "effects": [],
+            "fill": {
+              "color": {
+                "a": 1.0,
+                "b": 60,
+                "g": 200,
+                "r": 250
+              },
+              "enabled": true,
+              "opacity": 1.0
+            },
+            "fill_rule": "non_zero",
+            "id": "92deaf5e-f26a-4cf3-adef-c880b2db5b8c",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "render_progress": 1.0,
+            "stroke": {
+              "cap_style": "round",
+              "color": {
+                "a": 1.0,
+                "b": 255,
+                "g": 245,
+                "r": 240
+              },
+              "dash_array": [],
+              "dash_offset": 0.0,
+              "join_style": "round",
+              "line_type": "AA",
+              "miter_limit": 4.0,
+              "opacity": 1.0,
+              "width": 2.5
+            },
+            "subpaths": [
+              {
+                "closed": true,
+                "commands": [
+                  {
+                    "point": {
+                      "x": 155.0,
+                      "y": 399.996337890625
+                    },
+                    "type": "move_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 163.35659790039062,
+                      "y": 393.7194519042969
+                    },
+                    "control2": {
+                      "x": 173.7439422607422,
+                      "y": 390.0
+                    },
+                    "end": {
+                      "x": 185.0,
+                      "y": 390.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 212.61424255371094,
+                      "y": 390.0
+                    },
+                    "control2": {
+                      "x": 235.0,
+                      "y": 412.3857727050781
+                    },
+                    "end": {
+                      "x": 235.0,
+                      "y": 440.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 235.0,
+                      "y": 467.6142272949219
+                    },
+                    "control2": {
+                      "x": 212.61424255371094,
+                      "y": 490.0
+                    },
+                    "end": {
+                      "x": 185.0,
+                      "y": 490.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 173.7439422607422,
+                      "y": 490.0
+                    },
+                    "control2": {
+                      "x": 163.35659790039062,
+                      "y": 486.2805480957031
+                    },
+                    "end": {
+                      "x": 155.0,
+                      "y": 480.003662109375
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 146.64340209960938,
+                      "y": 486.2805480957031
+                    },
+                    "control2": {
+                      "x": 136.2560577392578,
+                      "y": 490.0
+                    },
+                    "end": {
+                      "x": 125.0,
+                      "y": 490.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 97.3857650756836,
+                      "y": 490.0
+                    },
+                    "control2": {
+                      "x": 75.0,
+                      "y": 467.6142272949219
+                    },
+                    "end": {
+                      "x": 75.0,
+                      "y": 440.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 75.0,
+                      "y": 412.3857727050781
+                    },
+                    "control2": {
+                      "x": 97.3857650756836,
+                      "y": 390.0
+                    },
+                    "end": {
+                      "x": 125.0,
+                      "y": 390.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 136.2560577392578,
+                      "y": 390.0
+                    },
+                    "control2": {
+                      "x": 146.64340209960938,
+                      "y": 393.7194519042969
+                    },
+                    "end": {
+                      "x": 155.0,
+                      "y": 399.996337890625
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "type": "close"
+                  }
+                ]
+              },
+              {
+                "closed": true,
+                "commands": [
+                  {
+                    "point": {
+                      "x": 155.0,
+                      "y": 399.996337890625
+                    },
+                    "type": "move_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 142.85552978515625,
+                      "y": 409.118408203125
+                    },
+                    "control2": {
+                      "x": 135.0,
+                      "y": 423.6418151855469
+                    },
+                    "end": {
+                      "x": 135.0,
+                      "y": 440.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 135.0,
+                      "y": 456.3581848144531
+                    },
+                    "control2": {
+                      "x": 142.85552978515625,
+                      "y": 470.881591796875
+                    },
+                    "end": {
+                      "x": 155.0,
+                      "y": 480.003662109375
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 167.14447021484375,
+                      "y": 470.881591796875
+                    },
+                    "control2": {
+                      "x": 175.0,
+                      "y": 456.3581848144531
+                    },
+                    "end": {
+                      "x": 175.0,
+                      "y": 440.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 175.0,
+                      "y": 423.6418151855469
+                    },
+                    "control2": {
+                      "x": 167.14447021484375,
+                      "y": 409.118408203125
+                    },
+                    "end": {
+                      "x": 155.0,
+                      "y": 399.996337890625
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "type": "close"
+                  }
+                ]
+              }
+            ],
+            "tags": [],
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "path",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 235,
+              "g": 220,
+              "r": 210
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.42,
+            "id": "9da13f5b-59c8-4376-aa1e-a9825b4f532c",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 75.0,
+              "y": 535.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "5. XOR / EXCLUSIVE-OR",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 165,
+              "g": 145,
+              "r": 130
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.35,
+            "id": "b7400b5c-29f5-45ab-a678-53ce4f7ec4a6",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 75.0,
+              "y": 553.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "Disjoint crescent wings",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "clip": null,
+            "effects": [],
+            "fill": {
+              "color": {
+                "a": 1.0,
+                "b": 140,
+                "g": 195,
+                "r": 35
+              },
+              "enabled": true,
+              "opacity": 1.0
+            },
+            "fill_rule": "non_zero",
+            "id": "c0495838-aa0b-4d2b-ae54-59b117d39c1f",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "render_progress": 1.0,
+            "stroke": {
+              "cap_style": "round",
+              "color": {
+                "a": 1.0,
+                "b": 255,
+                "g": 245,
+                "r": 240
+              },
+              "dash_array": [],
+              "dash_offset": 0.0,
+              "join_style": "round",
+              "line_type": "AA",
+              "miter_limit": 4.0,
+              "opacity": 1.0,
+              "width": 2.5
+            },
+            "subpaths": [
+              {
+                "closed": true,
+                "commands": [
+                  {
+                    "point": {
+                      "x": 526.0,
+                      "y": 375.0
+                    },
+                    "type": "move_to"
+                  },
+                  {
+                    "control": {
+                      "x": 550.0,
+                      "y": 375.0
+                    },
+                    "end": {
+                      "x": 550.0,
+                      "y": 399.0
+                    },
+                    "type": "quadratic_to"
+                  },
+                  {
+                    "point": {
+                      "x": 550.0,
+                      "y": 481.0
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "control": {
+                      "x": 550.0,
+                      "y": 505.0
+                    },
+                    "end": {
+                      "x": 526.0,
+                      "y": 505.0
+                    },
+                    "type": "quadratic_to"
+                  },
+                  {
+                    "point": {
+                      "x": 444.0,
+                      "y": 505.0
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "control": {
+                      "x": 420.0,
+                      "y": 505.0
+                    },
+                    "end": {
+                      "x": 420.0,
+                      "y": 481.0
+                    },
+                    "type": "quadratic_to"
+                  },
+                  {
+                    "point": {
+                      "x": 420.0,
+                      "y": 399.0
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "control": {
+                      "x": 420.0,
+                      "y": 375.0
+                    },
+                    "end": {
+                      "x": 444.0,
+                      "y": 375.0
+                    },
+                    "type": "quadratic_to"
+                  },
+                  {
+                    "point": {
+                      "x": 526.0,
+                      "y": 375.0
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "type": "close"
+                  }
+                ]
+              },
+              {
+                "closed": true,
+                "commands": [
+                  {
+                    "point": {
+                      "x": 495.0,
+                      "y": 422.67950439453125
+                    },
+                    "type": "move_to"
+                  },
+                  {
+                    "point": {
+                      "x": 485.0,
+                      "y": 398.0
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 475.0,
+                      "y": 422.67950439453125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 448.6269226074219,
+                      "y": 419.0
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 465.0,
+                      "y": 440.0
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 448.6269226074219,
+                      "y": 461.0
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 475.0,
+                      "y": 457.32049560546875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 485.0,
+                      "y": 482.0
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 495.0,
+                      "y": 457.32049560546875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 521.373046875,
+                      "y": 461.0
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 505.0,
+                      "y": 440.0
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 521.373046875,
+                      "y": 419.0
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 495.0,
+                      "y": 422.67950439453125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "type": "close"
+                  }
+                ]
+              }
+            ],
+            "tags": [],
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "path",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 235,
+              "g": 220,
+              "r": 210
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.42,
+            "id": "fcd74c40-7f26-4fb3-8f30-ec48e43d30c9",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 400.0,
+              "y": 535.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "6. PUNCHED VECTOR HOLE",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 165,
+              "g": 145,
+              "r": 130
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.35,
+            "id": "cb216f11-5e8e-464a-9b12-93a784cb95c7",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 400.0,
+              "y": 553.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "True star hole in rounded box",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "clip": null,
+            "effects": [],
+            "fill": {
+              "color": {
+                "a": 1.0,
+                "b": 150,
+                "g": 85,
+                "r": 240
+              },
+              "enabled": true,
+              "opacity": 1.0
+            },
+            "fill_rule": "non_zero",
+            "id": "4e52435c-e372-436b-9393-9d111b6d786b",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "render_progress": 1.0,
+            "stroke": {
+              "cap_style": "round",
+              "color": {
+                "a": 1.0,
+                "b": 255,
+                "g": 245,
+                "r": 240
+              },
+              "dash_array": [],
+              "dash_offset": 0.0,
+              "join_style": "round",
+              "line_type": "AA",
+              "miter_limit": 4.0,
+              "opacity": 1.0,
+              "width": 2.5
+            },
+            "subpaths": [
+              {
+                "closed": true,
+                "commands": [
+                  {
+                    "point": {
+                      "x": 860.0,
+                      "y": 410.0
+                    },
+                    "type": "move_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 860.0,
+                      "y": 430.1793518066406
+                    },
+                    "control2": {
+                      "x": 850.22705078125,
+                      "y": 447.10107421875
+                    },
+                    "end": {
+                      "x": 838.5696411132812,
+                      "y": 461.4224853515625
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 829.8232421875,
+                      "y": 449.6373596191406
+                    },
+                    "control2": {
+                      "x": 815.8035278320312,
+                      "y": 442.0
+                    },
+                    "end": {
+                      "x": 800.0,
+                      "y": 442.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 784.1964721679688,
+                      "y": 442.0
+                    },
+                    "control2": {
+                      "x": 770.1767578125,
+                      "y": 449.6373596191406
+                    },
+                    "end": {
+                      "x": 761.4303588867188,
+                      "y": 461.4224853515625
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 749.77294921875,
+                      "y": 447.10107421875
+                    },
+                    "control2": {
+                      "x": 740.0,
+                      "y": 430.1793518066406
+                    },
+                    "end": {
+                      "x": 740.0,
+                      "y": 410.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 740.0,
+                      "y": 360.0
+                    },
+                    "control2": {
+                      "x": 800.0,
+                      "y": 360.0
+                    },
+                    "end": {
+                      "x": 800.0,
+                      "y": 410.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 800.0,
+                      "y": 360.0
+                    },
+                    "control2": {
+                      "x": 860.0,
+                      "y": 360.0
+                    },
+                    "end": {
+                      "x": 860.0,
+                      "y": 410.0
+                    },
+                    "type": "cubic_to"
+                  },
+                  {
+                    "type": "close"
+                  }
+                ]
+              }
+            ],
+            "tags": [],
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "path",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 235,
+              "g": 220,
+              "r": 210
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.42,
+            "id": "1a304ae7-e7fe-4b08-8420-a13c94607acc",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 725.0,
+              "y": 535.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "7. BEZIER CURVE CUTOUT",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 165,
+              "g": 145,
+              "r": 130
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.35,
+            "id": "e8e8c5b5-c5d5-4d8b-9aac-02982ba96feb",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 725.0,
+              "y": 553.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "Preserves smooth cubic curves",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 175,
+              "g": 155,
+              "r": 140
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.38,
+            "id": "5198e862-a515-43d4-a2a1-73f4222c7851",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 30.0,
+              "y": 645.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "Editable retained paths. Exported natively to SVG vector <path> and JSON 1.4 without raster masks.",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          }
+        ],
+        "opacity": 1.0,
+        "visible": true,
+        "z_order": 0
+      }
+    ],
+    "timeline": {
+      "tracks": []
+    },
+    "width": 1020
+  },
+  "version": "1.4"
+}
