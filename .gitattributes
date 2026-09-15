@@ -1,0 +1,7 @@
+*.ttf -text
+*.otf -text
+*.woff -text
+*.woff2 -text
+
+tests/assets/fonts/*-OFL.txt text eol=lf
+tests/assets/fonts/manifest.json text eol=lf

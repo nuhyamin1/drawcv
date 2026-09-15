@@ -23,9 +23,26 @@ PARAGRAPH = "ภาษาไทยต้องตัดคำอย่างถ�
 
 
 def test_font_sources_are_pinned_and_unchanged():
-    for entry in json.loads((FONT_DIR / "manifest.json").read_text(encoding="utf-8")):
-        assert hashlib.sha256((FONT_DIR / entry["file"]).read_bytes()).hexdigest() == entry["sha256"]
+    mismatches = []
+    entries = json.loads(
+        (FONT_DIR / "manifest.json").read_text(encoding="utf-8")
+    )
+    for entry in entries:
         assert "/main/" not in entry["source"]
+        path = FONT_DIR / entry["file"]
+        data = path.read_bytes()
+        actual = hashlib.sha256(data).hexdigest()
+        expected = entry["sha256"]
+
+        if actual != expected:
+            mismatches.append(
+                f"{entry['file']}: "
+                f"expected={expected}, "
+                f"actual={actual}, "
+                f"bytes={len(data)}"
+            )
+
+    assert not mismatches, "\n".join(mismatches)
 
 
 @pytest.mark.parametrize("text,path", SAMPLES)
