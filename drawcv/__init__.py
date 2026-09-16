@@ -2,7 +2,16 @@
 
 from drawcv.typography import FontAsset, TextMetrics, TextLineMetrics
 from drawcv.canvas import Canvas
-from drawcv.styles.paint import GradientStop, LinearGradient, RadialGradient
+from drawcv.styles.paint import (
+    GradientStop,
+    LinearGradient,
+    RadialGradient,
+    ConicGradient,
+    ImagePaint,
+    Paint,
+    PaintLike,
+    paint_from_dict,
+)
 from drawcv.core.bounds import BoundingBox
 from drawcv.core.color import Color
 from drawcv.core.drawable import Drawable
@@ -185,6 +194,7 @@ __all__ = [
     "Command",
     "CompoundCommand",
     "compute_path_length",
+    "ConicGradient",
     "CubicTo",
     "CURRENT_FORMAT_IDENTIFIER",
     "CURRENT_SCHEMA_VERSION",
@@ -212,6 +222,7 @@ __all__ = [
     "HueShiftEffect",
     "ImageInterpolation",
     "ImageObject",
+    "ImagePaint",
     "InvalidFormatError",
     "JoinStyle",
     "Layer",
@@ -229,6 +240,9 @@ __all__ = [
     "MoveTo",
     "ObjectNotFoundError",
     "OpenCVRenderer",
+    "Paint",
+    "PaintLike",
+    "paint_from_dict",
     "Path",
     "PathBooleanError",
     "PathBooleanOp",

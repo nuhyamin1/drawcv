@@ -1,9 +1,10 @@
 """Fill appearance and retained paint, independent of rasterization."""
+
 from dataclasses import dataclass
 from drawcv.core.color import Color
 from drawcv.core.exceptions import ValidationError
 from drawcv.core.validation import validated_setattr
-from drawcv.styles.paint import LinearGradient, RadialGradient, paint_from_dict
+from drawcv.styles.paint import Paint, PaintLike, paint_from_dict
 
 _UNSET = object()
 
@@ -13,13 +14,13 @@ class FillStyle:
     """Fill description with a backward-compatible solid color shorthand."""
     enabled: bool
     opacity: float
-    _paint: Color | LinearGradient | RadialGradient
+    _paint: PaintLike
 
     def __init__(self, enabled=True, color=_UNSET, opacity=1.0, *, paint=_UNSET):
         if color is not _UNSET and paint is not _UNSET:
             raise ValidationError("Specify color or paint, not both")
         if color is not _UNSET and not isinstance(color, Color):
-            raise ValidationError("Fill color must be a Color; use paint for gradients")
+            raise ValidationError("Fill color must be a Color; use paint for gradients and image paints")
         self.enabled = enabled
         self.opacity = opacity
         self.paint = paint if paint is not _UNSET else (color if color is not _UNSET else Color.white())
@@ -27,20 +28,20 @@ class FillStyle:
         object.__setattr__(self, "_initialized", True)
 
     @property
-    def paint(self):
-        """The active Color, LinearGradient, or RadialGradient."""
+    def paint(self) -> PaintLike:
+        """The active Color, LinearGradient, RadialGradient, ConicGradient, or ImagePaint."""
         return self._paint
 
     @property
-    def color(self):
-        """Solid color shorthand; gradients have no single color."""
+    def color(self) -> Color:
+        """Solid color shorthand; gradients and image paints have no single color."""
         if not isinstance(self.paint, Color):
-            raise ValidationError("Gradient fills have no single color; use fill.paint")
+            raise ValidationError("Gradient and image fills have no single color; use fill.paint")
         return self.paint
 
     def __setattr__(self, name, value):
         if name in ("color", "paint"):
-            allowed = (Color,) if name == "color" else (Color, LinearGradient, RadialGradient)
+            allowed = (Color,) if name == "color" else (Color, Paint)
             if not isinstance(value, allowed):
                 raise ValidationError(f"Invalid fill {name}")
             object.__setattr__(self, "_paint", value)
@@ -52,7 +53,7 @@ class FillStyle:
             raise ValidationError("Fill enabled must be boolean")
         if isinstance(self.opacity, bool) or not isinstance(self.opacity, (int, float)) or not 0 <= self.opacity <= 1:
             raise ValidationError("Fill opacity must be numeric in [0, 1]")
-        if not isinstance(self.paint, (Color, LinearGradient, RadialGradient)):
+        if not isinstance(self.paint, (Color, Paint)):
             raise ValidationError("Invalid fill paint")
 
     def copy(self):

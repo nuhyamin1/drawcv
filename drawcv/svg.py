@@ -11,8 +11,9 @@ import numpy as np
 
 from drawcv.core.alpha import unpremultiply
 from drawcv.core.color import Color
-from drawcv.core.enums import ArcClosure, BlendMode, FillRule
+from drawcv.core.enums import ArcClosure, BlendMode, FillRule, ImageInterpolation
 from drawcv.core.exceptions import RenderError, ValidationError
+from drawcv.core.geometry import Point
 from drawcv.core.geometry_utils import flatten_arc
 from drawcv.effects.clipping import ClipPath, ClipRect
 from drawcv.group import Group
@@ -29,7 +30,12 @@ from drawcv.shapes.polygon import Polygon
 from drawcv.shapes.polyline import Polyline
 from drawcv.shapes.rectangle import Rectangle
 from drawcv.shapes.rounded_rectangle import RoundedRectangle
-from drawcv.styles.paint import LinearGradient
+from drawcv.styles.paint import (
+    ConicGradient,
+    ImagePaint,
+    LinearGradient,
+    RadialGradient,
+)
 
 SVG_NS = "http://www.w3.org/2000/svg"
 
@@ -169,8 +175,14 @@ class _Writer:
                 attrs["fill-opacity"] = _number(fill.opacity * (fill.paint.a if isinstance(fill.paint, Color) else 1))
                 attrs["fill-rule"] = "nonzero" if getattr(entity, "fill_rule", None) == FillRule.NON_ZERO else "evenodd"
             stroke = getattr(entity, "stroke", None)
-            if stroke is not None:
-                attrs.update({"stroke": _color(stroke.color), "stroke-opacity": _number(stroke.opacity * stroke.color.a),
+            if stroke is not None and getattr(stroke, "width", 1.0) > 0 and getattr(stroke, "opacity", 1.0) > 0:
+                if isinstance(stroke.paint, Color):
+                    stroke_color = _color(stroke.paint)
+                    stroke_opacity = stroke.opacity * stroke.paint.a
+                else:
+                    stroke_color = self.paint(stroke.paint, entity)
+                    stroke_opacity = stroke.opacity
+                attrs.update({"stroke": stroke_color, "stroke-opacity": _number(stroke_opacity),
                     "stroke-width": _number(stroke.width), "stroke-linecap": stroke.cap_style.value,
                     "stroke-linejoin": stroke.join_style.value, "stroke-miterlimit": _number(stroke.miter_limit)})
                 if stroke.dash_array:
@@ -178,8 +190,24 @@ class _Writer:
                     attrs["stroke-dashoffset"] = _number(stroke.dash_offset)
             ET.SubElement(group, "path", attrs)
 
-    @staticmethod
-    def fallback_reason(entity):
+    @classmethod
+    def _paint_fallback_reason(cls, paint):
+        if isinstance(paint, Color):
+            return None
+        if isinstance(paint, ConicGradient):
+            return "conic gradient paint"
+        if isinstance(paint, ImagePaint):
+            if paint.repeat != "repeat":
+                return f"image paint {paint.repeat} repeat"
+            if paint.interpolation != ImageInterpolation.LINEAR:
+                return f"image paint {paint.interpolation.value} interpolation"
+            return None
+        if isinstance(paint, (LinearGradient, RadialGradient)):
+            return None
+        return f"unsupported paint {type(paint).__name__}"
+
+    @classmethod
+    def fallback_reason(cls, entity):
         if entity.effects:
             return "effects"
         if entity.mask is not None:
@@ -188,6 +216,16 @@ class _Writer:
             return "unsupported clip"
         if isinstance(entity, FreehandStroke) and entity.variable_width:
             return "variable-width stroke"
+        fill = getattr(entity, "fill", None)
+        if fill is not None and fill.enabled:
+            reason = cls._paint_fallback_reason(fill.paint)
+            if reason:
+                return reason
+        stroke = getattr(entity, "stroke", None)
+        if stroke is not None and getattr(stroke, "width", 1.0) > 0 and getattr(stroke, "opacity", 1.0) > 0:
+            reason = cls._paint_fallback_reason(stroke.paint)
+            if reason:
+                return f"stroke {reason}"
         supported = (Layer, Group, Line, Rectangle, Circle, Ellipse, Polygon, Polyline,
                      RoundedRectangle, Arc, BezierCurve, Path, FreehandStroke)
         if type(entity) not in supported:
@@ -218,21 +256,58 @@ class _Writer:
         if isinstance(paint, Color):
             return _color(paint)
         ident = self.identifier()
-        attrs = {"id": ident, "gradientUnits": "userSpaceOnUse", "spreadMethod": "pad",
-                 "color-interpolation": "sRGB"}
+        paint_mat = paint.transform.get_matrix(Point(0.0, 0.0))
         if paint.space == "object":
-            attrs["gradientTransform"] = _matrix(entity.world_matrix)
-        if isinstance(paint, LinearGradient):
-            attrs.update(x1=_number(paint.start.x), y1=_number(paint.start.y),
-                         x2=_number(paint.end.x), y2=_number(paint.end.y))
-            node = ET.SubElement(self.defs, "linearGradient", attrs)
+            M = entity.world_matrix @ paint_mat
         else:
-            attrs.update(cx=_number(paint.center.x), cy=_number(paint.center.y), r=_number(paint.radius))
-            node = ET.SubElement(self.defs, "radialGradient", attrs)
-        for stop in paint.stops:
-            ET.SubElement(node, "stop", {"offset": _number(stop.position),
-                "stop-color": _color(stop.color), "stop-opacity": _number(stop.color.a)})
-        return f"url(#{ident})"
+            M = paint_mat
+
+        if isinstance(paint, (LinearGradient, RadialGradient)):
+            attrs = {"id": ident, "gradientUnits": "userSpaceOnUse", "spreadMethod": paint.spread,
+                     "color-interpolation": "sRGB"}
+            if paint.space == "object" or not np.allclose(M, np.eye(3)):
+                attrs["gradientTransform"] = _matrix(M)
+            if isinstance(paint, LinearGradient):
+                attrs.update(x1=_number(paint.start.x), y1=_number(paint.start.y),
+                             x2=_number(paint.end.x), y2=_number(paint.end.y))
+                node = ET.SubElement(self.defs, "linearGradient", attrs)
+            else:
+                attrs.update(cx=_number(paint.center.x), cy=_number(paint.center.y), r=_number(paint.radius))
+                node = ET.SubElement(self.defs, "radialGradient", attrs)
+            for stop in paint.stops:
+                ET.SubElement(node, "stop", {"offset": _number(stop.position),
+                    "stop-color": _color(stop.color), "stop-opacity": _number(stop.color.a)})
+            return f"url(#{ident})"
+        elif isinstance(paint, ImagePaint):
+            h, w = paint.image.shape[:2]
+            pw = float(w) * float(paint.scale[0])
+            ph = float(h) * float(paint.scale[1])
+            attrs = {
+                "id": ident,
+                "patternUnits": "userSpaceOnUse",
+                "width": _number(pw),
+                "height": _number(ph),
+                "x": _number(paint.origin.x),
+                "y": _number(paint.origin.y),
+            }
+            if paint.space == "object" or not np.allclose(M, np.eye(3)):
+                attrs["patternTransform"] = _matrix(M)
+            pattern = ET.SubElement(self.defs, "pattern", attrs)
+            ok, encoded = cv2.imencode(".png", paint.image)
+            if not ok:
+                raise RenderError("Could not encode SVG ImagePaint PNG")
+            img_attrs = {
+                "width": _number(pw),
+                "height": _number(ph),
+                "preserveAspectRatio": "none",
+                "{http://www.w3.org/1999/xlink}href": "data:image/png;base64," + base64.b64encode(encoded).decode("ascii"),
+            }
+            if paint.opacity < 1.0:
+                img_attrs["opacity"] = _number(paint.opacity)
+            ET.SubElement(pattern, "image", img_attrs)
+            return f"url(#{ident})"
+        else:
+            raise RenderError(f"Unsupported paint type for SVG export: {type(paint).__name__}")
 
     @staticmethod
     def geometry(obj):

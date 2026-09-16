@@ -14,6 +14,7 @@ from drawcv.core.enums import ImageInterpolation
 from drawcv.core.exceptions import SerializationError, ValidationError
 from drawcv.core.geometry import Point
 from drawcv.core.transform import Transform
+from drawcv.core.raster import validate_raster_image, encode_raster_png, decode_raster_png
 
 
 
@@ -111,20 +112,7 @@ class ImageObject(Drawable):
             self._validate_crop(self.crop)
 
     def _validate_image(self, image: np.ndarray) -> None:
-        if not isinstance(image, np.ndarray):
-            raise ValidationError(f"Image must be a NumPy array, got {type(image).__name__}")
-        if image.dtype != np.uint8:
-            raise ValidationError(f"Image dtype must be uint8, got {image.dtype}")
-        if image.ndim == 2:
-            if image.shape[0] <= 0 or image.shape[1] <= 0:
-                raise ValidationError("Image dimensions must be non-empty")
-        elif image.ndim == 3:
-            if image.shape[0] <= 0 or image.shape[1] <= 0:
-                raise ValidationError("Image dimensions must be non-empty")
-            if image.shape[2] not in (1, 3, 4):
-                raise ValidationError(f"Image channels must be 1, 3 (BGR), or 4 (BGRA), got {image.shape[2]}")
-        else:
-            raise ValidationError(f"Image array must be 2D or 3D, got {image.ndim}D")
+        validate_raster_image(image)
 
     def _validate_crop(self, crop: BoundingBox | tuple[float, float, float, float] | None) -> BoundingBox | None:
         if crop is None:
@@ -303,19 +291,9 @@ class ImageObject(Drawable):
     def to_dict(self) -> dict[str, Any]:
         """Return a plain JSON-compatible dictionary representation with structured raster payload."""
         res = self._base_to_dict()
-        success, encoded = cv2.imencode(".png", self.image)
-        if not success:
-            raise SerializationError("Failed to encode ImageObject buffer to PNG")
-        data_b64 = base64.b64encode(encoded.tobytes()).decode("ascii")
-
         res.update({
             "type": "image",
-            "image": {
-                "encoding": "png_base64",
-                "dtype": "uint8",
-                "shape": list(self.image.shape),
-                "data": data_b64,
-            },
+            "image": encode_raster_png(self.image, error_context="ImageObject"),
             "position": self.position.to_dict(),
             "width": float(self.width) if self.width is not None else None,
             "height": float(self.height) if self.height is not None else None,
@@ -329,22 +307,7 @@ class ImageObject(Drawable):
         """Construct an ImageObject from dictionary representation."""
         base_kwargs = cls._base_from_dict(data)
         img_payload = data.get("image")
-        if not isinstance(img_payload, dict):
-            raise SerializationError("ImageObject 'image' must be a structured raster dictionary")
-        if img_payload.get("encoding") != "png_base64":
-            raise SerializationError(f"Unsupported image encoding '{img_payload.get('encoding')}'")
-
-        raw_bytes = base64.b64decode(img_payload["data"])
-        arr = np.frombuffer(raw_bytes, dtype=np.uint8)
-        decoded = cv2.imdecode(arr, cv2.IMREAD_UNCHANGED)
-        if decoded is None:
-            raise SerializationError("Failed to decode ImageObject PNG buffer")
-
-        expected_shape = tuple(img_payload.get("shape", []))
-        if expected_shape and decoded.shape != expected_shape:
-            raise SerializationError(
-                f"Decoded image shape {decoded.shape} does not match expected shape {expected_shape}"
-            )
+        decoded = decode_raster_png(img_payload, error_context="ImageObject")
 
         pos = Point.from_dict(data["position"]) if "position" in data else Point(0.0, 0.0)
         crop_val = BoundingBox.from_dict(data["crop"]) if data.get("crop") is not None else None

@@ -11,7 +11,7 @@ from drawcv.core.exceptions import (
     UnsupportedVersionError,
 )
 
-CURRENT_SCHEMA_VERSION = "1.5"
+CURRENT_SCHEMA_VERSION = "1.6"
 CURRENT_FORMAT_IDENTIFIER = "drawcv"
 
 _DRAWABLE_REGISTRY: dict[str, type] = {}
@@ -272,3 +272,66 @@ def _migrate_1_4_to_1_5(data: dict[str, Any]) -> dict[str, Any]:
 
 SchemaMigrator.register_migration("1.4", _migrate_1_4_to_1_5)
 
+
+def _migrate_1_5_to_1_6(data: dict[str, Any]) -> dict[str, Any]:
+    """Forward-migrate document schema 1.5 to 1.6 supplying paint, spread, and stroke paint defaults."""
+    migrated = copy.deepcopy(data)
+    migrated["version"] = "1.6"
+
+    def _patch_paint(paint_dict: dict[str, Any]) -> None:
+        if not isinstance(paint_dict, dict):
+            return
+        ptype = paint_dict.get("type")
+        if ptype in ("linear", "radial"):
+            if "spread" not in paint_dict:
+                paint_dict["spread"] = "pad"
+            if "transform" not in paint_dict:
+                paint_dict["transform"] = {
+                    "translation_x": 0.0,
+                    "translation_y": 0.0,
+                    "rotation": 0.0,
+                    "scale_x": 1.0,
+                    "scale_y": 1.0,
+                    "pivot": None,
+                }
+        elif ptype == "conic":
+            if "start_angle" not in paint_dict:
+                paint_dict["start_angle"] = 0.0
+            if "transform" not in paint_dict:
+                paint_dict["transform"] = {
+                    "translation_x": 0.0,
+                    "translation_y": 0.0,
+                    "rotation": 0.0,
+                    "scale_x": 1.0,
+                    "scale_y": 1.0,
+                    "pivot": None,
+                }
+
+    def _patch_drawable(d: dict[str, Any]) -> None:
+        if not isinstance(d, dict):
+            return
+        fill = d.get("fill")
+        if isinstance(fill, dict):
+            paint = fill.get("paint")
+            if isinstance(paint, dict):
+                _patch_paint(paint)
+
+        stroke = d.get("stroke")
+        if isinstance(stroke, dict):
+            if isinstance(stroke.get("paint"), dict):
+                _patch_paint(stroke["paint"])
+
+        if d.get("type") == "group" and "children" in d:
+            for child in d.get("children", []):
+                _patch_drawable(child)
+
+    scene_data = migrated.get("scene", {})
+    for layer in scene_data.get("layers", []):
+        if isinstance(layer, dict):
+            for obj_data in layer.get("objects", []):
+                _patch_drawable(obj_data)
+
+    return migrated
+
+
+SchemaMigrator.register_migration("1.5", _migrate_1_5_to_1_6)

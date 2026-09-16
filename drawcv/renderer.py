@@ -483,14 +483,12 @@ class OpenCVRenderer:
         if stroke is None or stroke.width <= 0:
             return
 
-        stroke_alpha = stroke.color.a * stroke.opacity * self._get_render_opacity(arrow)
-        if stroke_alpha <= 0.0:
+        if stroke.opacity * self._get_render_opacity(arrow) <= 0.0:
             return
 
         w_start = arrow.to_world(arrow.start)
         w_end, head_pts = arrow.get_world_head_geometry()
         bounds = arrow.get_bounds()
-        stroke_bgr = stroke.color.to_bgr()
 
         self._stroke_contours(arrow, canvas, [([w_start, w_end], False)])
         marker_stroke = stroke.copy()
@@ -804,6 +802,9 @@ class OpenCVRenderer:
             fill = getattr(entity, name, None)
             if fill is not None and not isinstance(fill.paint, Color):
                 return True
+        stroke = getattr(entity, "stroke", None)
+        if stroke is not None and not isinstance(stroke.paint, Color):
+            return True
         for name in ("layers", "children", "objects"):
             children = getattr(entity, name, None)
             if children is not None:
@@ -825,17 +826,17 @@ class OpenCVRenderer:
         cv2.fillPoly(mask, [points], 255, cv2.LINE_AA)
         self._fill_mask(drawable, canvas, mask)
 
-    def _fill_mask(self, drawable, canvas, mask):
-        fill = drawable.fill
-        opacity = fill.opacity * self._get_render_opacity(drawable)
-        if isinstance(fill.paint, Color):
-            self._composite_mask(canvas, mask, fill.color.to_bgr(), opacity * fill.color.a, drawable.get_bounds())
+    def _composite_paint(self, canvas, mask, paint, opacity, world_matrix, bbox=None):
+        if opacity <= 0.0:
+            return
+        if isinstance(paint, Color):
+            self._composite_mask(canvas, mask, paint.to_bgr(), opacity * paint.a, bbox)
             return
         x, y, width, height = cv2.boundingRect(mask)
         if width == 0 or height == 0:
             return
         region = np.s_[y:y+height, x:x+width]
-        source = sample_gradient(fill.paint, drawable.world_matrix, width, height, origin=(x, y))
+        source = sample_gradient(paint, world_matrix, width, height, origin=(x, y))
         source *= (mask[region].astype(np.float32) / 255 * opacity)[..., None]
         a = source[..., 3:4]
         destination = canvas.buffer[region]
@@ -845,6 +846,11 @@ class OpenCVRenderer:
         else:
             destination[:] = np.rint(source[..., :3] + destination*(1-a)).clip(0, 255).astype(np.uint8)
 
+    def _fill_mask(self, drawable, canvas, mask):
+        fill = drawable.fill
+        opacity = fill.opacity * self._get_render_opacity(drawable)
+        self._composite_paint(canvas, mask, fill.paint, opacity, drawable.world_matrix, drawable.get_bounds())
+
     def _curve_tolerance(self, drawable):
         scale = float(np.linalg.norm(drawable.world_matrix[:2, :2], ord=2))
         return 0.25 / max(scale, 1e-12)
@@ -853,14 +859,14 @@ class OpenCVRenderer:
         stroke = style if style is not None else getattr(drawable, "stroke", None)
         if stroke is None:
             return
-        alpha = stroke.color.a * stroke.opacity * self._get_render_opacity(drawable)
-        if alpha <= 0:
+        opacity = stroke.opacity * self._get_render_opacity(drawable)
+        if opacity <= 0:
             return
         samples = [([(p.x, p.y, widths[i] if widths is not None else stroke.width)
                      for i, p in enumerate(points)], closed) for points, closed in contours]
         mask = stroke_mask(canvas.width, canvas.height, samples, stroke,
                            self._get_cv_line_type(stroke.line_type))
-        self._composite_mask(canvas, mask, stroke.color.to_bgr(), alpha)
+        self._composite_paint(canvas, mask, stroke.paint, opacity, drawable.world_matrix, drawable.get_bounds())
 
     def _get_cv_line_type(self, line_type: LineType) -> int:
         """Map LineType enum to OpenCV line connectivity constant."""
