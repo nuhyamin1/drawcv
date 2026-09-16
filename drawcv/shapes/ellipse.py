@@ -33,6 +33,10 @@ class Ellipse(Drawable):
         super().__post_init__()
         self._validate_ellipse()
 
+    def _validate(self) -> None:
+        super()._validate()
+        self._validate_ellipse()
+
     def _validate_ellipse(self):
         if not isinstance(self.center, Point):
             raise ValidationError(f"Ellipse 'center' must be a Point, got {type(self.center).__name__}")

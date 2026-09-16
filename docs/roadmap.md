@@ -146,7 +146,17 @@ match the baseline exactly across two after-runs. The suite passes 508 tests.
 See [measured gains, memory evidence and limits](performance.md). Remote CI and lower
 supported dependency versions remain unverified.
 
-**Next: 5C PDF export evaluation.** Textured brushes remain a separate later scope.
+## Milestone 6 — Generalized Ordered Effects Architecture (implemented)
+
+Replaced hardcoded blur/shadow branches with an extensible, stage-by-stage ordered effect stack:
+- **Decoupled Effect Model**: Retained `Effect` dataclasses decoupled from OpenCV raster processing (`drawcv/effects/effect.py`).
+- **Exact Support Bounds**: Finite convolution kernel support (`kernel_size // 2` for Blur, `gaussian_pad_for_radius(radius)` for Shadow and Glow). Pre-own-effect geometric bounds (`get_bounds()`) decoupled from effect-input visual bounds (`get_effect_input_bounds()`).
+- **Stage Execution**: Left-to-right processing on isolated surfaces before mask, clip, opacity, and blend modes (`drawcv/effects/executor.py`).
+- **True Outer Glow**: `GlowEffect` isolates outer alpha contour, strictly preserving interior translucent pixels without color wash.
+- **Color Manipulation**: Full color suite (`BrightnessContrastEffect`, `SaturationEffect`, `HueShiftEffect`, `GrayscaleEffect`, `SepiaEffect`, `ColorMatrixEffect` with alpha preservation).
+- **Transactional Animation**: Property path traversal supporting sequence indices (`effects.0.color.a`) with automatic state rollback on validation failure.
+- **Boundary Compatibility**: Spatial effects consistently standardize on transparent-zero spatial boundaries (`cv2.BORDER_CONSTANT`) across both BGR and BGRA modes, eliminating legacy BGR edge-pixel reflection (`cv2.BORDER_DEFAULT`) when objects touch canvas boundaries.
+- **8 Benchmark Scenarios**: Extended benchmark suite (`benchmarks/scenes.py`) with reproducible workloads and gallery example (`examples/generalized_effects.py`).
 
 1. **SVG first:** build an export matrix mapping retained geometry, fills, stroke
    semantics, transforms, groups, text, clips, and masks. Specify raster embedding

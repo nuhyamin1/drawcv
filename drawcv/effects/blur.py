@@ -45,8 +45,32 @@ class BlurEffect(Effect):
         elif not isinstance(self.blur_type, BlurType):
             raise ValidationError(f"blur_type must be a BlurType enum or string, got {type(self.blur_type).__name__}")
 
+    @property
+    def effect_type(self) -> str:
+        return "blur"
+
+    def expand_bounds(self, input_bounds: BoundingBox) -> BoundingBox:
+        """Calculate visual bounds expanded by spatial blur kernel radius.
+
+        Authoritative renderer/bounds contract using actual finite kernel support
+        (kernel_size // 2).
+        """
+        from drawcv.core.bounds import BoundingBox
+        pad = float(self.kernel_size // 2)
+        return BoundingBox(
+            input_bounds.left - pad,
+            input_bounds.top - pad,
+            input_bounds.width + 2.0 * pad,
+            input_bounds.height + 2.0 * pad,
+        )
+
     def get_padding(self) -> tuple[float, float, float, float]:
-        """Return symmetric padding for blur expansion (left, right, top, bottom)."""
+        """Return legacy symmetric padding (left, right, top, bottom).
+
+        Preserves historical legacy convenience/compatibility API semantics
+        (ceil(3 * sigma) when sigma > 0, else kernel_size // 2).
+        Not used internally for generalized effect pipeline execution.
+        """
         if self.sigma > 0.0:
             pad = float(math.ceil(3.0 * self.sigma))
         else:
@@ -67,10 +91,9 @@ class BlurEffect(Effect):
         """Construct a BlurEffect from a dictionary."""
         if not isinstance(data, dict):
             raise ValidationError(f"BlurEffect data must be a dict, got {type(data).__name__}")
-        blur_type_val = BlurType(data["blur_type"]) if "blur_type" in data else BlurType.GAUSSIAN
         return cls(
-            kernel_size=int(data.get("kernel_size", 15)),
-            sigma=float(data.get("sigma", 0.0)),
-            blur_type=blur_type_val,
+            kernel_size=data.get("kernel_size", 15),
+            sigma=data.get("sigma", 0.0),
+            blur_type=data.get("blur_type", BlurType.GAUSSIAN),
         )
 

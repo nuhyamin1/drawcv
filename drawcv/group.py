@@ -234,38 +234,35 @@ class Group(Drawable):
 
         return union_box if union_box is not None else BoundingBox(0.0, 0.0, 0.0, 0.0)
 
-    def get_effect_bounds(self) -> BoundingBox:
-        """Calculate authoritative world-space visual bounds enclosing all children (with child effects) and group effects."""
+    def get_effect_input_bounds(self) -> BoundingBox:
+        """Visual bounds of pixels entering this group's own effect pipeline (children with child effects)."""
         if not self._children:
-            base_bounds = self.get_bounds()
-        else:
-            union_box: BoundingBox | None = None
-            for child in self._children:
+            return self.get_bounds()
+        union_box: BoundingBox | None = None
+        for child in self._children:
+            if child.visible:
                 cb = child.get_effect_bounds()
                 union_box = cb if union_box is None else union_box.union(cb)
-            base_bounds = union_box if union_box is not None else self.get_bounds()
+        return union_box if union_box is not None else self.get_bounds()
 
+    def get_effect_bounds(self) -> BoundingBox:
+        """Calculate authoritative world-space visual bounds enclosing all children (with child effects) and group effects."""
+        bounds = self.get_effect_input_bounds()
         if not self.effects:
-            return base_bounds
+            return bounds
 
-        left_pad = 0.0
-        right_pad = 0.0
-        top_pad = 0.0
-        bottom_pad = 0.0
         for eff in self.effects:
-            if hasattr(eff, "get_padding"):
+            if hasattr(eff, "expand_bounds"):
+                bounds = eff.expand_bounds(bounds)
+            elif hasattr(eff, "get_padding"):
                 lp, rp, tp, bp = eff.get_padding()
-                left_pad = max(left_pad, lp)
-                right_pad = max(right_pad, rp)
-                top_pad = max(top_pad, tp)
-                bottom_pad = max(bottom_pad, bp)
-
-        return BoundingBox(
-            base_bounds.left - left_pad,
-            base_bounds.top - top_pad,
-            base_bounds.width + left_pad + right_pad,
-            base_bounds.height + top_pad + bottom_pad,
-        )
+                bounds = BoundingBox(
+                    bounds.left - lp,
+                    bounds.top - tp,
+                    bounds.width + lp + rp,
+                    bounds.height + tp + bp,
+                )
+        return bounds
 
     # -------------------------------------------------------------------------
     # Anchors, Hit-Testing & Cloning

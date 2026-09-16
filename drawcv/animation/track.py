@@ -56,6 +56,38 @@ def _deserialize_track_value(data_val: Any, val_type: str) -> Any:
     raise SerializationError(f"Unrecognized track value_type '{val_type}'")
 
 
+def _trigger_validation(obj: Any) -> None:
+    """Run explicit post-mutation validation hook on object if present."""
+    if hasattr(obj, "_validate") and callable(obj._validate):
+        obj._validate()
+
+
+def _traverse_property_path(root: Any, path: str) -> list[tuple[Any, str | int]]:
+    """Traverse a dot-separated property path supporting attributes and sequence indices.
+
+    Returns a list of (container, token_or_index) pairs along the path.
+    """
+    tokens = path.split(".")
+    chain: list[tuple[Any, str | int]] = []
+    curr = root
+    for token in tokens:
+        if isinstance(curr, (list, tuple)):
+            try:
+                idx = int(token)
+                chain.append((curr, idx))
+                curr = curr[idx]
+            except (ValueError, IndexError):
+                raise ValidationError(f"Invalid sequence index '{token}' for container along '{path}'")
+        else:
+            if not hasattr(curr, token):
+                raise ValidationError(f"Object {curr} has no attribute or element '{token}' along '{path}'")
+            chain.append((curr, token))
+            curr = getattr(curr, token)
+            if curr is None and token != tokens[-1]:
+                raise ValidationError(f"Property '{token}' along '{path}' is None")
+    return chain
+
+
 class AnimationTrack:
     """Individual property animation track targeting a scene entity.
 
@@ -100,62 +132,80 @@ class AnimationTrack:
         else:
             self.interpolator = resolve_interpolator(self.start_value, self.end_value)
 
-    def _resolve_target_property(self, target: Any) -> tuple[Any, str]:
-        """Navigate dot-separated property path to (parent_object, attribute_name)."""
-        parts = self.property_path.split(".")
-        curr = target
-        for part in parts[:-1]:
-            if not hasattr(curr, part):
-                raise ValidationError(f"Object {curr} has no property '{part}' along '{self.property_path}'")
-            curr = getattr(curr, part)
-            if curr is None:
-                raise ValidationError(f"Property '{part}' along '{self.property_path}' is None")
-        attr_name = parts[-1]
-        if not hasattr(curr, attr_name):
-            raise ValidationError(f"Target object has no attribute '{attr_name}'")
-        return curr, attr_name
+    def _resolve_target_property(self, target: Any) -> tuple[Any, str | int]:
+        """Navigate dot-separated property path to (parent_object, attribute_or_index)."""
+        chain = _traverse_property_path(target, self.property_path)
+        return chain[-1]
 
     def evaluate(self, time: float, target: Any | None = None) -> Any:
-        """Evaluate the track at the given time and apply to target if provided."""
+        """Evaluate the track at the given time and apply transactionally to target if provided."""
         eased_t = self.timing.evaluate(time)
         val = self.interpolator(self.start_value, self.end_value, eased_t)
 
         if target is not None:
-            parts = self.property_path.split(".")
-            parent_obj, attr = self._resolve_target_property(target)
-            try:
-                setattr(parent_obj, attr, val)
-            except Exception as exc:
-                # Handle immutable / frozen dataclass parents (Point, Color, BoundingBox)
-                if len(parts) >= 2:
-                    grandparent = target
-                    for p in parts[:-2]:
-                        grandparent = getattr(grandparent, p)
-                    field_name = parts[-2]
-                    curr_val = getattr(grandparent, field_name)
-                    if isinstance(curr_val, Point):
-                        new_pt = Point(val if attr == "x" else curr_val.x, val if attr == "y" else curr_val.y)
-                        setattr(grandparent, field_name, new_pt)
-                    elif isinstance(curr_val, Color):
-                        new_col = Color(
-                            int(round(val)) if attr == "r" else curr_val.r,
-                            int(round(val)) if attr == "g" else curr_val.g,
-                            int(round(val)) if attr == "b" else curr_val.b,
-                            float(val) if attr == "a" else curr_val.a,
-                        )
-                        setattr(grandparent, field_name, new_col)
-                    elif isinstance(curr_val, BoundingBox):
-                        new_box = BoundingBox(
-                            val if attr == "x" else curr_val.x,
-                            val if attr == "y" else curr_val.y,
-                            val if attr == "width" else curr_val.width,
-                            val if attr == "height" else curr_val.height,
-                        )
-                        setattr(grandparent, field_name, new_box)
-                    else:
-                        raise exc
+            chain = _traverse_property_path(target, self.property_path)
+            parent, attr = chain[-1]
+
+            # Check if parent is an immutable / frozen dataclass (Point, Color, BoundingBox)
+            if isinstance(parent, (Color, Point, BoundingBox)):
+                if len(chain) < 2:
+                    raise ValidationError(f"Cannot mutate root immutable object along '{self.property_path}'")
+                grandparent, parent_token = chain[-2]
+                old_parent = parent
+
+                if isinstance(parent, Point):
+                    new_parent = Point(
+                        val if attr == "x" else parent.x,
+                        val if attr == "y" else parent.y,
+                    )
+                elif isinstance(parent, Color):
+                    new_parent = Color(
+                        int(round(val)) if attr == "r" else parent.r,
+                        int(round(val)) if attr == "g" else parent.g,
+                        int(round(val)) if attr == "b" else parent.b,
+                        float(val) if attr == "a" else parent.a,
+                    )
+                elif isinstance(parent, BoundingBox):
+                    new_parent = BoundingBox(
+                        val if attr == "x" else parent.x,
+                        val if attr == "y" else parent.y,
+                        val if attr == "width" else parent.width,
+                        val if attr == "height" else parent.height,
+                    )
+
+                # Transactional mutation on grandparent
+                if isinstance(grandparent, list):
+                    grandparent[parent_token] = new_parent
+                    try:
+                        _trigger_validation(grandparent)
+                    except Exception:
+                        grandparent[parent_token] = old_parent
+                        raise
                 else:
-                    raise exc
+                    setattr(grandparent, str(parent_token), new_parent)
+                    try:
+                        _trigger_validation(grandparent)
+                    except Exception:
+                        setattr(grandparent, str(parent_token), old_parent)
+                        raise
+            else:
+                # Direct mutable assignment with transactional rollback
+                if isinstance(parent, list):
+                    old_val = parent[attr]
+                    parent[attr] = val
+                    try:
+                        _trigger_validation(parent)
+                    except Exception:
+                        parent[attr] = old_val
+                        raise
+                else:
+                    old_val = getattr(parent, str(attr))
+                    setattr(parent, str(attr), val)
+                    try:
+                        _trigger_validation(parent)
+                    except Exception:
+                        setattr(parent, str(attr), old_val)
+                        raise
 
         return val
 

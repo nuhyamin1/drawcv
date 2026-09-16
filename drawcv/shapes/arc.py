@@ -80,6 +80,10 @@ class Arc(Drawable):
         super().__post_init__()
         self._validate_arc()
 
+    def _validate(self) -> None:
+        super()._validate()
+        self._validate_arc()
+
     def _validate_arc(self):
         if not isinstance(self.center, Point):
             raise ValidationError(f"Arc 'center' must be a Point, got {type(self.center).__name__}")

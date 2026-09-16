@@ -53,6 +53,10 @@ class Drawable(ABC):
     def __post_init__(self):
         self._validate_common()
 
+    def _validate(self) -> None:
+        """Explicit validation hook for post-init and animation mutations."""
+        self._validate_common()
+
     def _validate_common(self):
         if not isinstance(self.id, str) or not self.id:
             raise ValidationError("Drawable 'id' must be a non-empty string")
@@ -103,30 +107,28 @@ class Drawable(ABC):
     # Bounds Hierarchy
     # -------------------------------------------------------------------------
 
+    def get_effect_input_bounds(self) -> BoundingBox:
+        """Visual bounds of pixels entering this entity's own effect pipeline."""
+        return self.get_bounds()
+
     def get_effect_bounds(self) -> BoundingBox:
-        """Calculate authoritative world-space visual bounds inflated by attached post-processing effects."""
-        base_bounds = self.get_bounds()
+        """Calculate authoritative world-space visual bounds propagated through attached post-processing effects."""
+        bounds = self.get_effect_input_bounds()
         if not self.effects:
-            return base_bounds
+            return bounds
 
-        left_pad = 0.0
-        right_pad = 0.0
-        top_pad = 0.0
-        bottom_pad = 0.0
         for eff in self.effects:
-            if hasattr(eff, "get_padding"):
+            if hasattr(eff, "expand_bounds"):
+                bounds = eff.expand_bounds(bounds)
+            elif hasattr(eff, "get_padding"):
                 lp, rp, tp, bp = eff.get_padding()
-                left_pad = max(left_pad, lp)
-                right_pad = max(right_pad, rp)
-                top_pad = max(top_pad, tp)
-                bottom_pad = max(bottom_pad, bp)
-
-        return BoundingBox(
-            base_bounds.left - left_pad,
-            base_bounds.top - top_pad,
-            base_bounds.width + left_pad + right_pad,
-            base_bounds.height + top_pad + bottom_pad,
-        )
+                bounds = BoundingBox(
+                    bounds.left - lp,
+                    bounds.top - tp,
+                    bounds.width + lp + rp,
+                    bounds.height + tp + bp,
+                )
+        return bounds
 
     @abstractmethod
     def get_geometry_bounds(self) -> BoundingBox:

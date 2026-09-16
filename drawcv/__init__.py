@@ -62,7 +62,16 @@ from drawcv.core.path_processing import (
 from drawcv.core.transform import Transform
 from drawcv.effects.blur import BlurEffect
 from drawcv.effects.clipping import ClipPath, ClipRect
+from drawcv.effects.color import (
+    BrightnessContrastEffect,
+    ColorMatrixEffect,
+    GrayscaleEffect,
+    HueShiftEffect,
+    SaturationEffect,
+    SepiaEffect,
+)
 from drawcv.effects.effect import Effect
+from drawcv.effects.glow import GlowEffect
 from drawcv.effects.mask import Mask
 from drawcv.effects.shadow import ShadowEffect
 from drawcv.group import Group
@@ -162,6 +171,7 @@ __all__ = [
     "BlurEffect",
     "BlurType",
     "BoundingBox",
+    "BrightnessContrastEffect",
     "Canvas",
     "CapStyle",
     "catmull_rom_spline",
@@ -171,6 +181,7 @@ __all__ = [
     "ClipRect",
     "Close",
     "Color",
+    "ColorMatrixEffect",
     "Command",
     "CompoundCommand",
     "compute_path_length",
@@ -193,9 +204,12 @@ __all__ = [
     "FreehandStroke",
     "from_json",
     "get_easing",
+    "GlowEffect",
+    "GrayscaleEffect",
     "Group",
     "GroupCommand",
     "HistoryManager",
+    "HueShiftEffect",
     "ImageInterpolation",
     "ImageObject",
     "InvalidFormatError",
@@ -238,6 +252,8 @@ __all__ = [
     "SchemaMigrator",
     "Selection",
     "SerializationError",
+    "SaturationEffect",
+    "SepiaEffect",
     "ShadowEffect",
     "slice_bezier",
     "slice_path",

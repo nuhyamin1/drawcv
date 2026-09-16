@@ -104,6 +104,10 @@ class FreehandStroke(Drawable):
         super().__post_init__()
         self._normalize_and_validate()
 
+    def _validate(self) -> None:
+        super()._validate()
+        self._normalize_and_validate()
+
     def _normalize_and_validate(self):
         # 1. Normalize points
         if not isinstance(self.points, list):

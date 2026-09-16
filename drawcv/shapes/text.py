@@ -156,6 +156,10 @@ class Text(Drawable):
             candidate._validate_font_options()
         object.__setattr__(self, name, value)
 
+    def _validate(self) -> None:
+        super()._validate()
+        self._validate_font_options()
+
     def _validate_font_options(self):
         if not isinstance(self.text, str):
             raise ValidationError("Text content must be a string")

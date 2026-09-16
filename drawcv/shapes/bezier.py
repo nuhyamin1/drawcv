@@ -75,6 +75,10 @@ class BezierCurve(Drawable):
         super().__post_init__()
         self._validate_bezier()
 
+    def _validate(self) -> None:
+        super()._validate()
+        self._validate_bezier()
+
     def _validate_bezier(self):
         for name, pt in (("p0", self.p0), ("p1", self.p1), ("p2", self.p2)):
             if not isinstance(pt, Point):

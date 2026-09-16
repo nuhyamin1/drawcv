@@ -31,6 +31,10 @@ class Circle(Drawable):
         super().__post_init__()
         self._validate_circle()
 
+    def _validate(self) -> None:
+        super()._validate()
+        self._validate_circle()
+
     def _validate_circle(self):
         if not isinstance(self.center, Point):
             raise ValidationError(f"Circle 'center' must be a Point, got {type(self.center).__name__}")

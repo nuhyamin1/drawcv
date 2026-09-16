@@ -38,6 +38,10 @@ class RoundedRectangle(Drawable):
         super().__post_init__()
         self._validate_rounded_rectangle()
 
+    def _validate(self) -> None:
+        super()._validate()
+        self._validate_rounded_rectangle()
+
     def _validate_rounded_rectangle(self):
         for attr, val in (("x", self.x), ("y", self.y), ("width", self.width),
                           ("height", self.height), ("corner_radius", self.corner_radius)):

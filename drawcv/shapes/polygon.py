@@ -33,6 +33,10 @@ class Polygon(Drawable):
         super().__post_init__()
         self._validate_polygon()
 
+    def _validate(self) -> None:
+        super()._validate()
+        self._validate_polygon()
+
     def _validate_polygon(self):
         if not isinstance(self.vertices, list):
             raise ValidationError(f"Polygon 'vertices' must be a list of Points, got {type(self.vertices).__name__}")

@@ -54,6 +54,10 @@ class Layer:
     def blend_mode(self, value: Any) -> None:
         self._blend_mode = coerce_blend_mode(value)
 
+    def _validate(self) -> None:
+        """Explicit validation hook for post-init and animation mutations."""
+        self._validate_params(self.name, self.visible, self.locked, self.opacity, self.z_order, self.effects)
+
     def _validate_params(self, name: str, visible: bool, locked: bool, opacity: float, z_order: int, effects: Any | None = None):
         if not isinstance(name, str) or not name.strip():
             raise ValidationError("Layer name must be a non-empty string")
@@ -84,38 +88,35 @@ class Layer:
             union_box = ob if union_box is None else union_box.union(ob)
         return union_box if union_box is not None else BoundingBox(0.0, 0.0, 0.0, 0.0)
 
-    def get_effect_bounds(self) -> BoundingBox:
-        """World-space visual AABB enclosing all contained objects (with child effects) and layer-level effects."""
+    def get_effect_input_bounds(self) -> BoundingBox:
+        """World-space visual AABB of pixels entering this layer's effect pipeline (objects with their effects)."""
         if not self._objects:
-            base_bounds = BoundingBox(0.0, 0.0, 0.0, 0.0)
-        else:
-            union_box: BoundingBox | None = None
-            for obj in self._objects:
+            return BoundingBox(0.0, 0.0, 0.0, 0.0)
+        union_box: BoundingBox | None = None
+        for obj in self._objects:
+            if obj.visible:
                 ob = obj.get_effect_bounds()
                 union_box = ob if union_box is None else union_box.union(ob)
-            base_bounds = union_box if union_box is not None else BoundingBox(0.0, 0.0, 0.0, 0.0)
+        return union_box if union_box is not None else BoundingBox(0.0, 0.0, 0.0, 0.0)
 
+    def get_effect_bounds(self) -> BoundingBox:
+        """World-space visual AABB enclosing all contained objects (with child effects) and layer-level effects."""
+        bounds = self.get_effect_input_bounds()
         if not self.effects:
-            return base_bounds
+            return bounds
 
-        left_pad = 0.0
-        right_pad = 0.0
-        top_pad = 0.0
-        bottom_pad = 0.0
         for eff in self.effects:
-            if hasattr(eff, "get_padding"):
+            if hasattr(eff, "expand_bounds"):
+                bounds = eff.expand_bounds(bounds)
+            elif hasattr(eff, "get_padding"):
                 lp, rp, tp, bp = eff.get_padding()
-                left_pad = max(left_pad, lp)
-                right_pad = max(right_pad, rp)
-                top_pad = max(top_pad, tp)
-                bottom_pad = max(bottom_pad, bp)
-
-        return BoundingBox(
-            base_bounds.left - left_pad,
-            base_bounds.top - top_pad,
-            base_bounds.width + left_pad + right_pad,
-            base_bounds.height + top_pad + bottom_pad,
-        )
+                bounds = BoundingBox(
+                    bounds.left - lp,
+                    bounds.top - tp,
+                    bounds.width + lp + rp,
+                    bounds.height + tp + bp,
+                )
+        return bounds
 
     # -------------------------------------------------------------------------
     # Object Management & Invariants

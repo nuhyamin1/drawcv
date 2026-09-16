@@ -98,6 +98,18 @@ class ImageObject(Drawable):
         else:
             raise ValidationError(f"interpolation must be ImageInterpolation, got {type(interpolation).__name__}")
 
+    def _validate(self) -> None:
+        super()._validate()
+        self._validate_image(self.image)
+        if not isinstance(self.position, Point):
+            raise ValidationError(f"position must be a Point, got {type(self.position).__name__}")
+        if self.width is not None and (self.width <= 0 or math.isnan(self.width) or math.isinf(self.width)):
+            raise ValidationError(f"ImageObject width must be positive and finite, got {self.width}")
+        if self.height is not None and (self.height <= 0 or math.isnan(self.height) or math.isinf(self.height)):
+            raise ValidationError(f"ImageObject height must be positive and finite, got {self.height}")
+        if self.crop is not None:
+            self._validate_crop(self.crop)
+
     def _validate_image(self, image: np.ndarray) -> None:
         if not isinstance(image, np.ndarray):
             raise ValidationError(f"Image must be a NumPy array, got {type(image).__name__}")

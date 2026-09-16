@@ -153,6 +153,10 @@ class Path(Drawable):
         super().__post_init__()
         self._validate_path()
 
+    def _validate(self) -> None:
+        super()._validate()
+        self._validate_path()
+
     def _validate_path(self):
         if not isinstance(self.subpaths, list):
             raise ValidationError("Path 'subpaths' must be a list")

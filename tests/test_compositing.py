@@ -107,10 +107,15 @@ class TestEffectsPipeline:
         shadow = ShadowEffect(offset_x=-30.0, offset_y=40.0, blur_radius=10.0)
         rect.effects.append(shadow)
 
+        # Legacy get_padding returns 4-sided conservative padding
+        lp, rp, tp, bp = shadow.get_padding()
+        assert lp == 60.0 and rp == 30.0 and tp == 30.0 and bp == 70.0
+
+        # Generalized expand_bounds returns exact union bounds
         eb = rect.get_effect_bounds()
         assert eb.left <= 40.0
-        assert eb.right >= 180.0
-        assert eb.top <= 70.0
+        assert eb.right >= 150.0
+        assert eb.top <= 100.0
         assert eb.bottom >= 220.0
 
     def test_shadow_rendered_behind_base(self):

@@ -80,6 +80,10 @@ class Arrow(Drawable):
         super().__post_init__()
         self._validate_arrow()
 
+    def _validate(self) -> None:
+        super()._validate()
+        self._validate_arrow()
+
     def _validate_arrow(self):
         if not isinstance(self.start, Point):
             raise ValidationError(f"Arrow 'start' must be a Point, got {type(self.start).__name__}")

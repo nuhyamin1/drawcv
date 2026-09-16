@@ -33,6 +33,10 @@ class Rectangle(Drawable):
         super().__post_init__()
         self._validate_rectangle()
 
+    def _validate(self) -> None:
+        super()._validate()
+        self._validate_rectangle()
+
     def _validate_rectangle(self):
         if not isinstance(self.position, Point):
             raise ValidationError(f"Rectangle 'position' must be a Point, got {type(self.position).__name__}")

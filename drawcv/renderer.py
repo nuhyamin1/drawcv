@@ -30,10 +30,9 @@ from drawcv.compositing import composite_blend
 from drawcv.core.transform import Transform
 from drawcv.core.stroking import stroke_mask
 from drawcv.core.geometry_utils import _FONT_FAMILY_TO_CV, evaluate_fill_rule_mask, flatten_arc
-from drawcv.effects.blur import BlurEffect
 from drawcv.effects.clipping import ClipPath, ClipRect
+from drawcv.effects.executor import execute_effects_pipeline
 from drawcv.effects.mask import Mask
-from drawcv.effects.shadow import ShadowEffect
 from drawcv.group import Group
 from drawcv.layer import Layer
 from drawcv.scene import Scene
@@ -264,6 +263,12 @@ class OpenCVRenderer:
         eff_bounds = entity.get_effect_bounds()
         pre_effect_bounds = entity.get_bounds()
 
+        effect_input_bounds = (
+            entity.get_effect_input_bounds()
+            if hasattr(entity, "get_effect_input_bounds")
+            else pre_effect_bounds
+        )
+
         margin = 3
         x1 = max(0, int(math.floor(eff_bounds.left)) - margin)
         y1 = max(0, int(math.floor(eff_bounds.top)) - margin)
@@ -304,60 +309,20 @@ class OpenCVRenderer:
 
         # 3. Effects Pipeline
         effects = getattr(entity, "effects", []) or []
-        shadow_effect = next((e for e in effects if isinstance(e, ShadowEffect)), None)
-        blur_effect = next((e for e in effects if isinstance(e, BlurEffect)), None)
-
-        # a. Shadow Generation
-        shadow_buffer: np.ndarray | None = None
-        if shadow_effect is not None and shadow_effect.opacity > 0.0:
-            sh_alpha = base_buffer[:, :, 3] * float(shadow_effect.color.a * shadow_effect.opacity)
-            M_trans = np.float32([[1, 0, shadow_effect.offset_x], [0, 1, shadow_effect.offset_y]])
-            shifted_alpha = cv2.warpAffine(
-                sh_alpha, M_trans, (destination.width, destination.height),
-                flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT, borderValue=0.0
+        if effects:
+            base_buffer, eff_bounds = execute_effects_pipeline(
+                buffer=base_buffer,
+                effects=effects,
+                base_bounds=effect_input_bounds,
+                canvas_width=destination.width,
+                canvas_height=destination.height,
+                alpha_output=alpha_output,
             )
-            if shadow_effect.blur_radius > 0.0:
-                sigma = float(shadow_effect.blur_radius)
-                ksize = int(math.ceil(sigma * 3.0)) * 2 + 1
-                blurred_alpha = cv2.GaussianBlur(shifted_alpha, (ksize, ksize), sigmaX=sigma, sigmaY=sigma,
-                    borderType=cv2.BORDER_CONSTANT if alpha_output else cv2.BORDER_DEFAULT)
-            else:
-                blurred_alpha = shifted_alpha
-
-            sh_b, sh_g, sh_r = shadow_effect.color.to_bgr()
-            sh_color_vec = np.array([sh_b, sh_g, sh_r], dtype=np.float32)
-            sh_rgb_pm = sh_color_vec * blurred_alpha[:, :, None]
-            shadow_buffer = np.dstack([sh_rgb_pm, blurred_alpha])
-
-        # b. Content Blur (Premultiplied throughout)
-        if blur_effect is not None:
-            k = blur_effect.kernel_size
-            if blur_effect.blur_type == BlurType.GAUSSIAN:
-                sig = blur_effect.sigma
-                base_buffer[y1:y2, x1:x2] = cv2.GaussianBlur(
-                    base_buffer[y1:y2, x1:x2], (k, k), sigmaX=sig, sigmaY=sig,
-                    borderType=cv2.BORDER_CONSTANT if alpha_output else cv2.BORDER_DEFAULT
-                )
-            else:
-                base_buffer[y1:y2, x1:x2] = cv2.blur(
-                    base_buffer[y1:y2, x1:x2], (k, k),
-                    borderType=cv2.BORDER_CONSTANT if alpha_output else cv2.BORDER_DEFAULT
-                )
-
-        # c. Merge Shadow Behind Base
-        if shadow_buffer is not None:
-            sub_base = base_buffer[y1:y2, x1:x2]
-            sub_shadow = shadow_buffer[y1:y2, x1:x2]
-            base_rgb = sub_base[:, :, :3]
-            base_a = sub_base[:, :, 3:4]
-            sh_rgb = sub_shadow[:, :, :3]
-            sh_a = sub_shadow[:, :, 3:4]
-
-            # Porter-Duff: base OVER shadow
-            merged_rgb = base_rgb + sh_rgb * (1.0 - base_a)
-            merged_a = base_a + sh_a * (1.0 - base_a)
-            sub_base[:, :, :3] = merged_rgb
-            sub_base[:, :, 3] = merged_a[:, :, 0]
+            # Recompute bounds in case effects expanded beyond initial eff_bounds
+            x1 = max(0, int(math.floor(eff_bounds.left)) - margin)
+            y1 = max(0, int(math.floor(eff_bounds.top)) - margin)
+            x2 = min(destination.width, int(math.ceil(eff_bounds.right)) + margin + 1)
+            y2 = min(destination.height, int(math.ceil(eff_bounds.bottom)) + margin + 1)
 
         # d. Mask Modulation (4-channel scale, mapped to pre-effect visual bounds)
         if getattr(entity, "mask", None) is not None:

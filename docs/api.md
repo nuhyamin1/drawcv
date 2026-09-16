@@ -24,7 +24,7 @@ full signatures; this guide groups the public entry points by task.
 | Edit with history | `scene.edit`, `batch`, `move_object`, `rotate_object`, `scale_object`, `restyle_object`, `undo`, `redo` | [reliability](reliability.md) |
 | Persist scene | `scene.to_dict/to_json/save_json`, `Scene.from_dict/from_json/load_json` | [Scene](../drawcv/scene.py) |
 | Images/text | `ImageObject(image=..., position=...)`, `Text(text=..., position=..., color=...)` | [image](../drawcv/shapes/image.py), [text](../drawcv/shapes/text.py) |
-| Clip/mask/effects | Drawable `clip`, `mask`, `effects`; `ClipRect`, `ClipPath`, `Mask`, `BlurEffect`, `ShadowEffect` | [effects](../drawcv/effects) |
+| Clip/mask/effects | Drawable `clip`, `mask`, `effects`; `ClipRect`, `ClipPath`, `Mask`, `BlurEffect`, `ShadowEffect`, `GlowEffect`, `BrightnessContrastEffect`, `SaturationEffect`, `HueShiftEffect`, `GrayscaleEffect`, `SepiaEffect`, `ColorMatrixEffect` | [effects](../drawcv/effects) |
 | Animate/export | `Timing`, `scene.animate`, `sample`, `render_at_time`, `VideoRenderer` | [animation](../drawcv/animation) |
 
 See [transparent output](transparency.md) for BGRA Canvas construction, temporal frames,
@@ -35,6 +35,28 @@ Useful enums: `CapStyle`, `JoinStyle`, `LineType`, `FillRule`, `ArcClosure`,
 `FontFamily` contains Hershey faces such as `SIMPLEX`, `PLAIN`, `DUPLEX`, `COMPLEX`,
 `TRIPLEX`, `COMPLEX_SMALL`, `SCRIPT_SIMPLEX`, and `SCRIPT_COMPLEX`; it does not select
 system sans/serif fonts.
+
+## Generalized Ordered Effects Stack
+
+Entities (`Drawable`, `Group`, `Layer`) support an authoritative, ordered effect sequence via the `effects` attribute:
+
+```python
+from drawcv import BlurEffect, ShadowEffect, GlowEffect, Color, Scene, Rectangle, Point
+
+rect = Rectangle(position=Point(40, 40), width=100, height=100)
+# Effects execute strictly in list order: Glow -> Shadow -> Blur
+rect.effects = [
+    GlowEffect(blur_radius=10.0, color=Color(255, 230, 0)),
+    ShadowEffect(offset_x=8.0, offset_y=8.0, blur_radius=4.0),
+    BlurEffect(kernel_size=15, sigma=4.0),
+]
+```
+
+- **Execution Order**: Effects execute left-to-right on an isolated surface before mask, clip, opacity, and blend mode compositing. Duplicate effects compound sequentially.
+- **Bounds Propagation**: Visual bounds propagate stage-by-stage (`get_effect_bounds()`). Pre-own-effect geometric bounds (`get_bounds()`) are decoupled from effect-input bounds (`get_effect_input_bounds()`).
+- **Color Manipulation**: Built-in `BrightnessContrastEffect`, `SaturationEffect` (Rec.709), `HueShiftEffect` (W3C hueRotate), `GrayscaleEffect`, `SepiaEffect`, and `ColorMatrixEffect` (4x5 RGBA matrix with alpha-preserving row 3).
+- **Transactional Animation**: Property paths such as `effects.0.blur_radius` and `effects.0.color.a` support animated sampling with automatic rollback if validation fails.
+- **Spatial Boundary Semantics**: Spatial effects (blur, shadow, glow) consistently treat space beyond the isolated surface or canvas boundary as transparent zero (`cv2.BORDER_CONSTANT`) in both BGR and BGRA modes. *Compatibility Note*: The legacy pre-milestone renderer used reflected borders (`cv2.BORDER_DEFAULT`) for BGR output and transparent borders (`cv2.BORDER_CONSTANT`) for BGRA. Under the standardized semantics, effects behave identically regardless of output format, meaning objects touching canvas edges fade into the canvas background rather than reflecting edge pixels.
 
 ## Draw a compound path
 

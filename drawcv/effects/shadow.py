@@ -54,9 +54,28 @@ class ShadowEffect(Effect):
             raise ValidationError(f"opacity must be in range [0.0, 1.0], got {self.opacity}")
         self.opacity = float(self.opacity)
 
+    @property
+    def effect_type(self) -> str:
+        return "shadow"
+
+    def expand_bounds(self, input_bounds: BoundingBox) -> BoundingBox:
+        """Calculate visual bounds encompassing input bounds and offset/blurred shadow bounds."""
+        from drawcv.core.bounds import BoundingBox
+        from drawcv.effects.gaussian import gaussian_pad_for_radius
+
+        blur_pad = float(gaussian_pad_for_radius(self.blur_radius))
+        shadow_bounds = BoundingBox(
+            input_bounds.left + self.offset_x - blur_pad,
+            input_bounds.top + self.offset_y - blur_pad,
+            input_bounds.width + 2.0 * blur_pad,
+            input_bounds.height + 2.0 * blur_pad,
+        )
+        return input_bounds.union(shadow_bounds)
+
     def get_padding(self) -> tuple[float, float, float, float]:
-        """Return asymmetric padding for signed shadow offset and blur expansion (left, right, top, bottom)."""
-        blur_padding = float(math.ceil(3.0 * self.blur_radius)) if self.blur_radius > 0.0 else 0.0
+        """Return legacy asymmetric padding for signed shadow offset and blur expansion (left, right, top, bottom)."""
+        from drawcv.effects.gaussian import gaussian_pad_for_radius
+        blur_padding = float(gaussian_pad_for_radius(self.blur_radius))
         left = blur_padding + max(0.0, -self.offset_x)
         right = blur_padding + max(0.0, self.offset_x)
         top = blur_padding + max(0.0, -self.offset_y)
@@ -81,10 +100,10 @@ class ShadowEffect(Effect):
             raise ValidationError(f"ShadowEffect data must be a dict, got {type(data).__name__}")
         color_val = Color.from_dict(data["color"]) if "color" in data else Color(0, 0, 0, 0.5)
         return cls(
-            offset_x=float(data.get("offset_x", 8.0)),
-            offset_y=float(data.get("offset_y", 8.0)),
-            blur_radius=float(data.get("blur_radius", 10.0)),
+            offset_x=data.get("offset_x", 8.0),
+            offset_y=data.get("offset_y", 8.0),
+            blur_radius=data.get("blur_radius", 10.0),
             color=color_val,
-            opacity=float(data.get("opacity", 1.0)),
+            opacity=data.get("opacity", 1.0),
         )
 

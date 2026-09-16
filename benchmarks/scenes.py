@@ -3,10 +3,15 @@ import math
 import numpy as np
 from drawcv import (Scene, Point, StrokePoint, Color, Rectangle, Circle, Polyline,
     FreehandStroke, Group, FillStyle, StrokeStyle, LinearGradient, RadialGradient,
-    GradientStop, Mask, BlurEffect, ShadowEffect, ClipRect, Transform)
+    GradientStop, Mask, BlurEffect, ShadowEffect, GlowEffect, BrightnessContrastEffect,
+    SaturationEffect, HueShiftEffect, GrayscaleEffect, SepiaEffect, ColorMatrixEffect,
+    ClipRect, Transform)
 
 CASES = ('dense_bgr', 'small_strokes', 'small_gradients', 'long_freehand',
-         'dense_dashes', 'deep_transparency', 'masks_effects', 'animation')
+         'dense_dashes', 'deep_transparency', 'masks_effects', 'animation',
+         'single_blur', 'single_shadow', 'blur_shadow_blur', 'glow_shadow',
+         'color_stack_5', 'nested_hierarchy_effects', 'large_translucent_spatial',
+         'dense_small_effects')
 TIMES = (0.0, 0.5, 1.0)
 STRESS_CASES = ('deep_transparency_stress',)
 
@@ -61,6 +66,84 @@ def build_scene(case):
                     fill=FillStyle(paint=LinearGradient(Point(x, y), Point(x+90, y+42), stops)),
                     mask=Mask(mask.copy()), clip=ClipRect(x-5, y-5, 112, 66), opacity=.8,
                     effects=[BlurEffect(kernel_size=7), ShadowEffect(offset_x=5, offset_y=6, blur_radius=3)])
+                scene.add(obj)
+        elif case == 'single_blur':
+            for i in range(16):
+                x, y = 30 + (i % 4) * 145, 30 + (i // 4) * 75
+                obj = Rectangle(id=f'blur-{i}', position=Point(x, y), width=80, height=45,
+                                fill=FillStyle(color=Color(200, 60, 40, 0.9)),
+                                effects=[BlurEffect(kernel_size=15, sigma=4.0)])
+                scene.add(obj)
+        elif case == 'single_shadow':
+            for i in range(16):
+                x, y = 30 + (i % 4) * 145, 30 + (i // 4) * 75
+                obj = Rectangle(id=f'shadow-{i}', position=Point(x, y), width=80, height=45,
+                                fill=FillStyle(color=Color(40, 120, 220, 0.9)),
+                                effects=[ShadowEffect(offset_x=8.0, offset_y=8.0, blur_radius=4.0, color=Color(0, 0, 0, 0.6))])
+                scene.add(obj)
+        elif case == 'blur_shadow_blur':
+            for i in range(12):
+                x, y = 40 + (i % 4) * 140, 40 + (i // 3) * 90
+                obj = Circle(id=f'bsb-{i}', center=Point(x + 30, y + 30), radius=25,
+                             fill=FillStyle(color=Color(50, 200, 100, 0.85)),
+                             effects=[
+                                 BlurEffect(kernel_size=7, sigma=2.0),
+                                 ShadowEffect(offset_x=6.0, offset_y=6.0, blur_radius=3.0),
+                                 BlurEffect(kernel_size=7, sigma=2.0),
+                             ])
+                scene.add(obj)
+        elif case == 'glow_shadow':
+            for i in range(12):
+                x, y = 40 + (i % 4) * 140, 40 + (i // 3) * 90
+                obj = Circle(id=f'gs-{i}', center=Point(x + 30, y + 30), radius=25,
+                             fill=FillStyle(color=Color(220, 50, 180, 0.9)),
+                             effects=[
+                                 GlowEffect(blur_radius=6.0, color=Color(255, 220, 0, 1.0)),
+                                 ShadowEffect(offset_x=8.0, offset_y=8.0, blur_radius=3.0),
+                             ])
+                scene.add(obj)
+        elif case == 'color_stack_5':
+            for i in range(16):
+                x, y = 30 + (i % 4) * 145, 30 + (i // 4) * 75
+                obj = Rectangle(id=f'color-{i}', position=Point(x, y), width=80, height=45,
+                                fill=FillStyle(color=Color((i * 37) % 256, (i * 73) % 256, (i * 109) % 256, 0.9)),
+                                effects=[
+                                    BrightnessContrastEffect(brightness=0.05, contrast=1.1),
+                                    SaturationEffect(factor=1.2),
+                                    HueShiftEffect(angle=30.0),
+                                    GrayscaleEffect(intensity=0.15),
+                                    SepiaEffect(intensity=0.1),
+                                ])
+                scene.add(obj)
+        elif case == 'nested_hierarchy_effects':
+            for i in range(4):
+                layer = scene.create_layer(f'layer-{i}', z_order=i * 10)
+                layer.effects = [BlurEffect(kernel_size=7)]
+                group = Group(id=f'group-{i}')
+                group.effects = [ShadowEffect(offset_x=10.0, offset_y=10.0, blur_radius=3.0)]
+                child = Rectangle(id=f'nested-{i}', position=Point(50 + i * 120, 100), width=70, height=70,
+                                  fill=FillStyle(color=Color(240, 120, 40, 0.9)),
+                                  effects=[GlowEffect(blur_radius=5.0, color=Color(255, 255, 0))])
+                group.add(child)
+                layer.add(group)
+        elif case == 'large_translucent_spatial':
+            for i in range(4):
+                obj = Circle(id=f'large-{i}', center=Point(160 + i * 100, 180), radius=70,
+                             fill=FillStyle(color=Color(100 + i * 30, 200 - i * 30, 250, 0.4)),
+                             effects=[
+                                 GlowEffect(blur_radius=12.0, color=Color(255, 255, 100)),
+                                 BlurEffect(kernel_size=21, sigma=5.0),
+                             ])
+                scene.add(obj)
+        elif case == 'dense_small_effects':
+            for i in range(48):
+                x, y = 20 + (i % 8) * 75, 20 + (i // 8) * 55
+                obj = Rectangle(id=f'dense-{i}', position=Point(x, y), width=35, height=25,
+                                fill=FillStyle(color=Color((i * 19) % 256, (i * 47) % 256, (i * 83) % 256, 0.85)),
+                                effects=[
+                                    ShadowEffect(offset_x=3.0, offset_y=3.0, blur_radius=2.0),
+                                    BrightnessContrastEffect(brightness=0.1, contrast=1.05),
+                                ])
                 scene.add(obj)
         else:
             raise ValueError(f'Unknown benchmark: {case}')

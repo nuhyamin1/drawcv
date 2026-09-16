@@ -62,6 +62,10 @@ class Polyline(Drawable):
         super().__post_init__()
         self._validate_polyline()
 
+    def _validate(self) -> None:
+        super()._validate()
+        self._validate_polyline()
+
     def _validate_polyline(self):
         if not isinstance(self.points, list):
             raise ValidationError(f"Polyline 'points' must be a list of Points, got {type(self.points).__name__}")

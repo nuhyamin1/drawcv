@@ -55,6 +55,10 @@ class Line(Drawable):
         super().__post_init__()
         self._validate_line()
 
+    def _validate(self) -> None:
+        super()._validate()
+        self._validate_line()
+
     def _validate_line(self):
         if not isinstance(self.start, Point):
             raise ValidationError(f"Line 'start' must be a Point, got {type(self.start).__name__}")
