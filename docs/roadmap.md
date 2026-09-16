@@ -158,6 +158,19 @@ Replaced hardcoded blur/shadow branches with an extensible, stage-by-stage order
 - **Boundary Compatibility**: Spatial effects consistently standardize on transparent-zero spatial boundaries (`cv2.BORDER_CONSTANT`) across both BGR and BGRA modes, eliminating legacy BGR edge-pixel reflection (`cv2.BORDER_DEFAULT`) when objects touch canvas boundaries.
 - **8 Benchmark Scenarios**: Extended benchmark suite (`benchmarks/scenes.py`) with reproducible workloads and gallery example (`examples/generalized_effects.py`).
 
+## Milestone 8 — Advanced Raster Effects (implemented)
+
+Implemented six post-processing visual effects operating strictly on straight color within isolated surfaces:
+- **Separation of Bounds vs. Support**: Cleanly separated visual bounds expansion (`expand_bounds()`) from filter neighborhood sampling support (`get_sampling_padding()`). Convolution, sharpen, emboss, edge detection, and noise preserve visual bounds while pulling required sampling margins from padded snapshot buffers.
+- **`ConvolutionEffect`**: Generalized discrete 2D spatial cross-correlation on straight BGR with centered anchor and transparent-zero boundaries. Supports odd kernels up to 63x63 with multiplicative factor and additive bias.
+- **`SharpenEffect`**: Unsharp masking enhancing high-frequency gradients with exact no-op behavior at `amount=0.0` or `radius=0.0`.
+- **`EmbossEffect`**: Directional Rec.709 luminance relief with configurable light direction angle (0° to 360°) and baseline bias (default 0.5 gray). Flat fields produce exact neutral gray.
+- **`EdgeDetectionEffect`**: Grayscale contour extraction supporting discrete Sobel gradient magnitude and Laplacian second-derivative response with fixed mathematical scaling and inversion mode.
+- **`NoiseEffect`**: Spatially deterministic uint32 coordinate hash producing uniform film grain in `[-1.0, 1.0]` as a pure function of `(x, y, seed, channel)`. Strictly invariant to canvas dimensions, ROI cropping, evaluation order, or global RNG state.
+- **`DisplacementMapEffect`**: Geometric displacement mapping driven by retained `ImagePaint` textures. Accurately maps coordinates relative to the requested sampling origin `(rx1, ry1)` of padded snapshots. Neutral 0.5 channel values produce zero shift; transparent map areas default to neutral 0.5 (or 0.0 for ALPHA channel). Visual bounds expand symmetrically by `ceil(|scale|) + interp_support`.
+- **Strict Alpha Preservation**: All spatial filters operate on normalized straight color and strictly preserve output pixel alpha ($0 \le \text{BGR}_{pm} \le 255 \cdot \alpha$), ensuring transparent pixels remain strictly $(0, 0, 0, 0)$.
+- **Verification & Parity**: 42 unit and integration tests verify kernel orientation, factor/bias, partial-alpha invariants, BGR/BGRA parity (flattened onto background), complex scalar rejection, transactional rollback, edge-of-canvas origin consistency, and loss-free JSON round-trip serialization. Micro-benchmarks (`benchmarks/benchmark_effects.py`) and visual gallery (`examples/advanced_effects_gallery.py`) provided.
+
 1. **SVG first:** build an export matrix mapping retained geometry, fills, stroke
    semantics, transforms, groups, text, clips, and masks. Specify raster embedding
    for effects or unsupported objects and an explicit strict-error mode. Compare

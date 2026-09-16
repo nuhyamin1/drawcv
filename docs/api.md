@@ -24,7 +24,7 @@ full signatures; this guide groups the public entry points by task.
 | Edit with history | `scene.edit`, `batch`, `move_object`, `rotate_object`, `scale_object`, `restyle_object`, `undo`, `redo` | [reliability](reliability.md) |
 | Persist scene | `scene.to_dict/to_json/save_json`, `Scene.from_dict/from_json/load_json` | [Scene](../drawcv/scene.py) |
 | Images/text | `ImageObject(image=..., position=...)`, `Text(text=..., position=..., color=...)` | [image](../drawcv/shapes/image.py), [text](../drawcv/shapes/text.py) |
-| Clip/mask/effects | Drawable `clip`, `mask`, `effects`; `ClipRect`, `ClipPath`, `Mask`, `BlurEffect`, `ShadowEffect`, `GlowEffect`, `BrightnessContrastEffect`, `SaturationEffect`, `HueShiftEffect`, `GrayscaleEffect`, `SepiaEffect`, `ColorMatrixEffect` | [effects](../drawcv/effects) |
+| Clip/mask/effects | Drawable `clip`, `mask`, `effects`; `ClipRect`, `ClipPath`, `Mask`, `BlurEffect`, `ShadowEffect`, `GlowEffect`, `BrightnessContrastEffect`, `SaturationEffect`, `HueShiftEffect`, `GrayscaleEffect`, `SepiaEffect`, `ColorMatrixEffect`, `ConvolutionEffect`, `SharpenEffect`, `EmbossEffect`, `EdgeDetectionEffect`, `NoiseEffect`, `DisplacementMapEffect` | [effects](../drawcv/effects) |
 | Animate/export | `Timing`, `scene.animate`, `sample`, `render_at_time`, `VideoRenderer` | [animation](../drawcv/animation) |
 
 See [transparent output](transparency.md) for BGRA Canvas construction, temporal frames,
@@ -57,6 +57,45 @@ rect.effects = [
 - **Color Manipulation**: Built-in `BrightnessContrastEffect`, `SaturationEffect` (Rec.709), `HueShiftEffect` (W3C hueRotate), `GrayscaleEffect`, `SepiaEffect`, and `ColorMatrixEffect` (4x5 RGBA matrix with alpha-preserving row 3).
 - **Transactional Animation**: Property paths such as `effects.0.blur_radius` and `effects.0.color.a` support animated sampling with automatic rollback if validation fails.
 - **Spatial Boundary Semantics**: Spatial effects (blur, shadow, glow) consistently treat space beyond the isolated surface or canvas boundary as transparent zero (`cv2.BORDER_CONSTANT`) in both BGR and BGRA modes. *Compatibility Note*: The legacy pre-milestone renderer used reflected borders (`cv2.BORDER_DEFAULT`) for BGR output and transparent borders (`cv2.BORDER_CONSTANT`) for BGRA. Under the standardized semantics, effects behave identically regardless of output format, meaning objects touching canvas edges fade into the canvas background rather than reflecting edge pixels.
+
+### Advanced Raster Effects
+
+Six advanced post-processing effects operate on straight color within isolated surfaces, strictly preserving output alpha ($0 \le \text{BGR}_{pm} \le 255 \cdot \alpha$) and keeping transparent pixels at $(0, 0, 0, 0)$:
+
+1. **`ConvolutionEffect(kernel, factor=1.0, bias=0.0)`**:
+   Computes discrete 2D spatial cross-correlation on normalized straight BGR colors with centered anchor $(W//2, H//2)$ and transparent-zero boundaries:
+   $$C'(x, y) = \text{factor} \cdot \sum_{u=0}^{W-1} \sum_{v=0}^{H-1} K(v, u) \cdot C(x + u - \lfloor W/2 \rfloor, y + v - \lfloor H/2 \rfloor) + \text{bias}$$
+   Preserves visual bounds (`expand_bounds()` returns `input_bounds`). Kernel dimensions must be odd integers $1 \le W, H \le 63$. Sampling support padding is $(\lfloor W/2 \rfloor, \lfloor W/2 \rfloor, \lfloor H/2 \rfloor, \lfloor H/2 \rfloor)$.
+
+2. **`SharpenEffect(amount=1.0, radius=1.0)`**:
+   Enhances high-frequency spatial gradients using unsharp masking on normalized straight color:
+   $$C'(x, y) = C(x, y) + \text{amount} \cdot \left( C(x, y) - C_{\text{gaussian}}(x, y; \text{radius}) \right)$$
+   Preserves visual bounds. $\text{amount} = 0.0$ or $\text{radius} = 0.0$ is an exact no-op. Sampling support padding is derived from finite Gaussian kernel radius `gaussian_pad_for_radius(radius)`.
+
+3. **`EmbossEffect(strength=1.0, angle=135.0, bias=0.5)`**:
+   Computes directional luminance gradient relief on straight Rec.709 luminance ($L = 0.0722 B + 0.7152 G + 0.2126 R$):
+   $$\text{directional} = \cos(\theta) \cdot G_x + \sin(\theta) \cdot G_y$$
+   $$\text{embossed} = \text{bias} + \text{strength} \cdot \text{directional}$$
+   Angle conventions: $0^\circ = +X$ (light from left to right), $90^\circ = +Y$ (light from top to bottom), $135^\circ$ = down-right (default light from top-left). Flat regions produce exact neutral `bias` (default: 0.5 gray). Preserves visual bounds; sampling padding is $(1.0, 1.0, 1.0, 1.0)$.
+
+4. **`EdgeDetectionEffect(method=EdgeDetectionMethod.SOBEL, strength=1.0, invert=False)`**:
+   Extracts spatial edge responses from Rec.709 luminance using fixed mathematical scaling:
+   - `SOBEL`: $G_x = L * K_x / 4$, $G_y = L * K_y / 4$, $\text{response} = \text{strength} \cdot \sqrt{G_x^2 + G_y^2}$.
+   - `LAPLACIAN`: $\text{response} = \text{strength} \cdot |L * K_{\text{lap}} / 8|$.
+   - When `invert=True`, response is $1.0 - \text{response}$. Flat regions produce 0.0 (or 1.0 if inverted). Preserves visual bounds; sampling padding is $(1.0, 1.0, 1.0, 1.0)$.
+
+5. **`NoiseEffect(amount=0.1, seed=0, monochrome=True)`**:
+   Generates spatially deterministic film grain / noise as a pure vectorized uint32 coordinate hash:
+   $$h(x, y, \text{seed}, \text{channel})$$
+   Output is uniform in $[-1.0, 1.0]$. The integer seed is canonicalized modulo $2^{32}$. Results are strictly invariant to canvas size, ROI cropping, evaluation sequence, and global random state. In `monochrome=True` mode, identical perturbations are applied across B, G, R; in `monochrome=False`, independent channel noise is generated. Preserves visual bounds; sampling padding is $(0.0, 0.0, 0.0, 0.0)$.
+
+6. **`DisplacementMapEffect(map, scale_x=0.0, scale_y=0.0, x_channel=RED, y_channel=GREEN, interpolation=LINEAR)`**:
+   Spatially distorts an entity's content buffer according to straight values sampled from an `ImagePaint` texture:
+   $$\text{source\_global\_x} = X_{\text{dst}} - (2 c_x - 1) \cdot \text{scale\_x}$$
+   $$\text{source\_global\_y} = Y_{\text{dst}} - (2 c_y - 1) \cdot \text{scale\_y}$$
+   Lookup coordinates into the padded source snapshot with local origin $(rx1, ry1)$ are:
+   $$\text{map\_x} = \text{source\_global\_x} - rx1, \quad \text{map\_y} = \text{source\_global\_y} - ry1$$
+   Neutral channel value 0.5 produces zero displacement. Transparent map regions ($\alpha \le 10^{-6}$) evaluate to neutral 0.5 for RGB/Luminance channels, and 0.0 for the ALPHA channel. Visual bounds expand symmetrically by $\lceil |\text{scale}| \rceil + \text{interp\_support}$. Sampling padding covers the full maximum lookup distance plus interpolation footprint.
 
 ## Draw a compound path
 

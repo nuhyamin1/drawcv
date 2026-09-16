@@ -1,5 +1,6 @@
 """Visual post-processing effects and compositing modifiers."""
 
+from drawcv.core.enums import DisplacementChannel, EdgeDetectionMethod
 from drawcv.core.exceptions import ValidationError
 from drawcv.effects.blur import BlurEffect
 from drawcv.effects.clipping import ClipPath, ClipRect, clip_from_dict
@@ -11,10 +12,16 @@ from drawcv.effects.color import (
     SaturationEffect,
     SepiaEffect,
 )
+from drawcv.effects.convolution import ConvolutionEffect
+from drawcv.effects.displacement import DisplacementMapEffect
+from drawcv.effects.edge import EdgeDetectionEffect
 from drawcv.effects.effect import Effect
+from drawcv.effects.emboss import EmbossEffect
 from drawcv.effects.glow import GlowEffect
 from drawcv.effects.mask import Mask
+from drawcv.effects.noise import NoiseEffect
 from drawcv.effects.shadow import ShadowEffect
+from drawcv.effects.sharpen import SharpenEffect
 
 
 def effect_from_dict(data: dict) -> Effect:
@@ -35,15 +42,22 @@ __all__ = [
     "ClipPath",
     "ClipRect",
     "ColorMatrixEffect",
+    "ConvolutionEffect",
+    "DisplacementChannel",
+    "DisplacementMapEffect",
+    "EdgeDetectionEffect",
+    "EdgeDetectionMethod",
     "Effect",
+    "EmbossEffect",
     "GlowEffect",
     "GrayscaleEffect",
     "HueShiftEffect",
     "Mask",
+    "NoiseEffect",
     "SaturationEffect",
     "SepiaEffect",
     "ShadowEffect",
+    "SharpenEffect",
     "clip_from_dict",
     "effect_from_dict",
 ]
-

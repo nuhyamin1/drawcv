@@ -62,8 +62,14 @@ def register_builtin_effects() -> None:
         SaturationEffect,
         SepiaEffect,
     )
+    from drawcv.effects.convolution import ConvolutionEffect
+    from drawcv.effects.displacement import DisplacementMapEffect
+    from drawcv.effects.edge import EdgeDetectionEffect
+    from drawcv.effects.emboss import EmbossEffect
     from drawcv.effects.glow import GlowEffect
+    from drawcv.effects.noise import NoiseEffect
     from drawcv.effects.shadow import ShadowEffect
+    from drawcv.effects.sharpen import SharpenEffect
 
     register_effect_type("blur", BlurEffect)
     register_effect_type("glow", GlowEffect)
@@ -74,6 +80,13 @@ def register_builtin_effects() -> None:
     register_effect_type("grayscale", GrayscaleEffect)
     register_effect_type("sepia", SepiaEffect)
     register_effect_type("color_matrix", ColorMatrixEffect)
+    register_effect_type("convolution", ConvolutionEffect)
+    register_effect_type("sharpen", SharpenEffect)
+    register_effect_type("emboss", EmbossEffect)
+    register_effect_type("edge_detection", EdgeDetectionEffect)
+    register_effect_type("noise", NoiseEffect)
+    register_effect_type("displacement_map", DisplacementMapEffect)
+
 
 
 def get_effect_class(type_name: str) -> type[Effect]:

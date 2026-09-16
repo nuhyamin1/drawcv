@@ -121,3 +121,48 @@ def coerce_blend_mode(value: object) -> BlendMode:
             raise ValidationError(f"Invalid BlendMode '{value}'")
     from drawcv.core.exceptions import ValidationError
     raise ValidationError(f"blend_mode must be a BlendMode or str, got {type(value).__name__}")
+
+
+class EdgeDetectionMethod(Enum):
+    """Algorithms for spatial edge detection filtering."""
+    SOBEL = "sobel"
+    LAPLACIAN = "laplacian"
+
+
+def coerce_edge_detection_method(value: object) -> EdgeDetectionMethod:
+    """Internal validator and normalizer for EdgeDetectionMethod instances or string names."""
+    if isinstance(value, EdgeDetectionMethod):
+        return value
+    if isinstance(value, str):
+        try:
+            return EdgeDetectionMethod(value.strip().lower().replace("-", "_"))
+        except ValueError:
+            from drawcv.core.exceptions import ValidationError
+            raise ValidationError(f"Invalid EdgeDetectionMethod '{value}'. Supported: 'sobel', 'laplacian'")
+    from drawcv.core.exceptions import ValidationError
+    raise ValidationError(f"method must be an EdgeDetectionMethod or str, got {type(value).__name__}")
+
+
+class DisplacementChannel(Enum):
+    """Source channel extracted from displacement map to drive X or Y offset."""
+    RED = "red"
+    GREEN = "green"
+    BLUE = "blue"
+    ALPHA = "alpha"
+    LUMINANCE = "luminance"
+
+
+def coerce_displacement_channel(value: object) -> DisplacementChannel:
+    """Internal validator and normalizer for DisplacementChannel instances or string names."""
+    if isinstance(value, DisplacementChannel):
+        return value
+    if isinstance(value, str):
+        try:
+            return DisplacementChannel(value.strip().lower().replace("-", "_"))
+        except ValueError:
+            from drawcv.core.exceptions import ValidationError
+            raise ValidationError(
+                f"Invalid DisplacementChannel '{value}'. Supported: 'red', 'green', 'blue', 'alpha', 'luminance'"
+            )
+    from drawcv.core.exceptions import ValidationError
+    raise ValidationError(f"channel must be a DisplacementChannel or str, got {type(value).__name__}")

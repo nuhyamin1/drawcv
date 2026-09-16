@@ -21,6 +21,8 @@ from drawcv.core.enums import (
     BlendMode,
     BlurType,
     CapStyle,
+    DisplacementChannel,
+    EdgeDetectionMethod,
     FillRule,
     FontFamily,
     ImageInterpolation,
@@ -79,10 +81,17 @@ from drawcv.effects.color import (
     SaturationEffect,
     SepiaEffect,
 )
+from drawcv.effects.convolution import ConvolutionEffect
+from drawcv.effects.displacement import DisplacementMapEffect
+from drawcv.effects.edge import EdgeDetectionEffect
 from drawcv.effects.effect import Effect
+from drawcv.effects.emboss import EmbossEffect
 from drawcv.effects.glow import GlowEffect
 from drawcv.effects.mask import Mask
+from drawcv.effects.noise import NoiseEffect
 from drawcv.effects.shadow import ShadowEffect
+from drawcv.effects.sharpen import SharpenEffect
+
 from drawcv.group import Group
 from drawcv.layer import Layer
 from drawcv.positioning import (
@@ -195,9 +204,12 @@ __all__ = [
     "CompoundCommand",
     "compute_path_length",
     "ConicGradient",
+    "ConvolutionEffect",
     "CubicTo",
     "CURRENT_FORMAT_IDENTIFIER",
     "CURRENT_SCHEMA_VERSION",
+    "DisplacementChannel",
+    "DisplacementMapEffect",
     "distribute_horizontally",
     "distribute_vertically",
     "Drawable",
@@ -206,8 +218,11 @@ __all__ = [
     "ease_in_out",
     "ease_out",
     "EASING_FUNCTIONS",
+    "EdgeDetectionEffect",
+    "EdgeDetectionMethod",
     "Effect",
     "Ellipse",
+    "EmbossEffect",
     "FillRule",
     "FillStyle",
     "FontFamily",
@@ -238,6 +253,7 @@ __all__ = [
     "Mask",
     "MaskMapping",
     "MoveTo",
+    "NoiseEffect",
     "ObjectNotFoundError",
     "OpenCVRenderer",
     "Paint",
@@ -269,6 +285,7 @@ __all__ = [
     "SaturationEffect",
     "SepiaEffect",
     "ShadowEffect",
+    "SharpenEffect",
     "slice_bezier",
     "slice_path",
     "slice_polyline",

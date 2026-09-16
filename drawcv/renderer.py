@@ -310,6 +310,9 @@ class OpenCVRenderer:
         # 3. Effects Pipeline
         effects = getattr(entity, "effects", []) or []
         if effects:
+            world_matrix = getattr(entity, "world_matrix", None)
+            if world_matrix is None:
+                world_matrix = np.eye(3, dtype=np.float32)
             base_buffer, eff_bounds = execute_effects_pipeline(
                 buffer=base_buffer,
                 effects=effects,
@@ -317,6 +320,7 @@ class OpenCVRenderer:
                 canvas_width=destination.width,
                 canvas_height=destination.height,
                 alpha_output=alpha_output,
+                world_matrix=world_matrix,
             )
             # Recompute bounds in case effects expanded beyond initial eff_bounds
             x1 = max(0, int(math.floor(eff_bounds.left)) - margin)
