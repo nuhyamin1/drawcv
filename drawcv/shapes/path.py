@@ -15,7 +15,9 @@ from drawcv.core.geometry import Point
 from drawcv.core.geometry_utils import (
     bezier_extrema_bounds,
     distance_point_to_segment,
+    elliptical_arc_extrema_bounds,
     flatten_cubic_bezier,
+    flatten_elliptical_arc,
     flatten_quadratic_bezier,
     point_in_polygon,
 )
@@ -76,6 +78,44 @@ class Close(PathCommand):
     pass
 
 
+@dataclass(frozen=True)
+class EllipticalArcTo(PathCommand):
+    radius_x: float
+    radius_y: float
+    x_axis_rotation: float
+    large_arc: bool
+    sweep: bool
+    end: Point
+
+    def __post_init__(self):
+        for name, val in (("radius_x", self.radius_x), ("radius_y", self.radius_y)):
+            if isinstance(val, bool) or not isinstance(val, (int, float)):
+                raise ValidationError(f"EllipticalArcTo {name} must be numeric, got {type(val).__name__}")
+            if not math.isfinite(val):
+                raise ValidationError(f"EllipticalArcTo {name} must be a finite number, got {val}")
+            if val <= 0.0:
+                raise ValidationError(f"EllipticalArcTo {name} must be strictly positive (> 0), got {val}")
+
+        if isinstance(self.x_axis_rotation, bool) or not isinstance(self.x_axis_rotation, (int, float)):
+            raise ValidationError(f"EllipticalArcTo x_axis_rotation must be numeric, got {type(self.x_axis_rotation).__name__}")
+        if not math.isfinite(self.x_axis_rotation):
+            raise ValidationError(f"EllipticalArcTo x_axis_rotation must be a finite number, got {self.x_axis_rotation}")
+
+        if type(self.large_arc) is not bool:
+            raise ValidationError(f"EllipticalArcTo large_arc must be an actual boolean, got {type(self.large_arc).__name__}")
+        if type(self.sweep) is not bool:
+            raise ValidationError(f"EllipticalArcTo sweep must be an actual boolean, got {type(self.sweep).__name__}")
+
+        if not isinstance(self.end, Point):
+            raise ValidationError(f"EllipticalArcTo end must be a Point, got {type(self.end).__name__}")
+        if not (math.isfinite(self.end.x) and math.isfinite(self.end.y)):
+            raise ValidationError(f"EllipticalArcTo end Point coordinates must be finite, got ({self.end.x}, {self.end.y})")
+
+        object.__setattr__(self, "radius_x", float(self.radius_x))
+        object.__setattr__(self, "radius_y", float(self.radius_y))
+        object.__setattr__(self, "x_axis_rotation", float(self.x_axis_rotation) % 360.0)
+
+
 # -----------------------------------------------------------------------------
 # Subpath
 # -----------------------------------------------------------------------------
@@ -99,7 +139,7 @@ class Subpath:
         last = self.commands[-1]
         if isinstance(last, (MoveTo, LineTo)):
             return last.point
-        if isinstance(last, (QuadraticTo, CubicTo)):
+        if isinstance(last, (QuadraticTo, CubicTo, EllipticalArcTo)):
             return last.end
         if isinstance(last, Close) and self.start_point is not None:
             return self.start_point
@@ -129,6 +169,16 @@ def serialize_subpaths(subpaths: list[Subpath]) -> list[dict[str, Any]]:
                     "control2": cmd.control2.to_dict(),
                     "end": cmd.end.to_dict(),
                 })
+            elif isinstance(cmd, EllipticalArcTo):
+                cmds_data.append({
+                    "type": "elliptical_arc_to",
+                    "radius_x": float(cmd.radius_x),
+                    "radius_y": float(cmd.radius_y),
+                    "x_axis_rotation": float(cmd.x_axis_rotation),
+                    "large_arc": bool(cmd.large_arc),
+                    "sweep": bool(cmd.sweep),
+                    "end": cmd.end.to_dict(),
+                })
             elif isinstance(cmd, Close):
                 cmds_data.append({"type": "close"})
         subpaths_data.append({"commands": cmds_data, "closed": bool(sp.closed)})
@@ -155,6 +205,22 @@ def deserialize_subpaths(subpaths_data: list[dict[str, Any]]) -> list[Subpath]:
                     Point.from_dict(c_dict["control1"]),
                     Point.from_dict(c_dict["control2"]),
                     Point.from_dict(c_dict["end"]),
+                ))
+            elif c_type == "elliptical_arc_to":
+                for field_name in ("radius_x", "radius_y", "x_axis_rotation", "large_arc", "sweep", "end"):
+                    if field_name not in c_dict:
+                        raise ValidationError(f"Missing required field '{field_name}' in elliptical_arc_to command")
+                if type(c_dict["large_arc"]) is not bool:
+                    raise ValidationError(f"elliptical_arc_to 'large_arc' must be an actual boolean, got {type(c_dict['large_arc']).__name__}")
+                if type(c_dict["sweep"]) is not bool:
+                    raise ValidationError(f"elliptical_arc_to 'sweep' must be an actual boolean, got {type(c_dict['sweep']).__name__}")
+                cmds.append(EllipticalArcTo(
+                    radius_x=c_dict["radius_x"],
+                    radius_y=c_dict["radius_y"],
+                    x_axis_rotation=c_dict["x_axis_rotation"],
+                    large_arc=c_dict["large_arc"],
+                    sweep=c_dict["sweep"],
+                    end=Point.from_dict(c_dict["end"]),
                 ))
             elif c_type in ("close", "closePath"):
                 cmds.append(Close())
@@ -285,6 +351,34 @@ class Path(Drawable):
         sp.commands.append(CubicTo(c1, c2, end))
         return self
 
+    def arc_to(
+        self,
+        radius_x: float,
+        radius_y: float,
+        x_axis_rotation: float,
+        large_arc: bool,
+        sweep: bool,
+        end_or_x: float | Point,
+        end_y: float | None = None,
+    ) -> Path:
+        """Add an elliptical arc segment to the active subpath."""
+        if isinstance(end_or_x, Point):
+            end = end_or_x
+        else:
+            if end_y is None or isinstance(end_or_x, bool) or isinstance(end_y, bool):
+                raise ValidationError("Invalid coordinates for arc_to end point")
+            end = Point(float(end_or_x), float(end_y))
+        sp = self._ensure_active_subpath(fallback_start=Point(0.0, 0.0))
+        sp.commands.append(EllipticalArcTo(
+            radius_x=radius_x,
+            radius_y=radius_y,
+            x_axis_rotation=x_axis_rotation,
+            large_arc=large_arc,
+            sweep=sweep,
+            end=end,
+        ))
+        return self
+
     def close(self) -> Path:
         """Close the current subpath with a straight segment back to its start point."""
         if self.subpaths and not self.subpaths[-1].closed:
@@ -344,7 +438,9 @@ class Path(Drawable):
                 continue
 
             current_w: Point | None = None
+            current_loc: Point | None = None
             start_w: Point | None = None
+            start_loc: Point | None = None
             contour: list[Point] = []
 
             for cmd in sp.commands:
@@ -355,22 +451,29 @@ class Path(Drawable):
                         closed_flags.append(False)
                         contour = []
                     current_w = pt_w
+                    current_loc = cmd.point
                     start_w = pt_w
+                    start_loc = cmd.point
                     contour.append(pt_w)
 
                 elif isinstance(cmd, LineTo):
                     if current_w is None:
                         current_w = self.to_world(Point(0.0, 0.0))
+                        current_loc = Point(0.0, 0.0)
                         start_w = current_w
+                        start_loc = current_loc
                         contour.append(current_w)
                     pt_w = self.to_world(cmd.point)
                     contour.append(pt_w)
                     current_w = pt_w
+                    current_loc = cmd.point
 
                 elif isinstance(cmd, QuadraticTo):
                     if current_w is None:
                         current_w = self.to_world(Point(0.0, 0.0))
+                        current_loc = Point(0.0, 0.0)
                         start_w = current_w
+                        start_loc = current_loc
                         contour.append(current_w)
                     ctrl_w = self.to_world(cmd.control)
                     end_w = self.to_world(cmd.end)
@@ -378,11 +481,14 @@ class Path(Drawable):
                     # Skip the first point since it matches current_w
                     contour.extend(subdiv[1:])
                     current_w = end_w
+                    current_loc = cmd.end
 
                 elif isinstance(cmd, CubicTo):
                     if current_w is None:
                         current_w = self.to_world(Point(0.0, 0.0))
+                        current_loc = Point(0.0, 0.0)
                         start_w = current_w
+                        start_loc = current_loc
                         contour.append(current_w)
                     c1_w = self.to_world(cmd.control1)
                     c2_w = self.to_world(cmd.control2)
@@ -390,11 +496,36 @@ class Path(Drawable):
                     subdiv = flatten_cubic_bezier(current_w, c1_w, c2_w, end_w, tolerance=tolerance)
                     contour.extend(subdiv[1:])
                     current_w = end_w
+                    current_loc = cmd.end
+
+                elif isinstance(cmd, EllipticalArcTo):
+                    if current_w is None:
+                        current_w = self.to_world(Point(0.0, 0.0))
+                        current_loc = Point(0.0, 0.0)
+                        start_w = current_w
+                        start_loc = current_loc
+                        contour.append(current_w)
+                    p_start = current_loc if current_loc is not None else Point(0.0, 0.0)
+                    arc_pts = flatten_elliptical_arc(
+                        p_start,
+                        cmd.end,
+                        cmd.radius_x,
+                        cmd.radius_y,
+                        cmd.x_axis_rotation,
+                        cmd.large_arc,
+                        cmd.sweep,
+                        tolerance=tolerance,
+                        map_point=self.to_world,
+                    )
+                    contour.extend(arc_pts[1:])
+                    current_w = arc_pts[-1]
+                    current_loc = cmd.end
 
                 elif isinstance(cmd, Close):
                     if start_w is not None and current_w is not None and current_w != start_w:
                         contour.append(start_w)
                         current_w = start_w
+                        current_loc = start_loc
 
             if contour:
                 world_contours.append(contour)
@@ -424,7 +555,9 @@ class Path(Drawable):
                 continue
 
             current_w: Point | None = None
+            current_loc: Point | None = None
             start_w: Point | None = None
+            start_loc: Point | None = None
             contour: list[Point] = []
 
             for cmd in sp.commands:
@@ -435,22 +568,29 @@ class Path(Drawable):
                         closed_flags.append(False)
                         contour = []
                     current_w = pt_w
+                    current_loc = cmd.point
                     start_w = pt_w
+                    start_loc = cmd.point
                     contour.append(pt_w)
 
                 elif isinstance(cmd, LineTo):
                     if current_w is None:
                         current_w = map_point(Point(0.0, 0.0))
+                        current_loc = Point(0.0, 0.0)
                         start_w = current_w
+                        start_loc = current_loc
                         contour.append(current_w)
                     pt_w = map_point(cmd.point)
                     contour.append(pt_w)
                     current_w = pt_w
+                    current_loc = cmd.point
 
                 elif isinstance(cmd, QuadraticTo):
                     if current_w is None:
                         current_w = map_point(Point(0.0, 0.0))
+                        current_loc = Point(0.0, 0.0)
                         start_w = current_w
+                        start_loc = current_loc
                         contour.append(current_w)
                     ctrl_w = map_point(cmd.control)
                     end_w = map_point(cmd.end)
@@ -458,11 +598,14 @@ class Path(Drawable):
                     # Skip the first point since it matches current_w
                     contour.extend(subdiv[1:])
                     current_w = end_w
+                    current_loc = cmd.end
 
                 elif isinstance(cmd, CubicTo):
                     if current_w is None:
                         current_w = map_point(Point(0.0, 0.0))
+                        current_loc = Point(0.0, 0.0)
                         start_w = current_w
+                        start_loc = current_loc
                         contour.append(current_w)
                     c1_w = map_point(cmd.control1)
                     c2_w = map_point(cmd.control2)
@@ -470,11 +613,36 @@ class Path(Drawable):
                     subdiv = flatten_cubic_bezier(current_w, c1_w, c2_w, end_w, tolerance=tolerance)
                     contour.extend(subdiv[1:])
                     current_w = end_w
+                    current_loc = cmd.end
+
+                elif isinstance(cmd, EllipticalArcTo):
+                    if current_w is None:
+                        current_w = map_point(Point(0.0, 0.0))
+                        current_loc = Point(0.0, 0.0)
+                        start_w = current_w
+                        start_loc = current_loc
+                        contour.append(current_w)
+                    p_start = current_loc if current_loc is not None else Point(0.0, 0.0)
+                    arc_pts = flatten_elliptical_arc(
+                        p_start,
+                        cmd.end,
+                        cmd.radius_x,
+                        cmd.radius_y,
+                        cmd.x_axis_rotation,
+                        cmd.large_arc,
+                        cmd.sweep,
+                        tolerance=tolerance,
+                        map_point=map_point,
+                    )
+                    contour.extend(arc_pts[1:])
+                    current_w = arc_pts[-1]
+                    current_loc = cmd.end
 
                 elif isinstance(cmd, Close):
                     if start_w is not None and current_w is not None and current_w != start_w:
                         contour.append(start_w)
                         current_w = start_w
+                        current_loc = start_loc
 
             if contour:
                 world_contours.append(contour)
@@ -511,6 +679,12 @@ class Path(Drawable):
                     x, y, w, h = bezier_extrema_bounds(cur, cmd.control1, cmd.control2, cmd.end)
                     all_boxes.append(BoundingBox(x, y, w, h))
                     cur = cmd.end
+                elif isinstance(cmd, EllipticalArcTo):
+                    x, y, w, h = elliptical_arc_extrema_bounds(
+                        cur, cmd.end, cmd.radius_x, cmd.radius_y, cmd.x_axis_rotation, cmd.large_arc, cmd.sweep
+                    )
+                    all_boxes.append(BoundingBox(x, y, w, h))
+                    cur = cmd.end
 
         if not all_boxes:
             return BoundingBox(0.0, 0.0, 0.0, 0.0)
@@ -530,9 +704,11 @@ class Path(Drawable):
         all_boxes: list[BoundingBox] = []
 
         for sp in self.subpaths:
+            cur_loc: Point = Point(0.0, 0.0)
             cur_w: Point = self.to_world(Point(0.0, 0.0))
             for cmd in sp.commands:
                 if isinstance(cmd, MoveTo):
+                    cur_loc = cmd.point
                     cur_w = self.to_world(cmd.point)
                     all_boxes.append(BoundingBox(cur_w.x, cur_w.y, 0.0, 0.0))
                 elif isinstance(cmd, LineTo):
@@ -540,12 +716,14 @@ class Path(Drawable):
                     min_x, max_x = min(cur_w.x, p_w.x), max(cur_w.x, p_w.x)
                     min_y, max_y = min(cur_w.y, p_w.y), max(cur_w.y, p_w.y)
                     all_boxes.append(BoundingBox(min_x, min_y, max_x - min_x, max_y - min_y))
+                    cur_loc = cmd.point
                     cur_w = p_w
                 elif isinstance(cmd, QuadraticTo):
                     c_w = self.to_world(cmd.control)
                     e_w = self.to_world(cmd.end)
                     x, y, w, h = bezier_extrema_bounds(cur_w, c_w, e_w)
                     all_boxes.append(BoundingBox(x, y, w, h))
+                    cur_loc = cmd.end
                     cur_w = e_w
                 elif isinstance(cmd, CubicTo):
                     c1_w = self.to_world(cmd.control1)
@@ -553,7 +731,16 @@ class Path(Drawable):
                     e_w = self.to_world(cmd.end)
                     x, y, w, h = bezier_extrema_bounds(cur_w, c1_w, c2_w, e_w)
                     all_boxes.append(BoundingBox(x, y, w, h))
+                    cur_loc = cmd.end
                     cur_w = e_w
+                elif isinstance(cmd, EllipticalArcTo):
+                    x, y, w, h = elliptical_arc_extrema_bounds(
+                        cur_loc, cmd.end, cmd.radius_x, cmd.radius_y, cmd.x_axis_rotation, cmd.large_arc, cmd.sweep,
+                        transform_matrix=self.world_matrix,
+                    )
+                    all_boxes.append(BoundingBox(x, y, w, h))
+                    cur_loc = cmd.end
+                    cur_w = self.to_world(cmd.end)
 
         if not all_boxes:
             return BoundingBox(0.0, 0.0, 0.0, 0.0)

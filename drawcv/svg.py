@@ -14,7 +14,7 @@ from drawcv.core.color import Color
 from drawcv.core.enums import ArcClosure, BlendMode, FillRule, ImageInterpolation
 from drawcv.core.exceptions import RenderError, ValidationError
 from drawcv.core.geometry import Point
-from drawcv.core.geometry_utils import flatten_arc
+from drawcv.core.geometry_utils import flatten_arc, transform_elliptical_arc
 from drawcv.effects.clipping import ClipPath, ClipRect, get_clip_point_mapper
 from drawcv.group import Group
 from drawcv.layer import Layer
@@ -25,7 +25,7 @@ from drawcv.shapes.circle import Circle
 from drawcv.shapes.ellipse import Ellipse
 from drawcv.shapes.freehand import FreehandStroke
 from drawcv.shapes.line import Line
-from drawcv.shapes.path import Path, MoveTo, LineTo, QuadraticTo, CubicTo, Close
+from drawcv.shapes.path import Path, MoveTo, LineTo, QuadraticTo, CubicTo, EllipticalArcTo, Close
 from drawcv.shapes.polygon import Polygon
 from drawcv.shapes.polyline import Polyline
 from drawcv.shapes.rectangle import Rectangle
@@ -163,15 +163,37 @@ class _Writer:
                     p_w = map_point(p)
                     return f"{_number(p_w.x)} {_number(p_w.y)}"
 
+                owner_matrix = entity.world_matrix if hasattr(entity, "world_matrix") else np.eye(3)
+                pivot = clip.transform.pivot or clip.get_geometry_bounds().center
+                clip_matrix = clip.transform.get_matrix(default_pivot=pivot)
+                clip_to_world_matrix = owner_matrix @ clip_matrix
+
                 commands = []
                 for subpath in clip.subpaths:
+                    cur_loc = Point(0.0, 0.0)
                     for cmd in subpath.commands:
                         if isinstance(cmd, (MoveTo, LineTo)):
                             commands.append(("M " if isinstance(cmd, MoveTo) else "L ") + coords(cmd.point))
+                            cur_loc = cmd.point
                         elif isinstance(cmd, QuadraticTo):
                             commands.append("Q " + coords(cmd.control) + " " + coords(cmd.end))
+                            cur_loc = cmd.end
                         elif isinstance(cmd, CubicTo):
                             commands.append("C " + coords(cmd.control1) + " " + coords(cmd.control2) + " " + coords(cmd.end))
+                            cur_loc = cmd.end
+                        elif isinstance(cmd, EllipticalArcTo):
+                            try:
+                                _, p2_w, rx_w, ry_w, phi_w, large_w, sweep_w = transform_elliptical_arc(
+                                    cur_loc, cmd.end, cmd.radius_x, cmd.radius_y, cmd.x_axis_rotation, cmd.large_arc, cmd.sweep, clip_to_world_matrix
+                                )
+                            except ValidationError as e:
+                                raise RenderError(f"Cannot export EllipticalArcTo in clip under singular or near-singular transform: {e}") from e
+                            commands.append(
+                                f"A {_number(rx_w)} {_number(ry_w)} {_number(phi_w)} "
+                                f"{1 if large_w else 0} {1 if sweep_w else 0} "
+                                f"{_number(p2_w.x)} {_number(p2_w.y)}"
+                            )
+                            cur_loc = cmd.end
                         elif isinstance(cmd, Close):
                             commands.append("Z")
                         else:
@@ -345,13 +367,30 @@ class _Writer:
         if isinstance(obj, Path):
             commands = []
             for subpath in obj.subpaths:
+                cur_loc = Point(0.0, 0.0)
                 for cmd in subpath.commands:
                     if isinstance(cmd, (MoveTo, LineTo)):
                         commands.append(("M " if isinstance(cmd, MoveTo) else "L ") + coords(cmd.point))
+                        cur_loc = cmd.point
                     elif isinstance(cmd, QuadraticTo):
                         commands.append("Q " + coords(cmd.control) + " " + coords(cmd.end))
+                        cur_loc = cmd.end
                     elif isinstance(cmd, CubicTo):
                         commands.append("C " + coords(cmd.control1) + " " + coords(cmd.control2) + " " + coords(cmd.end))
+                        cur_loc = cmd.end
+                    elif isinstance(cmd, EllipticalArcTo):
+                        try:
+                            _, p2_w, rx_w, ry_w, phi_w, large_w, sweep_w = transform_elliptical_arc(
+                                cur_loc, cmd.end, cmd.radius_x, cmd.radius_y, cmd.x_axis_rotation, cmd.large_arc, cmd.sweep, obj.world_matrix
+                            )
+                        except ValidationError as e:
+                            raise RenderError(f"Cannot export EllipticalArcTo under singular or near-singular transform: {e}") from e
+                        commands.append(
+                            f"A {_number(rx_w)} {_number(ry_w)} {_number(phi_w)} "
+                            f"{1 if large_w else 0} {1 if sweep_w else 0} "
+                            f"{_number(p2_w.x)} {_number(p2_w.y)}"
+                        )
+                        cur_loc = cmd.end
                     elif isinstance(cmd, Close):
                         commands.append("Z")
                     else:

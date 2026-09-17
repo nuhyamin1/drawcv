@@ -28,7 +28,7 @@ from drawcv.scene import Scene
 from drawcv.shapes.circle import Circle
 from drawcv.shapes.ellipse import Ellipse
 from drawcv.shapes.line import Line
-from drawcv.shapes.path import Close, CubicTo, LineTo, MoveTo, Path, QuadraticTo, Subpath
+from drawcv.shapes.path import Close, CubicTo, EllipticalArcTo, LineTo, MoveTo, Path, QuadraticTo, Subpath
 from drawcv.shapes.polyline import Polyline
 from drawcv.shapes.rectangle import Rectangle
 from drawcv.shapes.rounded_rectangle import RoundedRectangle
@@ -96,6 +96,8 @@ class SVGImportLimits:
     max_reference_depth: int = 16                  # Maximum href recursion depth
     max_scene_dimension: int = 16_384              # Maximum canvas width or height
     max_coordinate_magnitude: float = 1e7          # Bound coordinate values
+    max_use_instances: int = 1_000                 # Maximum <use> elements processed
+    max_expanded_elements: int = 50_000            # Maximum materialized DrawCV nodes via expansion
 
 
 @dataclass(frozen=True)
@@ -253,7 +255,109 @@ class SVGLength:
 
 
 # -----------------------------------------------------------------------------
-# Color Parser
+# SVG Viewport Context & ViewBox Mapping
+# -----------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class SVGViewportContext:
+    """Represents an active SVG viewport for length and percentage resolution."""
+    width: float
+    height: float
+
+    @property
+    def normalized_diagonal(self) -> float:
+        return math.sqrt((self.width ** 2 + self.height ** 2) / 2.0)
+
+    def resolve_x(self, length: SVGLength | None, default: float = 0.0, context_name: str = "", limits: SVGImportLimits | None = None) -> float:
+        if length is None:
+            return default
+        return length.to_absolute(reference_length=self.width, context_name=context_name, limits=limits)
+
+    def resolve_y(self, length: SVGLength | None, default: float = 0.0, context_name: str = "", limits: SVGImportLimits | None = None) -> float:
+        if length is None:
+            return default
+        return length.to_absolute(reference_length=self.height, context_name=context_name, limits=limits)
+
+    def resolve_diagonal(self, length: SVGLength | None, default: float = 0.0, context_name: str = "", limits: SVGImportLimits | None = None) -> float:
+        if length is None:
+            return default
+        return length.to_absolute(reference_length=self.normalized_diagonal, context_name=context_name, limits=limits)
+
+
+def compute_viewbox_matrix(
+    vb_attr: str | None,
+    target_w: float,
+    target_h: float,
+    par_attr: str = "xMidYMid meet",
+    limits: SVGImportLimits | None = None,
+) -> tuple[np.ndarray, tuple[float, float]]:
+    """Calculates the 3x3 affine transformation matrix and effective viewport for an SVG viewBox."""
+    if not vb_attr:
+        return np.eye(3, dtype=np.float64), (float(target_w), float(target_h))
+
+    vb_nums = [float(t) for t in re.split(r"[\s,]+", vb_attr.strip()) if t]
+    if len(vb_nums) != 4:
+        raise SVGImportError("viewBox requires exactly 4 numbers: min_x min_y width height")
+    min_x, min_y, vb_w, vb_h = vb_nums
+    if vb_w <= 0 or vb_h <= 0 or not math.isfinite(vb_w) or not math.isfinite(vb_h):
+        raise SVGImportError(f"Invalid viewBox dimensions: ({vb_w}, {vb_h})")
+
+    max_mag = limits.max_coordinate_magnitude if limits is not None else 1e7
+    for coord in (min_x, min_y, vb_w, vb_h):
+        if abs(coord) > max_mag:
+            raise SVGImportError(
+                f"viewBox coordinate magnitude {coord} exceeds limit of {max_mag}",
+                diagnostic=SVGImportDiagnostic(code="SVG_RESOURCE_LIMIT_EXCEEDED", severity="error", message="Coordinate magnitude exceeded limit"),
+            )
+
+    par = par_attr.strip() if par_attr else "xMidYMid meet"
+    par_parts = par.split()
+    if len(par_parts) > 2:
+        raise SVGImportError(
+            f"Malformed preserveAspectRatio: '{par}'",
+            diagnostic=SVGImportDiagnostic(code="SVG_MALFORMED_ASPECT_RATIO", severity="error", message=f"Invalid preserveAspectRatio: '{par}'"),
+        )
+    align = par_parts[0] if par_parts else "xMidYMid"
+    meet_or_slice = par_parts[1] if len(par_parts) > 1 else "meet"
+
+    if align not in ALLOWED_ALIGNMENTS:
+        raise SVGImportError(
+            f"Unsupported preserveAspectRatio alignment: '{align}'",
+            diagnostic=SVGImportDiagnostic(code="SVG_MALFORMED_ASPECT_RATIO", severity="error", message=f"Invalid alignment: '{align}'"),
+        )
+    if align != "none" and meet_or_slice not in ALLOWED_MEET_OR_SLICE:
+        raise SVGImportError(
+            f"Unsupported preserveAspectRatio meetOrSlice: '{meet_or_slice}'",
+            diagnostic=SVGImportDiagnostic(code="SVG_MALFORMED_ASPECT_RATIO", severity="error", message=f"Invalid meetOrSlice: '{meet_or_slice}'"),
+        )
+
+    if align == "none":
+        sx = target_w / vb_w
+        sy = target_h / vb_h
+        tx = -min_x * sx
+        ty = -min_y * sy
+    else:
+        scale_x = target_w / vb_w
+        scale_y = target_h / vb_h
+        s = min(scale_x, scale_y) if meet_or_slice == "meet" else max(scale_x, scale_y)
+        sx, sy = s, s
+
+        if "xMin" in align:
+            tx = -min_x * s
+        elif "xMax" in align:
+            tx = (target_w - vb_w * s) - min_x * s
+        else:  # xMid
+            tx = (target_w - vb_w * s) / 2.0 - min_x * s
+
+        if "yMin" in align:
+            ty = -min_y * s
+        elif "yMax" in align:
+            ty = (target_h - vb_h * s) - min_y * s
+        else:  # yMid
+            ty = (target_h - vb_h * s) / 2.0 - min_y * s
+
+    M_viewbox = np.array([[sx, 0.0, tx], [0.0, sy, ty], [0.0, 0.0, 1.0]], dtype=np.float64)
+    return M_viewbox, (float(vb_w), float(vb_h))
 # -----------------------------------------------------------------------------
 
 RE_RGB_FUNC = re.compile(r"^rgba?\s*\(\s*([^)]+)\s*\)$", re.IGNORECASE)
@@ -459,7 +563,12 @@ class SVGTransformParser:
 # SVG Path Lexer & State-Machine Parser
 # -----------------------------------------------------------------------------
 
-RE_PATH_TOKEN = re.compile(r"([MmLlQqCcZzAaHhVvSsTt])|([+-]?(?:[0-9]*\.[0-9]+|[0-9]+)(?:[eE][+-]?[0-9]+)?)")
+# -----------------------------------------------------------------------------
+# SVG Path Parser (Full SVG Suite: MmLlHhVvCcSsQqTtAaZz)
+# -----------------------------------------------------------------------------
+
+RE_NUMBER = re.compile(r"^[+-]?(?:[0-9]+\.[0-9]*|[0-9]*\.[0-9]+|[0-9]+)(?:[eE][+-]?[0-9]+)?")
+
 
 class SVGPathParser:
     """Parses SVG path 'd' string into a retained DrawCV Path."""
@@ -467,192 +576,524 @@ class SVGPathParser:
     @classmethod
     def parse(cls, d_str: str, fill_rule: FillRule = FillRule.NON_ZERO, limits: SVGImportLimits | None = None) -> Path:
         max_tokens = limits.max_path_tokens if limits else 100_000
-        tokens: list[str] = []
-        pos = 0
-        cleaned = d_str.strip()
+        max_coord_mag = limits.max_coordinate_magnitude if limits else 1e7
+        token_count = 0
 
-        for m in RE_PATH_TOKEN.finditer(cleaned):
-            skipped = cleaned[pos:m.start()].strip(" \t\r\n,")
-            if skipped:
-                raise SVGImportError(
-                    f"Unexpected characters in path data: '{skipped}'",
-                    diagnostic=SVGImportDiagnostic(code="SVG_MALFORMED_PATH", severity="error", message=f"Illegal path characters: '{skipped}'"),
-                )
-            tokens.append(m.group(0))
-            pos = m.end()
-            if len(tokens) > max_tokens:
+        s = d_str.strip()
+        n = len(s)
+        pos = 0
+
+        if not s:
+            return Path(subpaths=[], fill_rule=fill_rule)
+
+        def skip_wsp() -> None:
+            nonlocal pos
+            while pos < n and s[pos] in " \t\r\n":
+                pos += 1
+
+        def consume_comma_wsp() -> None:
+            nonlocal pos
+            skip_wsp()
+            if pos < n and s[pos] == ",":
+                pos += 1
+                skip_wsp()
+                if pos < n and s[pos] == ",":
+                    raise SVGImportError(
+                        "Consecutive commas in path data",
+                        diagnostic=SVGImportDiagnostic(
+                            code="SVG_MALFORMED_PATH",
+                            severity="error",
+                            message="Consecutive commas in path data",
+                        ),
+                    )
+
+        def check_token_budget() -> None:
+            nonlocal token_count
+            token_count += 1
+            if token_count > max_tokens:
                 raise SVGImportError(
                     f"Path token count exceeded limit of {max_tokens}",
-                    diagnostic=SVGImportDiagnostic(code="SVG_RESOURCE_LIMIT_EXCEEDED", severity="error", message="Path token count exceeded limit"),
+                    diagnostic=SVGImportDiagnostic(
+                        code="SVG_RESOURCE_LIMIT_EXCEEDED",
+                        severity="error",
+                        message="Path token count exceeded limit",
+                    ),
                 )
 
-        tail = cleaned[pos:].strip(" \t\r\n,")
-        if tail:
-            raise SVGImportError(
-                f"Unexpected trailing characters in path data: '{tail}'",
-                diagnostic=SVGImportDiagnostic(code="SVG_MALFORMED_PATH", severity="error", message=f"Illegal path tail: '{tail}'"),
-            )
+        def consume_number() -> float:
+            nonlocal pos
+            consume_comma_wsp()
+            if pos >= n:
+                raise SVGImportError(
+                    "Premature end of path data expecting coordinate",
+                    diagnostic=SVGImportDiagnostic(
+                        code="SVG_MALFORMED_PATH",
+                        severity="error",
+                        message="Missing coordinate in path data",
+                    ),
+                )
+            if s[pos] in "MmLlHhVvCcSsQqTtAaZz":
+                raise SVGImportError(
+                    f"Expected coordinate but found command '{s[pos]}'",
+                    diagnostic=SVGImportDiagnostic(
+                        code="SVG_MALFORMED_PATH",
+                        severity="error",
+                        message=f"Unexpected command '{s[pos]}' where coordinate expected",
+                    ),
+                )
+            m = RE_NUMBER.match(s[pos:])
+            if not m:
+                raise SVGImportError(
+                    f"Malformed number at position {pos} in path data: '{s[pos:pos+10]}'",
+                    diagnostic=SVGImportDiagnostic(
+                        code="SVG_MALFORMED_PATH",
+                        severity="error",
+                        message="Malformed number in path data",
+                    ),
+                )
+            num_str = m.group(0)
+            pos += len(num_str)
+            check_token_budget()
+            val = float(num_str)
+            if not math.isfinite(val):
+                raise SVGImportError(
+                    f"Non-finite coordinate in path: {val}",
+                    diagnostic=SVGImportDiagnostic(
+                        code="SVG_NON_FINITE_COORDINATE",
+                        severity="error",
+                        message=f"Non-finite path coordinate: {val}",
+                    ),
+                )
+            if abs(val) > max_coord_mag:
+                raise SVGImportError(
+                    f"Path coordinate magnitude {val} exceeds limit of {max_coord_mag}",
+                    diagnostic=SVGImportDiagnostic(
+                        code="SVG_RESOURCE_LIMIT_EXCEEDED",
+                        severity="error",
+                        message="Coordinate magnitude exceeded limit",
+                    ),
+                )
+            return val
 
-        if not tokens:
-            return Path(subpaths=[], fill_rule=fill_rule)
+        def consume_flag() -> bool:
+            nonlocal pos
+            consume_comma_wsp()
+            if pos >= n:
+                raise SVGImportError(
+                    "Premature end of path data expecting arc flag ('0' or '1')",
+                    diagnostic=SVGImportDiagnostic(
+                        code="SVG_MALFORMED_PATH",
+                        severity="error",
+                        message="Missing arc flag in path data",
+                    ),
+                )
+            ch = s[pos]
+            if ch not in ("0", "1"):
+                raise SVGImportError(
+                    f"Expected arc flag '0' or '1' but found '{ch}'",
+                    diagnostic=SVGImportDiagnostic(
+                        code="SVG_MALFORMED_PATH",
+                        severity="error",
+                        message=f"Invalid arc flag '{ch}'",
+                    ),
+                )
+            pos += 1
+            check_token_budget()
+            return ch == "1"
+
+        def has_more_coordinates() -> bool:
+            save_pos = pos
+            while save_pos < n and s[save_pos] in " \t\r\n":
+                save_pos += 1
+            if save_pos < n and s[save_pos] == ",":
+                save_pos += 1
+                while save_pos < n and s[save_pos] in " \t\r\n":
+                    save_pos += 1
+            if save_pos >= n:
+                return False
+            ch = s[save_pos]
+            if ch.isdigit():
+                return True
+            if ch in "+-":
+                return save_pos + 1 < n and (s[save_pos + 1].isdigit() or s[save_pos + 1] == ".")
+            if ch == ".":
+                return save_pos + 1 < n and s[save_pos + 1].isdigit()
+            return False
 
         subpaths: list[Subpath] = []
         active_subpath: Subpath | None = None
         current_pt = Point(0.0, 0.0)
         start_pt = Point(0.0, 0.0)
+        last_cubic_ctrl: Point | None = None
+        last_quad_ctrl: Point | None = None
 
-        idx = 0
-        n_tokens = len(tokens)
-        current_cmd = ""
-
-        while idx < n_tokens:
-            token = tokens[idx]
-            if token in "MmLlQqCcZzAaHhVvSsTt":
-                current_cmd = token
-                idx += 1
-            elif not current_cmd:
+        while True:
+            skip_wsp()
+            if pos >= n:
+                break
+            if s[pos] == ",":
                 raise SVGImportError(
-                    f"Path data must start with a command, got '{token}'",
-                    diagnostic=SVGImportDiagnostic(code="SVG_MALFORMED_PATH", severity="error", message=f"Missing initial command in path: '{token}'"),
+                    "Unexpected comma in path data",
+                    diagnostic=SVGImportDiagnostic(
+                        code="SVG_MALFORMED_PATH",
+                        severity="error",
+                        message="Unexpected comma in path data",
+                    ),
+                )
+            ch = s[pos]
+            if ch in "BbRr":
+                raise SVGImportError(
+                    f"SVG path command '{ch}' is not supported",
+                    diagnostic=SVGImportDiagnostic(
+                        code="SVG_UNSUPPORTED_PATH_COMMAND",
+                        severity="error",
+                        message=f"Unsupported path command '{ch}'",
+                    ),
                 )
 
-            if current_cmd in "AaHhVvSsTt":
+            if ch not in "MmLlHhVvCcSsQqTtAaZz":
                 raise SVGImportError(
-                    f"SVG path command '{current_cmd}' is not supported in Milestone 1",
-                    diagnostic=SVGImportDiagnostic(code="SVG_UNSUPPORTED_PATH_COMMAND", severity="error", message=f"Unsupported path command '{current_cmd}'"),
+                    f"Path data must start with a command, got '{ch}'",
+                    diagnostic=SVGImportDiagnostic(
+                        code="SVG_MALFORMED_PATH",
+                        severity="error",
+                        message=f"Illegal path character: '{ch}'",
+                    ),
+                )
+            cmd = ch
+            pos += 1
+            check_token_budget()
+            skip_wsp()
+            if pos < n and s[pos] == ",":
+                raise SVGImportError(
+                    f"Unexpected comma immediately following path command '{cmd}'",
+                    diagnostic=SVGImportDiagnostic(
+                        code="SVG_MALFORMED_PATH",
+                        severity="error",
+                        message=f"Comma immediately after command '{cmd}'",
+                    ),
                 )
 
-            if current_cmd in ("Z", "z"):
+            if cmd in ("Z", "z"):
                 if active_subpath is not None and active_subpath.commands:
                     active_subpath.commands.append(Close())
                     active_subpath.closed = True
                     current_pt = start_pt
                 active_subpath = None
-                current_cmd = ""
+                last_cubic_ctrl = None
+                last_quad_ctrl = None
                 continue
 
-            # Coordinate consumer helper
-            def next_float() -> float:
-                nonlocal idx
-                if idx >= n_tokens:
+            if cmd not in ("M", "m") and active_subpath is None:
+                if not subpaths:
                     raise SVGImportError(
-                        f"Premature end of path data for command '{current_cmd}'",
-                        diagnostic=SVGImportDiagnostic(code="SVG_MALFORMED_PATH", severity="error", message=f"Missing coordinates for '{current_cmd}'"),
+                        f"SVG path command '{cmd}' must follow a MoveTo command",
+                        diagnostic=SVGImportDiagnostic(
+                            code="SVG_MALFORMED_PATH",
+                            severity="error",
+                            message=f"Path command '{cmd}' without prior MoveTo",
+                        ),
                     )
-                tok = tokens[idx]
-                if tok in "MmLlQqCcZzAaHhVvSsTt":
-                    raise SVGImportError(
-                        f"Expected coordinate but got command '{tok}'",
-                        diagnostic=SVGImportDiagnostic(code="SVG_MALFORMED_PATH", severity="error", message=f"Unexpected command '{tok}' where coordinate expected"),
-                    )
-                idx += 1
-                val = float(tok)
-                if not math.isfinite(val):
-                    raise SVGImportError(
-                        f"Non-finite coordinate in path: {val}",
-                        diagnostic=SVGImportDiagnostic(code="SVG_NON_FINITE_COORDINATE", severity="error", message=f"Non-finite path coordinate: {val}"),
-                    )
-                max_coord_mag = limits.max_coordinate_magnitude if limits else 1e7
-                if abs(val) > max_coord_mag:
-                    raise SVGImportError(
-                        f"Path coordinate magnitude {val} exceeds limit of {max_coord_mag}",
-                        diagnostic=SVGImportDiagnostic(code="SVG_RESOURCE_LIMIT_EXCEEDED", severity="error", message="Coordinate magnitude exceeded limit"),
-                    )
-                return val
+                # When Z/z is followed by a command other than M/m, the next subpath
+                # begins at the initial point of the just-closed subpath (start_pt).
+                active_subpath = Subpath(commands=[MoveTo(start_pt)], closed=False)
+                subpaths.append(active_subpath)
+                current_pt = start_pt
+                last_cubic_ctrl = None
+                last_quad_ctrl = None
 
-            if current_cmd == "M":
-                x, y = next_float(), next_float()
+            if cmd == "M":
+                x = consume_number()
+                y = consume_number()
                 current_pt = Point(x, y)
                 start_pt = current_pt
                 active_subpath = Subpath(commands=[MoveTo(current_pt)], closed=False)
                 subpaths.append(active_subpath)
-                # Subsequent coordinates following M become implicit L commands
-                current_cmd = "L"
+                last_cubic_ctrl = None
+                last_quad_ctrl = None
+                while has_more_coordinates():
+                    x = consume_number()
+                    y = consume_number()
+                    current_pt = Point(x, y)
+                    active_subpath.commands.append(LineTo(current_pt))
+                continue
 
-            elif current_cmd == "m":
-                dx, dy = next_float(), next_float()
-                current_pt = Point(current_pt.x + dx, current_pt.y + dy)
+            elif cmd == "m":
+                dx = consume_number()
+                dy = consume_number()
+                if not subpaths:
+                    current_pt = Point(dx, dy)
+                else:
+                    current_pt = Point(current_pt.x + dx, current_pt.y + dy)
                 start_pt = current_pt
                 active_subpath = Subpath(commands=[MoveTo(current_pt)], closed=False)
                 subpaths.append(active_subpath)
-                # Subsequent coordinates following m become implicit l commands
-                current_cmd = "l"
+                last_cubic_ctrl = None
+                last_quad_ctrl = None
+                while has_more_coordinates():
+                    dx = consume_number()
+                    dy = consume_number()
+                    current_pt = Point(current_pt.x + dx, current_pt.y + dy)
+                    active_subpath.commands.append(LineTo(current_pt))
+                continue
 
-            elif current_cmd == "L":
-                x, y = next_float(), next_float()
-                current_pt = Point(x, y)
-                if active_subpath is None:
-                    raise SVGImportError(
-                        f"SVG path command '{current_cmd}' must follow a MoveTo command",
-                        diagnostic=SVGImportDiagnostic(code="SVG_MALFORMED_PATH", severity="error", message=f"Path command '{current_cmd}' without prior MoveTo"),
-                    )
-                active_subpath.commands.append(LineTo(current_pt))
+            elif cmd == "L":
+                while True:
+                    x = consume_number()
+                    y = consume_number()
+                    current_pt = Point(x, y)
+                    active_subpath.commands.append(LineTo(current_pt))
+                    last_cubic_ctrl = None
+                    last_quad_ctrl = None
+                    if not has_more_coordinates():
+                        break
 
-            elif current_cmd == "l":
-                dx, dy = next_float(), next_float()
-                current_pt = Point(current_pt.x + dx, current_pt.y + dy)
-                if active_subpath is None:
-                    raise SVGImportError(
-                        f"SVG path command '{current_cmd}' must follow a MoveTo command",
-                        diagnostic=SVGImportDiagnostic(code="SVG_MALFORMED_PATH", severity="error", message=f"Path command '{current_cmd}' without prior MoveTo"),
-                    )
-                active_subpath.commands.append(LineTo(current_pt))
+            elif cmd == "l":
+                while True:
+                    dx = consume_number()
+                    dy = consume_number()
+                    current_pt = Point(current_pt.x + dx, current_pt.y + dy)
+                    active_subpath.commands.append(LineTo(current_pt))
+                    last_cubic_ctrl = None
+                    last_quad_ctrl = None
+                    if not has_more_coordinates():
+                        break
 
-            elif current_cmd == "Q":
-                cx, cy = next_float(), next_float()
-                x, y = next_float(), next_float()
-                ctrl = Point(cx, cy)
-                end = Point(x, y)
-                current_pt = end
-                if active_subpath is None:
-                    raise SVGImportError(
-                        f"SVG path command '{current_cmd}' must follow a MoveTo command",
-                        diagnostic=SVGImportDiagnostic(code="SVG_MALFORMED_PATH", severity="error", message=f"Path command '{current_cmd}' without prior MoveTo"),
-                    )
-                active_subpath.commands.append(QuadraticTo(ctrl, end))
+            elif cmd == "H":
+                while True:
+                    x = consume_number()
+                    current_pt = Point(x, current_pt.y)
+                    active_subpath.commands.append(LineTo(current_pt))
+                    last_cubic_ctrl = None
+                    last_quad_ctrl = None
+                    if not has_more_coordinates():
+                        break
 
-            elif current_cmd == "q":
-                dcx, dcy = next_float(), next_float()
-                dx, dy = next_float(), next_float()
-                ctrl = Point(current_pt.x + dcx, current_pt.y + dcy)
-                end = Point(current_pt.x + dx, current_pt.y + dy)
-                current_pt = end
-                if active_subpath is None:
-                    raise SVGImportError(
-                        f"SVG path command '{current_cmd}' must follow a MoveTo command",
-                        diagnostic=SVGImportDiagnostic(code="SVG_MALFORMED_PATH", severity="error", message=f"Path command '{current_cmd}' without prior MoveTo"),
-                    )
-                active_subpath.commands.append(QuadraticTo(ctrl, end))
+            elif cmd == "h":
+                while True:
+                    dx = consume_number()
+                    current_pt = Point(current_pt.x + dx, current_pt.y)
+                    active_subpath.commands.append(LineTo(current_pt))
+                    last_cubic_ctrl = None
+                    last_quad_ctrl = None
+                    if not has_more_coordinates():
+                        break
 
-            elif current_cmd == "C":
-                c1x, c1y = next_float(), next_float()
-                c2x, c2y = next_float(), next_float()
-                x, y = next_float(), next_float()
-                ctrl1 = Point(c1x, c1y)
-                ctrl2 = Point(c2x, c2y)
-                end = Point(x, y)
-                current_pt = end
-                if active_subpath is None:
-                    raise SVGImportError(
-                        f"SVG path command '{current_cmd}' must follow a MoveTo command",
-                        diagnostic=SVGImportDiagnostic(code="SVG_MALFORMED_PATH", severity="error", message=f"Path command '{current_cmd}' without prior MoveTo"),
-                    )
-                active_subpath.commands.append(CubicTo(ctrl1, ctrl2, end))
+            elif cmd == "V":
+                while True:
+                    y = consume_number()
+                    current_pt = Point(current_pt.x, y)
+                    active_subpath.commands.append(LineTo(current_pt))
+                    last_cubic_ctrl = None
+                    last_quad_ctrl = None
+                    if not has_more_coordinates():
+                        break
 
-            elif current_cmd == "c":
-                dc1x, dc1y = next_float(), next_float()
-                dc2x, dc2y = next_float(), next_float()
-                dx, dy = next_float(), next_float()
-                ctrl1 = Point(current_pt.x + dc1x, current_pt.y + dc1y)
-                ctrl2 = Point(current_pt.x + dc2x, current_pt.y + dc2y)
-                end = Point(current_pt.x + dx, current_pt.y + dy)
-                current_pt = end
-                if active_subpath is None:
-                    raise SVGImportError(
-                        f"SVG path command '{current_cmd}' must follow a MoveTo command",
-                        diagnostic=SVGImportDiagnostic(code="SVG_MALFORMED_PATH", severity="error", message=f"Path command '{current_cmd}' without prior MoveTo"),
-                    )
-                active_subpath.commands.append(CubicTo(ctrl1, ctrl2, end))
+            elif cmd == "v":
+                while True:
+                    dy = consume_number()
+                    current_pt = Point(current_pt.x, current_pt.y + dy)
+                    active_subpath.commands.append(LineTo(current_pt))
+                    last_cubic_ctrl = None
+                    last_quad_ctrl = None
+                    if not has_more_coordinates():
+                        break
+
+            elif cmd == "C":
+                while True:
+                    c1x = consume_number()
+                    c1y = consume_number()
+                    c2x = consume_number()
+                    c2y = consume_number()
+                    x = consume_number()
+                    y = consume_number()
+                    ctrl1 = Point(c1x, c1y)
+                    ctrl2 = Point(c2x, c2y)
+                    end = Point(x, y)
+                    active_subpath.commands.append(CubicTo(ctrl1, ctrl2, end))
+                    current_pt = end
+                    last_cubic_ctrl = ctrl2
+                    last_quad_ctrl = None
+                    if not has_more_coordinates():
+                        break
+
+            elif cmd == "c":
+                while True:
+                    dc1x = consume_number()
+                    dc1y = consume_number()
+                    dc2x = consume_number()
+                    dc2y = consume_number()
+                    dx = consume_number()
+                    dy = consume_number()
+                    ctrl1 = Point(current_pt.x + dc1x, current_pt.y + dc1y)
+                    ctrl2 = Point(current_pt.x + dc2x, current_pt.y + dc2y)
+                    end = Point(current_pt.x + dx, current_pt.y + dy)
+                    active_subpath.commands.append(CubicTo(ctrl1, ctrl2, end))
+                    current_pt = end
+                    last_cubic_ctrl = ctrl2
+                    last_quad_ctrl = None
+                    if not has_more_coordinates():
+                        break
+
+            elif cmd == "S":
+                while True:
+                    c2x = consume_number()
+                    c2y = consume_number()
+                    x = consume_number()
+                    y = consume_number()
+                    if last_cubic_ctrl is not None:
+                        ctrl1 = Point(2.0 * current_pt.x - last_cubic_ctrl.x, 2.0 * current_pt.y - last_cubic_ctrl.y)
+                    else:
+                        ctrl1 = current_pt
+                    ctrl2 = Point(c2x, c2y)
+                    end = Point(x, y)
+                    active_subpath.commands.append(CubicTo(ctrl1, ctrl2, end))
+                    current_pt = end
+                    last_cubic_ctrl = ctrl2
+                    last_quad_ctrl = None
+                    if not has_more_coordinates():
+                        break
+
+            elif cmd == "s":
+                while True:
+                    dc2x = consume_number()
+                    dc2y = consume_number()
+                    dx = consume_number()
+                    dy = consume_number()
+                    if last_cubic_ctrl is not None:
+                        ctrl1 = Point(2.0 * current_pt.x - last_cubic_ctrl.x, 2.0 * current_pt.y - last_cubic_ctrl.y)
+                    else:
+                        ctrl1 = current_pt
+                    ctrl2 = Point(current_pt.x + dc2x, current_pt.y + dc2y)
+                    end = Point(current_pt.x + dx, current_pt.y + dy)
+                    active_subpath.commands.append(CubicTo(ctrl1, ctrl2, end))
+                    current_pt = end
+                    last_cubic_ctrl = ctrl2
+                    last_quad_ctrl = None
+                    if not has_more_coordinates():
+                        break
+
+            elif cmd == "Q":
+                while True:
+                    cx = consume_number()
+                    cy = consume_number()
+                    x = consume_number()
+                    y = consume_number()
+                    ctrl = Point(cx, cy)
+                    end = Point(x, y)
+                    active_subpath.commands.append(QuadraticTo(ctrl, end))
+                    current_pt = end
+                    last_quad_ctrl = ctrl
+                    last_cubic_ctrl = None
+                    if not has_more_coordinates():
+                        break
+
+            elif cmd == "q":
+                while True:
+                    dcx = consume_number()
+                    dcy = consume_number()
+                    dx = consume_number()
+                    dy = consume_number()
+                    ctrl = Point(current_pt.x + dcx, current_pt.y + dcy)
+                    end = Point(current_pt.x + dx, current_pt.y + dy)
+                    active_subpath.commands.append(QuadraticTo(ctrl, end))
+                    current_pt = end
+                    last_quad_ctrl = ctrl
+                    last_cubic_ctrl = None
+                    if not has_more_coordinates():
+                        break
+
+            elif cmd == "T":
+                while True:
+                    x = consume_number()
+                    y = consume_number()
+                    if last_quad_ctrl is not None:
+                        ctrl = Point(2.0 * current_pt.x - last_quad_ctrl.x, 2.0 * current_pt.y - last_quad_ctrl.y)
+                    else:
+                        ctrl = current_pt
+                    end = Point(x, y)
+                    active_subpath.commands.append(QuadraticTo(ctrl, end))
+                    current_pt = end
+                    last_quad_ctrl = ctrl
+                    last_cubic_ctrl = None
+                    if not has_more_coordinates():
+                        break
+
+            elif cmd == "t":
+                while True:
+                    dx = consume_number()
+                    dy = consume_number()
+                    if last_quad_ctrl is not None:
+                        ctrl = Point(2.0 * current_pt.x - last_quad_ctrl.x, 2.0 * current_pt.y - last_quad_ctrl.y)
+                    else:
+                        ctrl = current_pt
+                    end = Point(current_pt.x + dx, current_pt.y + dy)
+                    active_subpath.commands.append(QuadraticTo(ctrl, end))
+                    current_pt = end
+                    last_quad_ctrl = ctrl
+                    last_cubic_ctrl = None
+                    if not has_more_coordinates():
+                        break
+
+            elif cmd == "A":
+                while True:
+                    rx = abs(consume_number())
+                    ry = abs(consume_number())
+                    phi = consume_number() % 360.0
+                    large_arc = consume_flag()
+                    sweep = consume_flag()
+                    x = consume_number()
+                    y = consume_number()
+                    end = Point(x, y)
+                    if current_pt != end:
+                        if rx == 0.0 or ry == 0.0:
+                            active_subpath.commands.append(LineTo(end))
+                        else:
+                            active_subpath.commands.append(
+                                EllipticalArcTo(
+                                    radius_x=rx,
+                                    radius_y=ry,
+                                    x_axis_rotation=phi,
+                                    large_arc=large_arc,
+                                    sweep=sweep,
+                                    end=end,
+                                )
+                            )
+                    current_pt = end
+                    last_cubic_ctrl = None
+                    last_quad_ctrl = None
+                    if not has_more_coordinates():
+                        break
+
+            elif cmd == "a":
+                while True:
+                    rx = abs(consume_number())
+                    ry = abs(consume_number())
+                    phi = consume_number() % 360.0
+                    large_arc = consume_flag()
+                    sweep = consume_flag()
+                    dx = consume_number()
+                    dy = consume_number()
+                    end = Point(current_pt.x + dx, current_pt.y + dy)
+                    if current_pt != end:
+                        if rx == 0.0 or ry == 0.0:
+                            active_subpath.commands.append(LineTo(end))
+                        else:
+                            active_subpath.commands.append(
+                                EllipticalArcTo(
+                                    radius_x=rx,
+                                    radius_y=ry,
+                                    x_axis_rotation=phi,
+                                    large_arc=large_arc,
+                                    sweep=sweep,
+                                    end=end,
+                                )
+                            )
+                    current_pt = end
+                    last_cubic_ctrl = None
+                    last_quad_ctrl = None
+                    if not has_more_coordinates():
+                        break
 
         return Path(subpaths=subpaths, fill_rule=fill_rule)
 
@@ -686,11 +1127,14 @@ class ComputedStyle:
     stroke: str | None = None
     stroke_opacity: float = 1.0
     stroke_width: float = 1.0
+    raw_stroke_width: SVGLength | None = None
     stroke_linecap: CapStyle = CapStyle.BUTT
     stroke_linejoin: JoinStyle = JoinStyle.MITER
     stroke_miterlimit: float = 4.0
     stroke_dasharray: tuple[float, ...] = ()
+    raw_stroke_dasharray: tuple[SVGLength, ...] | None = None
     stroke_dashoffset: float = 0.0
+    raw_stroke_dashoffset: SVGLength | None = None
     color: Color = Color(0, 0, 0, 1.0)
     visibility: str = "visible"
     clip_rule: FillRule = FillRule.NON_ZERO
@@ -701,6 +1145,7 @@ class ComputedStyle:
     mix_blend_mode: BlendMode = BlendMode.NORMAL
     clip_path: str | None = None
     vector_effect: str = "none"
+    overflow: str | None = None
 
     def inherit_child(self) -> ComputedStyle:
         """Create a new child style inheriting all inherited properties while resetting non-inherited ones."""
@@ -711,11 +1156,14 @@ class ComputedStyle:
             stroke=self.stroke,
             stroke_opacity=self.stroke_opacity,
             stroke_width=self.stroke_width,
+            raw_stroke_width=self.raw_stroke_width,
             stroke_linecap=self.stroke_linecap,
             stroke_linejoin=self.stroke_linejoin,
             stroke_miterlimit=self.stroke_miterlimit,
             stroke_dasharray=self.stroke_dasharray,
+            raw_stroke_dasharray=self.raw_stroke_dasharray,
             stroke_dashoffset=self.stroke_dashoffset,
+            raw_stroke_dashoffset=self.raw_stroke_dashoffset,
             color=self.color,
             visibility=self.visibility,
             clip_rule=self.clip_rule,
@@ -724,6 +1172,7 @@ class ComputedStyle:
             mix_blend_mode=BlendMode.NORMAL,
             clip_path=None,
             vector_effect="none",
+            overflow=None,
         )
 
 
@@ -804,7 +1253,9 @@ class SVGStyleResolver:
         sw_val = get_prop("stroke-width")
         if sw_val is not None:
             length = SVGLength.parse(sw_val, limits=limits)
-            style.stroke_width = max(0.0, length.to_absolute(context_name="stroke-width", limits=limits))
+            style.raw_stroke_width = length
+            if length.unit != "%":
+                style.stroke_width = max(0.0, length.to_absolute(context_name="stroke-width", limits=limits))
 
         # 8. Stroke-linecap
         lc_val = get_prop("stroke-linecap")
@@ -843,27 +1294,32 @@ class SVGStyleResolver:
             da_clean = da_val.strip().lower()
             if da_clean in ("none", ""):
                 style.stroke_dasharray = ()
+                style.raw_stroke_dasharray = ()
             else:
                 num_tokens = [t for t in re.split(r"[\s,]+", da_clean) if t]
-                dashes = []
-                for tok in num_tokens:
-                    parsed_l = SVGLength.parse(tok, limits=limits)
-                    val = parsed_l.to_absolute(context_name="stroke-dasharray", limits=limits)
-                    if val < 0.0:
-                        raise SVGImportError(
-                            f"Negative value in stroke-dasharray: '{tok}'",
-                            diagnostic=SVGImportDiagnostic(code="SVG_MALFORMED_STYLE", severity="error", message=f"Negative stroke-dasharray value: '{tok}'"),
-                        )
-                    dashes.append(val)
-                if len(dashes) % 2 == 1:
-                    dashes = dashes * 2  # SVG rule: odd dasharray repeated
-                style.stroke_dasharray = tuple(dashes)
+                raw_lengths = [SVGLength.parse(tok, limits=limits) for tok in num_tokens]
+                style.raw_stroke_dasharray = tuple(raw_lengths)
+                if not any(l.unit == "%" for l in raw_lengths):
+                    dashes = []
+                    for parsed_l in raw_lengths:
+                        val = parsed_l.to_absolute(context_name="stroke-dasharray", limits=limits)
+                        if val < 0.0:
+                            raise SVGImportError(
+                                f"Negative value in stroke-dasharray: '{parsed_l.value}'",
+                                diagnostic=SVGImportDiagnostic(code="SVG_MALFORMED_STYLE", severity="error", message="Negative stroke-dasharray value"),
+                            )
+                        dashes.append(val)
+                    if len(dashes) % 2 == 1:
+                        dashes = dashes * 2  # SVG rule: odd dasharray repeated
+                    style.stroke_dasharray = tuple(dashes)
 
         # 12. Stroke-dashoffset
         do_val = get_prop("stroke-dashoffset")
         if do_val is not None:
             parsed_do = SVGLength.parse(do_val.strip(), limits=limits)
-            style.stroke_dashoffset = parsed_do.to_absolute(context_name="stroke-dashoffset", limits=limits)
+            style.raw_stroke_dashoffset = parsed_do
+            if parsed_do.unit != "%":
+                style.stroke_dashoffset = parsed_do.to_absolute(context_name="stroke-dashoffset", limits=limits)
 
         # 13. Visibility
         vis_val = get_prop("visibility")
@@ -929,6 +1385,22 @@ class SVGStyleResolver:
                     ),
                 )
             style.vector_effect = ve_clean
+
+        # 20. Overflow (non-inherited, author-specified overrides UA default)
+        ov_val = get_prop("overflow")
+        if ov_val is not None:
+            ov_clean = ov_val.strip().lower()
+            if ov_clean not in ("visible", "hidden", "scroll", "auto"):
+                raise SVGImportError(
+                    f"Unsupported or invalid overflow value: '{ov_val}'",
+                    diagnostic=SVGImportDiagnostic(
+                        code="SVG_MALFORMED_STYLE",
+                        severity="error",
+                        message=f"Invalid overflow value: '{ov_val}'",
+                        attribute="overflow",
+                    ),
+                )
+            style.overflow = ov_clean
 
         return style
 
@@ -1125,7 +1597,7 @@ def bind_paint_server(
     ref_id: str,
     target_drawable: Drawable,
     defs_registry: SVGDefsRegistry,
-    current_viewport: tuple[float, float],
+    current_viewport: tuple[float, float] | SVGViewportContext,
     user_to_world_matrix: np.ndarray,
 ) -> PaintLike | None:
     """Binds an SVG gradient template to a PaintLike result (Color | LinearGradient | RadialGradient | None)."""
@@ -1138,8 +1610,12 @@ def bind_paint_server(
         return raw_stops[0].color  # SVG spec: 1 stop paints solid color
 
     bbox = target_drawable.get_geometry_bounds()
-    V_w, V_h = current_viewport
-    diag_norm = math.sqrt(V_w * V_w + V_h * V_h) / math.sqrt(2.0)
+    if isinstance(current_viewport, SVGViewportContext):
+        V_w, V_h = current_viewport.width, current_viewport.height
+        diag_norm = current_viewport.normalized_diagonal
+    else:
+        V_w, V_h = current_viewport
+        diag_norm = math.sqrt(V_w * V_w + V_h * V_h) / math.sqrt(2.0)
 
     if tmpl.gradientUnits == "objectBoundingBox":
         if bbox.width <= 0.0 or bbox.height <= 0.0:
@@ -1367,73 +1843,14 @@ class SVGImporter:
                 diagnostic=SVGImportDiagnostic(code="SVG_INVALID_DIMENSIONS", severity="error", message="Dimensions out of valid range"),
             )
 
-        # Calculate viewBox transformation
-        M_viewbox = np.eye(3, dtype=np.float64)
-        effective_viewport = (float(scene_w), float(scene_h))
-
-        if vb_attr:
-            vb_nums = [float(t) for t in re.split(r"[\s,]+", vb_attr.strip()) if t]
-            if len(vb_nums) != 4:
-                raise SVGImportError("viewBox requires exactly 4 numbers: min_x min_y width height")
-            min_x, min_y, vb_w, vb_h = vb_nums
-            if vb_w <= 0 or vb_h <= 0 or not math.isfinite(vb_w) or not math.isfinite(vb_h):
-                raise SVGImportError(f"Invalid viewBox dimensions: ({vb_w}, {vb_h})")
-
-            for coord in (min_x, min_y, vb_w, vb_h):
-                if abs(coord) > self.limits.max_coordinate_magnitude:
-                    raise SVGImportError(
-                        f"viewBox coordinate magnitude {coord} exceeds limit of {self.limits.max_coordinate_magnitude}",
-                        diagnostic=SVGImportDiagnostic(code="SVG_RESOURCE_LIMIT_EXCEEDED", severity="error", message="Coordinate magnitude exceeded limit"),
-                    )
-
-            par = root.attrib.get("preserveAspectRatio", "xMidYMid meet").strip()
-            par_parts = par.split()
-            if len(par_parts) > 2:
-                raise SVGImportError(
-                    f"Malformed preserveAspectRatio: '{par}'",
-                    diagnostic=SVGImportDiagnostic(code="SVG_MALFORMED_ASPECT_RATIO", severity="error", message=f"Invalid preserveAspectRatio: '{par}'"),
-                )
-            align = par_parts[0] if par_parts else "xMidYMid"
-            meet_or_slice = par_parts[1] if len(par_parts) > 1 else "meet"
-
-            if align not in ALLOWED_ALIGNMENTS:
-                raise SVGImportError(
-                    f"Unsupported preserveAspectRatio alignment: '{align}'",
-                    diagnostic=SVGImportDiagnostic(code="SVG_MALFORMED_ASPECT_RATIO", severity="error", message=f"Invalid alignment: '{align}'"),
-                )
-            if align != "none" and meet_or_slice not in ALLOWED_MEET_OR_SLICE:
-                raise SVGImportError(
-                    f"Unsupported preserveAspectRatio meetOrSlice: '{meet_or_slice}'",
-                    diagnostic=SVGImportDiagnostic(code="SVG_MALFORMED_ASPECT_RATIO", severity="error", message=f"Invalid meetOrSlice: '{meet_or_slice}'"),
-                )
-
-            if align == "none":
-                sx = scene_w / vb_w
-                sy = scene_h / vb_h
-                tx = -min_x * sx
-                ty = -min_y * sy
-            else:
-                scale_x = scene_w / vb_w
-                scale_y = scene_h / vb_h
-                s = min(scale_x, scale_y) if meet_or_slice == "meet" else max(scale_x, scale_y)
-                sx, sy = s, s
-
-                if "xMin" in align:
-                    tx = -min_x * s
-                elif "xMax" in align:
-                    tx = (scene_w - vb_w * s) - min_x * s
-                else:  # xMid
-                    tx = (scene_w - vb_w * s) / 2.0 - min_x * s
-
-                if "yMin" in align:
-                    ty = -min_y * s
-                elif "yMax" in align:
-                    ty = (scene_h - vb_h * s) - min_y * s
-                else:  # yMid
-                    ty = (scene_h - vb_h * s) / 2.0 - min_y * s
-
-            M_viewbox = np.array([[sx, 0.0, tx], [0.0, sy, ty], [0.0, 0.0, 1.0]], dtype=np.float64)
-            effective_viewport = (vb_w, vb_h)
+        # Calculate viewBox transformation and root viewport context
+        M_viewbox, (eff_w, eff_h) = compute_viewbox_matrix(
+            vb_attr, float(scene_w), float(scene_h),
+            root.attrib.get("preserveAspectRatio", "xMidYMid meet"),
+            limits=self.limits,
+        )
+        effective_viewport = (eff_w, eff_h)
+        root_viewport = SVGViewportContext(width=eff_w, height=eff_h)
 
         scene = Scene(width=scene_w, height=scene_h, background=Color(0, 0, 0, 0))
         defs_registry = SVGDefsRegistry(self.limits)
@@ -1497,11 +1914,6 @@ class SVGImporter:
                 raise SVGImportError(
                     "SVG <pattern> is deferred in Milestone 1",
                     diagnostic=SVGImportDiagnostic(code="SVG_UNSUPPORTED_PATTERN", severity="error", message="SVG <pattern> deferred", element_tag=tag),
-                )
-            if tag_lower in ("use", "symbol"):
-                raise SVGImportError(
-                    "SVG <use>/<symbol> is deferred in Milestone 1",
-                    diagnostic=SVGImportDiagnostic(code="SVG_UNSUPPORTED_USE", severity="error", message="SVG <use>/<symbol> deferred", element_tag=tag),
                 )
 
             # Check external URLs in href attributes
@@ -1660,24 +2072,11 @@ class SVGImporter:
                     )
 
                 child_tag, child_elem = visual_children[0]
-                if child_tag not in ("path", "rect", "polygon", "polyline"):
+                if child_tag not in ("path", "rect", "polygon", "polyline", "circle", "ellipse"):
                     raise SVGImportError(
-                        f"Unsupported clipPath child geometry <{child_tag}> in Milestone 1 (circle, ellipse, line, and grouped clips are unsupported)",
+                        f"Unsupported clipPath child geometry <{child_tag}> (line and grouped clips are unsupported)",
                         diagnostic=SVGImportDiagnostic(code="SVG_UNSUPPORTED_CLIP_GEOMETRY", severity="error", message=f"Unsupported clip geometry <{child_tag}>"),
                     )
-
-                # If rect, reject rounded rect
-                if child_tag == "rect":
-                    rx_attr = child_elem.attrib.get("rx")
-                    ry_attr = child_elem.attrib.get("ry")
-                    if rx_attr or ry_attr:
-                        rx_val = SVGLength.parse(rx_attr, limits=self.limits).to_absolute(context_name="rx", limits=self.limits) if rx_attr else 0.0
-                        ry_val = SVGLength.parse(ry_attr, limits=self.limits).to_absolute(context_name="ry", limits=self.limits) if ry_attr else 0.0
-                        if rx_val > 0.0 or ry_val > 0.0:
-                            raise SVGImportError(
-                                "Rounded rectangle in <clipPath> is unsupported in Milestone 1 (requires curve approximation)",
-                                diagnostic=SVGImportDiagnostic(code="SVG_UNSUPPORTED_CLIP_GEOMETRY", severity="error", message="Rounded rect clip unsupported"),
-                            )
 
                 defs_registry.clip_templates[elem_id] = ClipPathTemplate(
                     id=elem_id,
@@ -1696,17 +2095,223 @@ class SVGImporter:
         # Pass 2: Visible Scene Graph Construction
         # ---------------------------------------------------------------------
         root_drawables: list[Drawable] = []
+        use_instance_count = 0
+        expanded_element_count = 0
+        visiting_ids: list[str] = []
+
+        def on_materialized(node: Drawable) -> Drawable:
+            nonlocal expanded_element_count
+            if visiting_ids:
+                expanded_element_count += 1
+                if expanded_element_count > self.limits.max_expanded_elements:
+                    raise SVGImportError(
+                        f"Expanded element count exceeded limit of {self.limits.max_expanded_elements}",
+                        diagnostic=SVGImportDiagnostic(
+                            code="SVG_RESOURCE_LIMIT_EXCEEDED",
+                            severity="error",
+                            message="Expanded element count exceeded limit",
+                            element_tag="use",
+                        ),
+                    )
+            return node
+
+        def check_affine_singular_for_arcs(matrix: np.ndarray, element_tag: str = "path") -> None:
+            """Validate that an affine transformation matrix is non-singular and well-conditioned for elliptical arcs."""
+            A = np.asarray(matrix[:2, :2], dtype=np.float64)
+            det_A = float(np.linalg.det(A))
+            if abs(det_A) < 1e-12 or float(np.linalg.cond(A)) > 1e10:
+                raise SVGImportError(
+                    f"Singular or near-singular transform (det={det_A:.2e}) on EllipticalArcTo cannot be represented",
+                    diagnostic=SVGImportDiagnostic(
+                        code="SVG_UNSUPPORTED_TRANSFORM",
+                        severity="error",
+                        message="Singular or near-singular transform on EllipticalArcTo",
+                        element_tag=element_tag,
+                    ),
+                )
+
+        def drawable_has_arcs(d: Drawable) -> bool:
+            if isinstance(d, Path):
+                return any(isinstance(cmd, EllipticalArcTo) for sub in d.subpaths for cmd in sub.commands)
+            return False
+
+        def apply_clip_path(
+            target_node: Drawable,
+            node_style: ComputedStyle,
+            owner_ctm: np.ndarray,
+            owner_viewport: SVGViewportContext,
+        ) -> None:
+            if not node_style.clip_path:
+                return
+
+            m_clip = RE_URL_REF.match(node_style.clip_path)
+            if not m_clip:
+                raise SVGImportError(
+                    f"Unsupported or malformed clip-path syntax: '{node_style.clip_path}'",
+                    diagnostic=SVGImportDiagnostic(
+                        code="SVG_UNSUPPORTED_CLIP_PATH",
+                        severity="error",
+                        message=f"Unsupported clip-path '{node_style.clip_path}'",
+                        attribute="clip-path",
+                    ),
+                )
+            clip_id = m_clip.group(1)
+            if clip_id not in defs_registry.clip_templates:
+                raise SVGImportError(
+                    f"Unresolved clipPath reference '#{clip_id}'",
+                    diagnostic=SVGImportDiagnostic(
+                        code="SVG_UNRESOLVED_REFERENCE",
+                        severity="error",
+                        message=f"Unresolved clipPath '#{clip_id}'",
+                    ),
+                )
+            cp_tmpl = defs_registry.clip_templates[clip_id]
+            if cp_tmpl.element is None:
+                raise SVGImportError(
+                    f"ClipPath '#{clip_id}' has no geometry",
+                    diagnostic=SVGImportDiagnostic(
+                        code="SVG_UNSUPPORTED_CLIP_GEOMETRY",
+                        severity="error",
+                        message="ClipPath has no geometry",
+                    ),
+                )
+
+            # For objectBoundingBox clip content, percentage geometry resolves in normalized [0, 1] x [0, 1] space
+            if cp_tmpl.clipPathUnits == "objectBoundingBox":
+                clip_vp = SVGViewportContext(width=1.0, height=1.0)
+            else:
+                clip_vp = owner_viewport
+
+            clip_style = SVGStyleResolver.resolve(cp_tmpl.element, cp_tmpl.computed_style, limits=self.limits)
+            clip_d = build_element(cp_tmpl.element, cp_tmpl.computed_style, np.eye(3, dtype=np.float64), clip_vp)
+            if clip_d is None:
+                raise SVGImportError(
+                    f"ClipPath '#{clip_id}' geometry produced no drawable",
+                    diagnostic=SVGImportDiagnostic(
+                        code="SVG_UNSUPPORTED_CLIP_GEOMETRY",
+                        severity="error",
+                        message="ClipPath geometry is empty",
+                    ),
+                )
+
+            # Compose transforms: M_child is clip_d's own local transform
+            M_child = clip_d.transform.get_matrix(Point(0, 0))
+            M_clip_base = cp_tmpl.transform @ M_child
+
+            if cp_tmpl.clipPathUnits == "objectBoundingBox":
+                bbox = target_node.get_geometry_bounds()
+                M_obb = np.array([
+                    [bbox.width, 0.0, bbox.x],
+                    [0.0, bbox.height, bbox.y],
+                    [0.0, 0.0, 1.0]
+                ], dtype=np.float64)
+                M_clip_total = M_obb @ M_clip_base
+            else:
+                M_clip_total = M_clip_base
+
+            clip_has_arcs = False
+            if isinstance(clip_d, Path):
+                clip_d.transform = Transform.from_matrix(M_clip_total)
+                clip_d.fill_rule = clip_style.clip_rule
+                target_node.clip = clip_d
+                clip_has_arcs = drawable_has_arcs(clip_d)
+            elif isinstance(clip_d, Rectangle) and np.allclose(M_clip_total, np.eye(3)):
+                target_node.clip = ClipRect(clip_d.position.x, clip_d.position.y, clip_d.width, clip_d.height)
+                clip_has_arcs = False
+            elif isinstance(clip_d, Rectangle):
+                p_clip = Path(fill_rule=clip_style.clip_rule)
+                p_clip.move_to(Point(clip_d.position.x, clip_d.position.y))
+                p_clip.line_to(Point(clip_d.position.x + clip_d.width, clip_d.position.y))
+                p_clip.line_to(Point(clip_d.position.x + clip_d.width, clip_d.position.y + clip_d.height))
+                p_clip.line_to(Point(clip_d.position.x, clip_d.position.y + clip_d.height))
+                p_clip.close()
+                p_clip.transform = Transform.from_matrix(M_clip_total)
+                target_node.clip = p_clip
+                clip_has_arcs = False
+            elif isinstance(clip_d, RoundedRectangle):
+                rx = clip_d.corner_radius
+                ry = clip_d.corner_radius
+                x, y, w, h = clip_d.x, clip_d.y, clip_d.width, clip_d.height
+                p_clip = Path(fill_rule=clip_style.clip_rule)
+                if rx <= 0.0 or ry <= 0.0:
+                    p_clip.move_to(Point(x, y))
+                    p_clip.line_to(Point(x + w, y))
+                    p_clip.line_to(Point(x + w, y + h))
+                    p_clip.line_to(Point(x, y + h))
+                    p_clip.close()
+                    p_clip.transform = Transform.from_matrix(M_clip_total)
+                    target_node.clip = p_clip
+                    clip_has_arcs = False
+                else:
+                    p_clip.move_to(Point(x + rx, y))
+                    p_clip.line_to(Point(x + w - rx, y))
+                    p_clip.arc_to(rx, ry, 0.0, False, True, x + w, y + ry)
+                    p_clip.line_to(Point(x + w, y + h - ry))
+                    p_clip.arc_to(rx, ry, 0.0, False, True, x + w - rx, y + h)
+                    p_clip.line_to(Point(x + rx, y + h))
+                    p_clip.arc_to(rx, ry, 0.0, False, True, x, y + h - ry)
+                    p_clip.line_to(Point(x, y + ry))
+                    p_clip.arc_to(rx, ry, 0.0, False, True, x + rx, y)
+                    p_clip.close()
+                    p_clip.transform = Transform.from_matrix(M_clip_total)
+                    target_node.clip = p_clip
+                    clip_has_arcs = True
+            elif isinstance(clip_d, Circle):
+                p_clip = Path(fill_rule=clip_style.clip_rule)
+                cx, cy, r = clip_d.center.x, clip_d.center.y, clip_d.radius
+                p_clip.move_to(Point(cx + r, cy))
+                p_clip.arc_to(r, r, 0.0, False, True, cx - r, cy)
+                p_clip.arc_to(r, r, 0.0, False, True, cx + r, cy)
+                p_clip.close()
+                p_clip.transform = Transform.from_matrix(M_clip_total)
+                target_node.clip = p_clip
+                clip_has_arcs = True
+            elif isinstance(clip_d, Ellipse):
+                p_clip = Path(fill_rule=clip_style.clip_rule)
+                cx, cy, rx, ry = clip_d.center.x, clip_d.center.y, clip_d.radius_x, clip_d.radius_y
+                p_clip.move_to(Point(cx + rx, cy))
+                p_clip.arc_to(rx, ry, 0.0, False, True, cx - rx, cy)
+                p_clip.arc_to(rx, ry, 0.0, False, True, cx + rx, cy)
+                p_clip.close()
+                p_clip.transform = Transform.from_matrix(M_clip_total)
+                target_node.clip = p_clip
+                clip_has_arcs = True
+            elif isinstance(clip_d, Polyline):
+                p_clip = Path(fill_rule=clip_style.clip_rule)
+                if clip_d.points:
+                    p_clip.move_to(clip_d.points[0])
+                    for pt in clip_d.points[1:]:
+                        p_clip.line_to(pt)
+                p_clip.close()
+                p_clip.transform = Transform.from_matrix(M_clip_total)
+                target_node.clip = p_clip
+                clip_has_arcs = False
+            else:
+                raise SVGImportError(
+                    f"Unsupported clip geometry '{type(clip_d).__name__}'",
+                    diagnostic=SVGImportDiagnostic(
+                        code="SVG_UNSUPPORTED_CLIP_GEOMETRY",
+                        severity="error",
+                        message=f"Unsupported clip geometry '{type(clip_d).__name__}'",
+                    ),
+                )
+
+            # Strict singular check covering clip arcs transformed into world coordinates during export
+            if clip_has_arcs:
+                check_affine_singular_for_arcs(owner_ctm @ M_clip_total, element_tag="clipPath")
 
         def build_element(
             elem: ET.Element,
             parent_style: ComputedStyle,
             cumulative_ctm: np.ndarray,
+            current_viewport: SVGViewportContext,
         ) -> Drawable | None:
+            nonlocal use_instance_count, expanded_element_count
             tag = extract_element_tag(elem.tag)
             tag_lower = tag.lower()
 
             # Skip non-visual elements in visible tree
-            if tag_lower in ("defs", "lineargradient", "radialgradient", "clippath", "title", "desc", "metadata"):
+            if tag_lower in ("defs", "lineargradient", "radialgradient", "clippath", "title", "desc", "metadata", "symbol"):
                 return None
 
             style = SVGStyleResolver.resolve(elem, parent_style, limits=self.limits)
@@ -1723,7 +2328,7 @@ class SVGImporter:
             if tag_lower == "g":
                 children_drawables: list[Drawable] = []
                 for child in elem:
-                    ch_d = build_element(child, style, element_ctm)
+                    ch_d = build_element(child, style, element_ctm, current_viewport)
                     if ch_d is not None:
                         children_drawables.append(ch_d)
                 drawable = Group(
@@ -1734,82 +2339,545 @@ class SVGImporter:
                     visible=True,  # Keeps group open so visibility:visible children can render
                 )
 
+            elif tag_lower == "svg":
+                # Nested <svg> establishing a new viewport
+                x = current_viewport.resolve_x(
+                    SVGLength.parse(elem.attrib.get("x", "0"), limits=self.limits),
+                    context_name="svg x",
+                    limits=self.limits,
+                )
+                y = current_viewport.resolve_y(
+                    SVGLength.parse(elem.attrib.get("y", "0"), limits=self.limits),
+                    context_name="svg y",
+                    limits=self.limits,
+                )
+                w_attr = elem.attrib.get("width")
+                h_attr = elem.attrib.get("height")
+                if w_attr is not None and w_attr.strip().lower() != "auto":
+                    W = current_viewport.resolve_x(SVGLength.parse(w_attr, limits=self.limits), context_name="svg width", limits=self.limits)
+                else:
+                    W = current_viewport.width
+                if h_attr is not None and h_attr.strip().lower() != "auto":
+                    H = current_viewport.resolve_y(SVGLength.parse(h_attr, limits=self.limits), context_name="svg height", limits=self.limits)
+                else:
+                    H = current_viewport.height
+
+                if W < 0 or H < 0:
+                    raise SVGImportError(
+                        f"Negative viewport dimension in <svg>: width={W}, height={H}",
+                        diagnostic=SVGImportDiagnostic(
+                            code="SVG_INVALID_ATTRIBUTE_VALUE",
+                            severity="error",
+                            message=f"Negative viewport dimension: width={W}, height={H}",
+                            element_tag="svg",
+                            attribute="width" if W < 0 else "height",
+                        ),
+                    )
+                if W == 0 or H == 0:
+                    return None
+
+                T_xy = np.array([
+                    [1.0, 0.0, float(x)],
+                    [0.0, 1.0, float(y)],
+                    [0.0, 0.0, 1.0],
+                ], dtype=np.float64)
+                T_host = tf_mat @ T_xy
+
+                eff_ov = style.overflow or "hidden"  # UA default for nested svg is hidden
+                if eff_ov in ("hidden", "scroll"):
+                    viewport_clip = ClipRect(0.0, 0.0, W, H)
+                else:
+                    viewport_clip = None
+
+                vb_attr = elem.attrib.get("viewBox")
+                par_attr = elem.attrib.get("preserveAspectRatio", "xMidYMid meet")
+                M_viewbox, inner_vp_dims = compute_viewbox_matrix(vb_attr, W, H, par_attr, limits=self.limits)
+                inner_viewport = SVGViewportContext(width=inner_vp_dims[0], height=inner_vp_dims[1])
+
+                inner_ctm = element_ctm @ T_xy @ M_viewbox
+                children_drawables = []
+                for child in elem:
+                    ch_d = build_element(child, style, inner_ctm, inner_viewport)
+                    if ch_d is not None:
+                        children_drawables.append(ch_d)
+
+                view_box_group = on_materialized(Group(
+                    children=children_drawables,
+                    transform=Transform.from_matrix(M_viewbox),
+                    visible=True,
+                ))
+                viewport_group = on_materialized(Group(
+                    children=[view_box_group],
+                    transform=Transform(),
+                    clip=viewport_clip,
+                    visible=True,
+                ))
+                drawable = Group(
+                    children=[viewport_group],
+                    transform=Transform.from_matrix(T_host),
+                    opacity=style.opacity,
+                    blend_mode=style.mix_blend_mode,
+                    visible=True,
+                )
+
+            elif tag_lower == "use":
+                use_instance_count += 1
+                if use_instance_count > self.limits.max_use_instances:
+                    raise SVGImportError(
+                        f"<use> instance count exceeded limit of {self.limits.max_use_instances}",
+                        diagnostic=SVGImportDiagnostic(
+                            code="SVG_RESOURCE_LIMIT_EXCEEDED",
+                            severity="error",
+                            message="Use instance count exceeded limit",
+                            element_tag="use",
+                        ),
+                    )
+
+                href_val = elem.attrib.get("href") or elem.attrib.get(f"{{{XLINK_NS}}}href")
+                if not href_val:
+                    return None
+                if not href_val.startswith("#"):
+                    raise SVGImportError(
+                        f"External reference '{href_val}' is forbidden in offline SVG import",
+                        diagnostic=SVGImportDiagnostic(
+                            code="SVG_UNSUPPORTED_EXTERNAL_REFERENCE",
+                            severity="error",
+                            message=f"External reference '{href_val}' forbidden",
+                            element_tag="use",
+                        ),
+                    )
+
+                target_id = href_val.lstrip("#")
+                if target_id in visiting_ids:
+                    raise SVGImportError(
+                        f"Reference cycle detected in <use>: '#{target_id}'",
+                        diagnostic=SVGImportDiagnostic(
+                            code="SVG_REFERENCE_CYCLE",
+                            severity="error",
+                            message=f"Reference cycle detected: '#{target_id}'",
+                            element_tag="use",
+                            source_id=target_id,
+                        ),
+                    )
+                if len(visiting_ids) >= self.limits.max_reference_depth:
+                    raise SVGImportError(
+                        f"Reference depth exceeded limit of {self.limits.max_reference_depth}",
+                        diagnostic=SVGImportDiagnostic(
+                            code="SVG_RESOURCE_LIMIT_EXCEEDED",
+                            severity="error",
+                            message="Reference depth exceeded limit",
+                            element_tag="use",
+                            source_id=target_id,
+                        ),
+                    )
+
+                if target_id not in defs_registry.elements_by_id:
+                    raise SVGImportError(
+                        f"Unresolved reference '#{target_id}' in <use>",
+                        diagnostic=SVGImportDiagnostic(
+                            code="SVG_UNRESOLVED_REFERENCE",
+                            severity="error",
+                            message=f"Unresolved reference '#{target_id}'",
+                            element_tag="use",
+                            source_id=target_id,
+                        ),
+                    )
+
+                target_elem = defs_registry.elements_by_id[target_id]
+                target_tag = extract_element_tag(target_elem.tag).lower()
+
+                use_x = current_viewport.resolve_x(
+                    SVGLength.parse(elem.attrib.get("x", "0"), limits=self.limits),
+                    context_name="use x",
+                    limits=self.limits,
+                )
+                use_y = current_viewport.resolve_y(
+                    SVGLength.parse(elem.attrib.get("y", "0"), limits=self.limits),
+                    context_name="use y",
+                    limits=self.limits,
+                )
+
+                use_w_attr = elem.attrib.get("width")
+                use_h_attr = elem.attrib.get("height")
+                if use_w_attr is not None and use_w_attr.strip().lower() != "auto":
+                    w_check = current_viewport.resolve_x(SVGLength.parse(use_w_attr, limits=self.limits), context_name="use width", limits=self.limits)
+                    if w_check < 0:
+                        raise SVGImportError(
+                            f"Negative width on <use>: {w_check}",
+                            diagnostic=SVGImportDiagnostic(
+                                code="SVG_INVALID_ATTRIBUTE_VALUE",
+                                severity="error",
+                                message=f"Negative width on <use>: {w_check}",
+                                element_tag="use",
+                                attribute="width",
+                            ),
+                        )
+                if use_h_attr is not None and use_h_attr.strip().lower() != "auto":
+                    h_check = current_viewport.resolve_y(SVGLength.parse(use_h_attr, limits=self.limits), context_name="use height", limits=self.limits)
+                    if h_check < 0:
+                        raise SVGImportError(
+                            f"Negative height on <use>: {h_check}",
+                            diagnostic=SVGImportDiagnostic(
+                                code="SVG_INVALID_ATTRIBUTE_VALUE",
+                                severity="error",
+                                message=f"Negative height on <use>: {h_check}",
+                                element_tag="use",
+                                attribute="height",
+                            ),
+                        )
+
+                T_xy = np.array([
+                    [1.0, 0.0, float(use_x)],
+                    [0.0, 1.0, float(use_y)],
+                    [0.0, 0.0, 1.0],
+                ], dtype=np.float64)
+                T_host = tf_mat @ T_xy
+
+                inherited_style = style.inherit_child()
+                visiting_ids.append(target_id)
+                try:
+                    if target_tag in ("symbol", "svg"):
+                        explicit_use_w = (use_w_attr is not None and use_w_attr.strip().lower() != "auto")
+                        explicit_use_h = (use_h_attr is not None and use_h_attr.strip().lower() != "auto")
+
+                        if explicit_use_w:
+                            W = current_viewport.resolve_x(
+                                SVGLength.parse(use_w_attr, limits=self.limits),
+                                context_name="use width",
+                                limits=self.limits,
+                            )
+                        else:
+                            tgt_w_attr = target_elem.attrib.get("width")
+                            if tgt_w_attr is not None and tgt_w_attr.strip().lower() != "auto":
+                                W = current_viewport.resolve_x(
+                                    SVGLength.parse(tgt_w_attr, limits=self.limits),
+                                    context_name="target width",
+                                    limits=self.limits,
+                                )
+                            else:
+                                W = current_viewport.width
+
+                        if explicit_use_h:
+                            H = current_viewport.resolve_y(
+                                SVGLength.parse(use_h_attr, limits=self.limits),
+                                context_name="use height",
+                                limits=self.limits,
+                            )
+                        else:
+                            tgt_h_attr = target_elem.attrib.get("height")
+                            if tgt_h_attr is not None and tgt_h_attr.strip().lower() != "auto":
+                                H = current_viewport.resolve_y(
+                                    SVGLength.parse(tgt_h_attr, limits=self.limits),
+                                    context_name="target height",
+                                    limits=self.limits,
+                                )
+                            else:
+                                H = current_viewport.height
+
+                        if W < 0 or H < 0:
+                            raise SVGImportError(
+                                f"Negative viewport dimension in <use>: width={W}, height={H}",
+                                diagnostic=SVGImportDiagnostic(
+                                    code="SVG_INVALID_ATTRIBUTE_VALUE",
+                                    severity="error",
+                                    message=f"Negative viewport dimension in <use>: width={W}, height={H}",
+                                    element_tag="use",
+                                    attribute="width" if W < 0 else "height",
+                                ),
+                            )
+                        if W == 0 or H == 0:
+                            return None
+
+                        tgt_tf_mat = SVGTransformParser.parse_to_matrix(target_elem.attrib.get("transform", ""), limits=self.limits)
+                        sym_x = current_viewport.resolve_x(
+                            SVGLength.parse(target_elem.attrib.get("x", "0"), limits=self.limits),
+                            context_name="target x",
+                            limits=self.limits,
+                        )
+                        sym_y = current_viewport.resolve_y(
+                            SVGLength.parse(target_elem.attrib.get("y", "0"), limits=self.limits),
+                            context_name="target y",
+                            limits=self.limits,
+                        )
+                        if sym_x != 0.0 or sym_y != 0.0:
+                            T_sym = np.array([
+                                [1.0, 0.0, float(sym_x)],
+                                [0.0, 1.0, float(sym_y)],
+                                [0.0, 0.0, 1.0],
+                            ], dtype=np.float64)
+                        else:
+                            T_sym = np.eye(3, dtype=np.float64)
+
+                        T_tgt_total = tgt_tf_mat @ T_sym
+
+                        tgt_style = SVGStyleResolver.resolve(target_elem, inherited_style, limits=self.limits)
+                        if target_tag == "svg" and tgt_style.display == "none":
+                            return None
+                        if target_tag == "symbol":
+                            tgt_style.display = "inline"
+                        # Do not let non-inherited overflow from <use> inherit into referenced svg/symbol
+                        eff_ov = tgt_style.overflow or "hidden"
+
+                        if eff_ov in ("hidden", "scroll"):
+                            viewport_clip = ClipRect(0.0, 0.0, W, H)
+                        else:
+                            viewport_clip = None
+
+                        vb_attr = target_elem.attrib.get("viewBox")
+                        par_attr = target_elem.attrib.get("preserveAspectRatio", "xMidYMid meet")
+                        M_viewbox, inner_vp_dims = compute_viewbox_matrix(
+                            vb_attr, W, H, par_attr, limits=self.limits
+                        )
+                        inner_viewport = SVGViewportContext(width=inner_vp_dims[0], height=inner_vp_dims[1])
+
+                        inner_ctm = element_ctm @ T_xy @ T_tgt_total @ M_viewbox
+                        instantiated_children = []
+                        for child in target_elem:
+                            ch_d = build_element(child, tgt_style, inner_ctm, inner_viewport)
+                            if ch_d is not None:
+                                instantiated_children.append(ch_d)
+
+                        view_box_group = on_materialized(Group(
+                            children=instantiated_children,
+                            transform=Transform.from_matrix(M_viewbox),
+                            visible=True,
+                        ))
+                        viewport_group = on_materialized(Group(
+                            children=[view_box_group],
+                            transform=Transform(),
+                            clip=viewport_clip,
+                            visible=True,
+                        ))
+
+                        target_has_state = (
+                            not np.allclose(T_tgt_total, np.eye(3))
+                            or tgt_style.opacity != 1.0
+                            or tgt_style.mix_blend_mode != BlendMode.NORMAL
+                            or tgt_style.clip_path is not None
+                        )
+                        if target_has_state:
+                            target_host = on_materialized(Group(
+                                children=[viewport_group],
+                                transform=Transform.from_matrix(T_tgt_total),
+                                opacity=tgt_style.opacity,
+                                blend_mode=tgt_style.mix_blend_mode,
+                                visible=True,
+                            ))
+                            if tgt_style.clip_path:
+                                target_ctm = element_ctm @ T_xy @ T_tgt_total
+                                apply_clip_path(target_host, tgt_style, target_ctm, current_viewport)
+                            top_child = target_host
+                        else:
+                            top_child = viewport_group
+
+                        drawable = Group(
+                            children=[top_child],
+                            transform=Transform.from_matrix(T_host),
+                            opacity=style.opacity,
+                            blend_mode=style.mix_blend_mode,
+                            visible=True,
+                        )
+
+                    else:
+                        inner_ctm = element_ctm @ T_xy
+                        target_drawable = build_element(target_elem, inherited_style, inner_ctm, current_viewport)
+                        if target_drawable is None:
+                            return None
+
+                        drawable = Group(
+                            children=[target_drawable],
+                            transform=Transform.from_matrix(T_host),
+                            opacity=style.opacity,
+                            blend_mode=style.mix_blend_mode,
+                            visible=True,
+                        )
+
+                    source_id = elem.attrib.get("id")
+                    if source_id:
+                        drawable.name = source_id
+                        drawable.metadata["svg:id"] = source_id
+                    drawable.metadata["svg:tag"] = tag
+
+                    if style.clip_path:
+                        apply_clip_path(drawable, style, element_ctm, current_viewport)
+
+                    return on_materialized(drawable)
+                finally:
+                    visiting_ids.pop()
+
             elif tag_lower == "path":
                 d_str = elem.attrib.get("d", "")
                 drawable = SVGPathParser.parse(d_str, fill_rule=style.fill_rule, limits=self.limits)
+                if drawable_has_arcs(drawable):
+                    check_affine_singular_for_arcs(element_ctm, element_tag="path")
                 drawable.transform = Transform.from_matrix(tf_mat)
 
             elif tag_lower == "rect":
-                x = SVGLength.parse(elem.attrib.get("x", "0"), limits=self.limits).to_absolute(context_name="rect x", limits=self.limits)
-                y = SVGLength.parse(elem.attrib.get("y", "0"), limits=self.limits).to_absolute(context_name="rect y", limits=self.limits)
-                w = SVGLength.parse(elem.attrib.get("width", "0"), limits=self.limits).to_absolute(context_name="rect width", limits=self.limits)
-                h = SVGLength.parse(elem.attrib.get("height", "0"), limits=self.limits).to_absolute(context_name="rect height", limits=self.limits)
+                x = current_viewport.resolve_x(SVGLength.parse(elem.attrib.get("x", "0"), limits=self.limits), context_name="rect x", limits=self.limits)
+                y = current_viewport.resolve_y(SVGLength.parse(elem.attrib.get("y", "0"), limits=self.limits), context_name="rect y", limits=self.limits)
+                w = current_viewport.resolve_x(SVGLength.parse(elem.attrib.get("width", "0"), limits=self.limits), context_name="rect width", limits=self.limits)
+                h = current_viewport.resolve_y(SVGLength.parse(elem.attrib.get("height", "0"), limits=self.limits), context_name="rect height", limits=self.limits)
 
                 if w < 0 or h < 0:
-                    raise SVGImportError("Rectangle dimensions must be non-negative")
+                    raise SVGImportError(
+                        f"Rectangle dimensions must be non-negative: width={w}, height={h}",
+                        diagnostic=SVGImportDiagnostic(
+                            code="SVG_INVALID_ATTRIBUTE_VALUE",
+                            severity="error",
+                            message=f"Negative rectangle dimension: width={w}, height={h}",
+                            element_tag="rect",
+                            attribute="width" if w < 0 else "height",
+                        ),
+                    )
                 if w == 0 or h == 0:
                     return None  # SVG spec: zero-dimension rect is omitted
 
                 rx_attr = elem.attrib.get("rx")
                 ry_attr = elem.attrib.get("ry")
+                rx_is_auto = (rx_attr is None or rx_attr.strip().lower() == "auto")
+                ry_is_auto = (ry_attr is None or ry_attr.strip().lower() == "auto")
 
-                if rx_attr is None and ry_attr is None:
+                if rx_is_auto and ry_is_auto:
                     drawable = Rectangle(position=Point(x, y), width=w, height=h)
                 else:
-                    rx_val = SVGLength.parse(rx_attr, limits=self.limits).to_absolute(context_name="rx", limits=self.limits) if rx_attr else None
-                    ry_val = SVGLength.parse(ry_attr, limits=self.limits).to_absolute(context_name="ry", limits=self.limits) if ry_attr else None
-
-                    if rx_val is not None and rx_val < 0:
-                        raise SVGImportError("Negative rx is invalid")
-                    if ry_val is not None and ry_val < 0:
-                        raise SVGImportError("Negative ry is invalid")
+                    rx_val: float | None = None
+                    if not rx_is_auto:
+                        rx_len = SVGLength.parse(rx_attr, limits=self.limits)
+                        rx_val = rx_len.to_absolute(reference_length=w, context_name="rx", limits=self.limits)
+                        if rx_val < 0:
+                            raise SVGImportError(
+                                f"Negative rect rx: {rx_val}",
+                                diagnostic=SVGImportDiagnostic(
+                                    code="SVG_INVALID_ATTRIBUTE_VALUE",
+                                    severity="error",
+                                    message=f"Negative rx: {rx_val}",
+                                    element_tag="rect",
+                                    attribute="rx",
+                                ),
+                            )
+                    ry_val: float | None = None
+                    if not ry_is_auto:
+                        ry_len = SVGLength.parse(ry_attr, limits=self.limits)
+                        ry_val = ry_len.to_absolute(reference_length=h, context_name="ry", limits=self.limits)
+                        if ry_val < 0:
+                            raise SVGImportError(
+                                f"Negative rect ry: {ry_val}",
+                                diagnostic=SVGImportDiagnostic(
+                                    code="SVG_INVALID_ATTRIBUTE_VALUE",
+                                    severity="error",
+                                    message=f"Negative ry: {ry_val}",
+                                    element_tag="rect",
+                                    attribute="ry",
+                                ),
+                            )
 
                     eff_rx = rx_val if rx_val is not None else ry_val
                     eff_ry = ry_val if ry_val is not None else rx_val
 
-                    # Clamp per W3C SVG used-value rules
-                    eff_rx = min(eff_rx, w / 2.0)
-                    eff_ry = min(eff_ry, h / 2.0)
-
-                    if eff_rx <= 0 or eff_ry <= 0:
+                    if eff_rx == 0.0 or eff_ry == 0.0:
                         drawable = Rectangle(position=Point(x, y), width=w, height=h)
-                    elif math.isclose(eff_rx, eff_ry, rel_tol=1e-7, abs_tol=1e-7):
-                        drawable = RoundedRectangle(x=x, y=y, width=w, height=h, corner_radius=eff_rx)
                     else:
-                        raise SVGImportError(
-                            f"Elliptical rounded rectangle (rx={eff_rx}, ry={eff_ry}) is not supported in Milestone 1",
-                            diagnostic=SVGImportDiagnostic(code="SVG_UNSUPPORTED_ELLIPTICAL_ROUNDED_RECT", severity="error", message="Elliptical rounded rect unsupported"),
-                        )
+                        # Clamp per W3C SVG used-value rules (50% max)
+                        eff_rx = min(eff_rx, w / 2.0)
+                        eff_ry = min(eff_ry, h / 2.0)
+
+                        if math.isclose(eff_rx, eff_ry, rel_tol=1e-7, abs_tol=1e-7):
+                            drawable = RoundedRectangle(x=x, y=y, width=w, height=h, corner_radius=eff_rx)
+                        else:
+                            # Non-uniform rounded rect using exact EllipticalArcTo
+                            p = Path(fill_rule=style.fill_rule)
+                            p.move_to(Point(x + eff_rx, y))
+                            p.line_to(Point(x + w - eff_rx, y))
+                            p.arc_to(eff_rx, eff_ry, 0.0, False, True, x + w, y + eff_ry)
+                            p.line_to(Point(x + w, y + h - eff_ry))
+                            p.arc_to(eff_rx, eff_ry, 0.0, False, True, x + w - eff_rx, y + h)
+                            p.line_to(Point(x + eff_rx, y + h))
+                            p.arc_to(eff_rx, eff_ry, 0.0, False, True, x, y + h - eff_ry)
+                            p.line_to(Point(x, y + eff_ry))
+                            p.arc_to(eff_rx, eff_ry, 0.0, False, True, x + eff_rx, y)
+                            p.close()
+                            check_affine_singular_for_arcs(element_ctm, element_tag="rect")
+                            drawable = p
                 drawable.transform = Transform.from_matrix(tf_mat)
 
             elif tag_lower == "circle":
-                cx = SVGLength.parse(elem.attrib.get("cx", "0"), limits=self.limits).to_absolute(context_name="circle cx", limits=self.limits)
-                cy = SVGLength.parse(elem.attrib.get("cy", "0"), limits=self.limits).to_absolute(context_name="circle cy", limits=self.limits)
-                r = SVGLength.parse(elem.attrib.get("r", "0"), limits=self.limits).to_absolute(context_name="circle r", limits=self.limits)
+                cx = current_viewport.resolve_x(SVGLength.parse(elem.attrib.get("cx", "0"), limits=self.limits), context_name="circle cx", limits=self.limits)
+                cy = current_viewport.resolve_y(SVGLength.parse(elem.attrib.get("cy", "0"), limits=self.limits), context_name="circle cy", limits=self.limits)
+                r = current_viewport.resolve_diagonal(SVGLength.parse(elem.attrib.get("r", "0"), limits=self.limits), context_name="circle r", limits=self.limits)
                 if r < 0:
-                    raise SVGImportError("Circle radius must be non-negative")
+                    raise SVGImportError(
+                        f"Circle radius must be non-negative: {r}",
+                        diagnostic=SVGImportDiagnostic(
+                            code="SVG_INVALID_ATTRIBUTE_VALUE",
+                            severity="error",
+                            message=f"Negative circle radius: {r}",
+                            element_tag="circle",
+                            attribute="r",
+                        ),
+                    )
                 if r == 0:
                     return None
                 drawable = Circle(center=Point(cx, cy), radius=r)
                 drawable.transform = Transform.from_matrix(tf_mat)
 
             elif tag_lower == "ellipse":
-                cx = SVGLength.parse(elem.attrib.get("cx", "0"), limits=self.limits).to_absolute(context_name="ellipse cx", limits=self.limits)
-                cy = SVGLength.parse(elem.attrib.get("cy", "0"), limits=self.limits).to_absolute(context_name="ellipse cy", limits=self.limits)
-                rx = SVGLength.parse(elem.attrib.get("rx", "0"), limits=self.limits).to_absolute(context_name="ellipse rx", limits=self.limits)
-                ry = SVGLength.parse(elem.attrib.get("ry", "0"), limits=self.limits).to_absolute(context_name="ellipse ry", limits=self.limits)
-                if rx < 0 or ry < 0:
-                    raise SVGImportError("Ellipse radii must be non-negative")
-                if rx == 0 or ry == 0:
+                cx = current_viewport.resolve_x(SVGLength.parse(elem.attrib.get("cx", "0"), limits=self.limits), context_name="ellipse cx", limits=self.limits)
+                cy = current_viewport.resolve_y(SVGLength.parse(elem.attrib.get("cy", "0"), limits=self.limits), context_name="ellipse cy", limits=self.limits)
+
+                rx_attr = elem.attrib.get("rx")
+                ry_attr = elem.attrib.get("ry")
+                rx_is_auto = (rx_attr is None or rx_attr.strip().lower() == "auto")
+                ry_is_auto = (ry_attr is None or ry_attr.strip().lower() == "auto")
+
+                if rx_is_auto and ry_is_auto:
+                    return None  # SVG2: both auto -> non-rendering ellipse
+
+                rx_val: float | None = None
+                if not rx_is_auto:
+                    rx_len = SVGLength.parse(rx_attr, limits=self.limits)
+                    rx_val = current_viewport.resolve_x(rx_len, context_name="ellipse rx", limits=self.limits)
+                    if rx_val < 0:
+                        raise SVGImportError(
+                            f"Ellipse rx must be non-negative: rx={rx_val}",
+                            diagnostic=SVGImportDiagnostic(
+                                code="SVG_INVALID_ATTRIBUTE_VALUE",
+                                severity="error",
+                                message=f"Negative ellipse radius: rx={rx_val}",
+                                element_tag="ellipse",
+                                attribute="rx",
+                            ),
+                        )
+
+                ry_val: float | None = None
+                if not ry_is_auto:
+                    ry_len = SVGLength.parse(ry_attr, limits=self.limits)
+                    ry_val = current_viewport.resolve_y(ry_len, context_name="ellipse ry", limits=self.limits)
+                    if ry_val < 0:
+                        raise SVGImportError(
+                            f"Ellipse ry must be non-negative: ry={ry_val}",
+                            diagnostic=SVGImportDiagnostic(
+                                code="SVG_INVALID_ATTRIBUTE_VALUE",
+                                severity="error",
+                                message=f"Negative ellipse radius: ry={ry_val}",
+                                element_tag="ellipse",
+                                attribute="ry",
+                            ),
+                        )
+
+                eff_rx = rx_val if rx_val is not None else ry_val
+                eff_ry = ry_val if ry_val is not None else rx_val
+
+                if eff_rx <= 0 or eff_ry <= 0:
                     return None
-                drawable = Ellipse(center=Point(cx, cy), radius_x=rx, radius_y=ry)
+
+                drawable = Ellipse(center=Point(cx, cy), radius_x=eff_rx, radius_y=eff_ry)
                 drawable.transform = Transform.from_matrix(tf_mat)
 
             elif tag_lower == "line":
-                x1 = SVGLength.parse(elem.attrib.get("x1", "0"), limits=self.limits).to_absolute(context_name="line x1", limits=self.limits)
-                y1 = SVGLength.parse(elem.attrib.get("y1", "0"), limits=self.limits).to_absolute(context_name="line y1", limits=self.limits)
-                x2 = SVGLength.parse(elem.attrib.get("x2", "0"), limits=self.limits).to_absolute(context_name="line x2", limits=self.limits)
-                y2 = SVGLength.parse(elem.attrib.get("y2", "0"), limits=self.limits).to_absolute(context_name="line y2", limits=self.limits)
+                x1 = current_viewport.resolve_x(SVGLength.parse(elem.attrib.get("x1", "0"), limits=self.limits), context_name="line x1", limits=self.limits)
+                y1 = current_viewport.resolve_y(SVGLength.parse(elem.attrib.get("y1", "0"), limits=self.limits), context_name="line y1", limits=self.limits)
+                x2 = current_viewport.resolve_x(SVGLength.parse(elem.attrib.get("x2", "0"), limits=self.limits), context_name="line x2", limits=self.limits)
+                y2 = current_viewport.resolve_y(SVGLength.parse(elem.attrib.get("y2", "0"), limits=self.limits), context_name="line y2", limits=self.limits)
                 drawable = Line(start=Point(x1, y1), end=Point(x2, y2))
                 drawable.transform = Transform.from_matrix(tf_mat)
 
@@ -1894,7 +2962,10 @@ class SVGImporter:
             drawable.metadata["svg:tag"] = tag
 
             # Apply visibility
-            drawable.visible = (style.visibility not in ("hidden", "collapse"))
+            if not isinstance(drawable, Group):
+                drawable.visible = (style.visibility not in ("hidden", "collapse"))
+            else:
+                drawable.visible = True
 
             # Non-group opacity & blend mode
             if not isinstance(drawable, Group):
@@ -1911,7 +2982,7 @@ class SVGImporter:
                             diagnostic=SVGImportDiagnostic(code="SVG_MALFORMED_URL_REFERENCE", severity="error", message=f"Malformed fill url '{style.fill}'", attribute="fill"),
                         )
                     ref_id = m_url.group(1)
-                    paint_res = bind_paint_server(ref_id, drawable, defs_registry, effective_viewport, element_ctm)
+                    paint_res = bind_paint_server(ref_id, drawable, defs_registry, current_viewport, element_ctm)
                     if paint_res is not None:
                         if isinstance(paint_res, Color):
                             drawable.fill = FillStyle(color=paint_res, opacity=style.fill_opacity)
@@ -1927,12 +2998,32 @@ class SVGImporter:
                         drawable.fill = None
 
             # Apply Stroke
-            if hasattr(drawable, "stroke") and style.stroke and style.stroke.lower() != "none" and style.stroke_width > 0:
+            eff_sw = style.stroke_width
+            if style.raw_stroke_width is not None and style.raw_stroke_width.unit == "%":
+                eff_sw = current_viewport.resolve_diagonal(style.raw_stroke_width, context_name="stroke-width", limits=self.limits)
+
+            eff_dashes = style.stroke_dasharray
+            if style.raw_stroke_dasharray is not None and any(l.unit == "%" for l in style.raw_stroke_dasharray):
+                dashes = []
+                for parsed_l in style.raw_stroke_dasharray:
+                    val = current_viewport.resolve_diagonal(parsed_l, context_name="stroke-dasharray", limits=self.limits)
+                    if val < 0.0:
+                        raise SVGImportError("Negative stroke-dasharray value")
+                    dashes.append(val)
+                if len(dashes) % 2 == 1:
+                    dashes = dashes * 2
+                eff_dashes = tuple(dashes)
+
+            eff_offset = style.stroke_dashoffset
+            if style.raw_stroke_dashoffset is not None and style.raw_stroke_dashoffset.unit == "%":
+                eff_offset = current_viewport.resolve_diagonal(style.raw_stroke_dashoffset, context_name="stroke-dashoffset", limits=self.limits)
+
+            if hasattr(drawable, "stroke") and style.stroke and style.stroke.lower() != "none" and eff_sw > 0:
                 # Check stroke transform compatibility
                 scaled_w, scaled_dashes, scaled_offset = evaluate_stroke_compatibility(
-                    style.stroke_width,
-                    style.stroke_dasharray,
-                    style.stroke_dashoffset,
+                    eff_sw,
+                    eff_dashes,
+                    eff_offset,
                     element_ctm,
                     style.vector_effect,
                     element_tag=tag,
@@ -1946,7 +3037,7 @@ class SVGImporter:
                             diagnostic=SVGImportDiagnostic(code="SVG_MALFORMED_URL_REFERENCE", severity="error", message=f"Malformed stroke url '{style.stroke}'", attribute="stroke"),
                         )
                     ref_id = m_url.group(1)
-                    paint_res = bind_paint_server(ref_id, drawable, defs_registry, effective_viewport, element_ctm)
+                    paint_res = bind_paint_server(ref_id, drawable, defs_registry, current_viewport, element_ctm)
                     if paint_res is not None:
                         st_kw = {
                             "width": scaled_w,
@@ -1981,95 +3072,34 @@ class SVGImporter:
 
             # Apply ClipPath
             if style.clip_path:
-                m_clip = RE_URL_REF.match(style.clip_path)
-                if not m_clip:
-                    raise SVGImportError(
-                        f"Unsupported or malformed clip-path syntax: '{style.clip_path}'",
-                        diagnostic=SVGImportDiagnostic(code="SVG_UNSUPPORTED_CLIP_PATH", severity="error", message=f"Unsupported clip-path '{style.clip_path}'", attribute="clip-path"),
-                    )
-                clip_id = m_clip.group(1)
-                if clip_id not in defs_registry.clip_templates:
-                    raise SVGImportError(
-                        f"Unresolved clipPath reference '#{clip_id}'",
-                        diagnostic=SVGImportDiagnostic(code="SVG_UNRESOLVED_REFERENCE", severity="error", message=f"Unresolved clipPath '#{clip_id}'"),
-                    )
-                cp_tmpl = defs_registry.clip_templates[clip_id]
-                if cp_tmpl.element is None:
-                    raise SVGImportError(
-                        f"ClipPath '#{clip_id}' has no geometry",
-                        diagnostic=SVGImportDiagnostic(code="SVG_UNSUPPORTED_CLIP_GEOMETRY", severity="error", message="ClipPath has no geometry"),
-                    )
+                apply_clip_path(drawable, style, element_ctm, current_viewport)
 
-                # Build clip geometry child
-                clip_style = SVGStyleResolver.resolve(cp_tmpl.element, cp_tmpl.computed_style, limits=self.limits)
-                clip_d = build_element(cp_tmpl.element, cp_tmpl.computed_style, np.eye(3, dtype=np.float64))
-                if clip_d is None:
-                    raise SVGImportError(
-                        f"ClipPath '#{clip_id}' geometry produced no drawable",
-                        diagnostic=SVGImportDiagnostic(code="SVG_UNSUPPORTED_CLIP_GEOMETRY", severity="error", message="ClipPath geometry is empty"),
-                    )
-
-                # Compose transforms: M_child is clip_d's own local transform
-                M_child = clip_d.transform.get_matrix(Point(0, 0))
-                M_clip_base = cp_tmpl.transform @ M_child
-
-                if cp_tmpl.clipPathUnits == "objectBoundingBox":
-                    bbox = drawable.get_geometry_bounds()
-                    M_obb = np.array([
-                        [bbox.width, 0.0, bbox.x],
-                        [0.0, bbox.height, bbox.y],
-                        [0.0, 0.0, 1.0]
-                    ], dtype=np.float64)
-                    M_clip_total = M_obb @ M_clip_base
-                else:
-                    # userSpaceOnUse: M_clip = M_clipPath @ M_child
-                    M_clip_total = M_clip_base
-
-                if isinstance(clip_d, Path):
-                    clip_d.transform = Transform.from_matrix(M_clip_total)
-                    clip_d.fill_rule = clip_style.clip_rule
-                    drawable.clip = clip_d
-                elif isinstance(clip_d, Rectangle) and np.allclose(M_clip_total, np.eye(3)):
-                    drawable.clip = ClipRect(clip_d.position.x, clip_d.position.y, clip_d.width, clip_d.height)
-                elif isinstance(clip_d, Rectangle):
-                    p_clip = Path(fill_rule=clip_style.clip_rule)
-                    p_clip.move_to(Point(clip_d.position.x, clip_d.position.y))
-                    p_clip.line_to(Point(clip_d.position.x + clip_d.width, clip_d.position.y))
-                    p_clip.line_to(Point(clip_d.position.x + clip_d.width, clip_d.position.y + clip_d.height))
-                    p_clip.line_to(Point(clip_d.position.x, clip_d.position.y + clip_d.height))
-                    p_clip.close()
-                    p_clip.transform = Transform.from_matrix(M_clip_total)
-                    drawable.clip = p_clip
-                elif isinstance(clip_d, Polyline):
-                    p_clip = Path(fill_rule=clip_style.clip_rule)
-                    if clip_d.points:
-                        p_clip.move_to(clip_d.points[0])
-                        for pt in clip_d.points[1:]:
-                            p_clip.line_to(pt)
-                        p_clip.close()
-                    p_clip.transform = Transform.from_matrix(M_clip_total)
-                    drawable.clip = p_clip
-                else:
-                    raise SVGImportError(
-                        f"Unsupported clip geometry '{type(clip_d).__name__}'",
-                        diagnostic=SVGImportDiagnostic(code="SVG_UNSUPPORTED_CLIP_GEOMETRY", severity="error", message=f"Unsupported clip geometry '{type(clip_d).__name__}'"),
-                    )
-
-            return drawable
+            return on_materialized(drawable)
 
         # Build all top-level children
         root_style = SVGStyleResolver.resolve(root, limits=self.limits)
+        root_clip = ClipRect(0.0, 0.0, float(scene_w), float(scene_h)) if root_style.overflow in ("hidden", "scroll") else None
+
         for child in root:
-            d = build_element(child, root_style, M_viewbox)
+            d = build_element(child, root_style, M_viewbox, root_viewport)
             if d is not None:
                 root_drawables.append(d)
 
         # Attach to Scene default layer
         if not np.allclose(M_viewbox, np.eye(3)):
-            # Wrap in synthetic root Group to preserve viewBox mapping
-            root_group = Group(children=root_drawables, transform=Transform.from_matrix(M_viewbox))
-            root_group.metadata["svg:root_viewbox"] = True
-            scene.add(root_group)
+            # Separate RootViewportGroup (clip in viewport space) from RootViewBoxGroup (transform=M_viewbox)
+            viewbox_group = Group(children=root_drawables, transform=Transform.from_matrix(M_viewbox))
+            viewbox_group.metadata["svg:root_viewbox"] = True
+            if root_clip is not None:
+                root_viewport_group = Group(children=[viewbox_group], clip=root_clip)
+                root_viewport_group.metadata["svg:root_viewport"] = True
+                scene.add(root_viewport_group)
+            else:
+                scene.add(viewbox_group)
+        elif root_clip is not None:
+            root_viewport_group = Group(children=root_drawables, clip=root_clip)
+            root_viewport_group.metadata["svg:root_viewport"] = True
+            scene.add(root_viewport_group)
         else:
             for d in root_drawables:
                 scene.add(d)

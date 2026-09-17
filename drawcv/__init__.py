@@ -123,6 +123,7 @@ from drawcv.shapes.line import Line
 from drawcv.shapes.path import (
     Close,
     CubicTo,
+    EllipticalArcTo,
     LineTo,
     MoveTo,
     Path,
@@ -234,6 +235,7 @@ __all__ = [
     "EdgeDetectionMethod",
     "Effect",
     "Ellipse",
+    "EllipticalArcTo",
     "EmbossEffect",
     "FillRule",
     "FillStyle",

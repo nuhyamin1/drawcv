@@ -76,7 +76,7 @@ antialiasing. Use PNG export for exact raster reproduction.
 
 ## Persistence, import and animation
 
-JSON remains the primary editable DrawCV format at schema 1.7. DrawCV also provides a native,
+JSON remains the primary editable DrawCV format at schema 1.8 (with migration from 1.7 to 1.8). DrawCV also provides a native,
 high-fidelity retained SVG importer (`SVGImporter`) for supported SVG vector documents:
 
 ```python
@@ -96,17 +96,25 @@ scene = result.scene
 
 Anything accepted by `SVGImporter` in strict mode becomes genuine retained DrawCV objects, and subsequent export with `SVGExporter(strict=True)` succeeds with zero PNG raster fallbacks. Zero hidden rasterization is performed in the importer.
 
-### Supported import subset (Milestone 1)
+### Supported import subset (Milestones 1 & 2)
 
-* **Shapes and paths**: `<path>` (M/m, L/l, Q/q, C/c, Z/z, compound paths, `fill-rule` nonzero and evenodd), `<rect>` (square and circular rounded rectangles with $rx=ry$), `<circle>`, `<ellipse>`, `<line>`, `<polyline>` (unfilled maps to `Polyline`, filled maps to open `Path`), `<polygon>` (maps to closed `Path`), `<g>`.
+* **Shapes and paths**: `<path>` (M/m, L/l, H/h, V/v, C/c, S/s, Q/q, T/t, A/a, Z/z, compound paths, `fill-rule` nonzero and evenodd), `<rect>` (square and non-uniform rounded rectangles with exact `EllipticalArcTo`), `<circle>`, `<ellipse>`, `<line>`, `<polyline>` (unfilled maps to `Polyline`, filled maps to open `Path`), `<polygon>` (maps to closed `Path`), `<g>`. Path numeric lexer strictly conforms to SVG grammar (supporting trailing decimals such as `1.`, `-2.`, `1.e2` and rejecting invalid separators).
+* **Elliptical arc command (`EllipticalArcTo`)**: Exact native retained representation for elliptical arcs with parameters `radius_x`, `radius_y`, `x_axis_rotation`, `large_arc`, `sweep`, and `end`. Canonical JSON serialization discriminator is `"type": "elliptical_arc_to"`. Evaluated via world-space adaptive subdivision (chord midpoint test $\le \text{tol}$) under arbitrary affine transforms, exact progressive slicing via numerical integration over $[\theta_1, \theta_1 + \Delta\theta]$, and exact SVD-based affine transformation. Singular or near-singular transforms are strictly rejected at import and export.
+* **`<use>` and `<symbol>` instantiation**: Full 4-tier retained hierarchy:
+  1. `UseHostGroup`: hosts `T_use @ T_xy`, use-level opacity, mix-blend-mode, and use-level `clip-path`.
+  2. `TargetHostGroup`: hosts referenced `<svg>`/`<symbol>` authored transforms, opacity, blend mode, and element-level `clip-path`.
+  3. `ViewportGroup`: hosts viewport overflow clipping (`ClipRect(0, 0, W, H)` for `overflow: hidden` or UA defaults) in local viewport coordinates.
+  4. `ViewBoxGroup`: hosts `M_viewBox` coordinate mapping and instantiated children.
+  Non-viewport referenced targets (e.g. `<path>`, `<rect>`, `<g>`) instantiate directly into a single `UseHostGroup` without superfluous viewport layers.
+* **Viewport overflow and coordinate spaces**: Viewport clipping for nested `<svg>`, `<symbol>`, and root `<svg>` operates in viewport coordinates outside the viewBox-transformed group (`RootViewportGroup` outside `RootViewBoxGroup`). UA default `overflow: hidden` is applied for nested `<svg>` and `<symbol>` unless explicitly set to `visible`. Non-inherited `overflow` on `<use>` does not leak into referenced viewports.
+* **Clipping**: Retained path clipping via `<clipPath>` (`userSpaceOnUse` and `objectBoundingBox`), clip transforms, and `clip-rule`. Supports exact geometry children from `<path>`, `<rect>`, rounded `<rect>`, `<circle>`, `<ellipse>`, `<polygon>`, and `<polyline>` with transform composition ($M_{\text{clipPath}} \cdot M_{\text{child}}$). For `objectBoundingBox`, percentage geometry resolves in normalized `[0, 1]` viewport space before bounding-box mapping. Singular transforms on drawables with elliptical clips are strictly rejected.
 * **Transforms**: `matrix`, `translate`, `scale`, `rotate` (with pivot), `skewX`, `skewY`, and transform lists multiplied in SVG left-to-right composition order.
 * **Style and cascade**: Presentation attributes and inline `style=""` declarations with full inheritance cascade; colors (`#hex`, `rgb()`, `rgba()`, 147 named CSS colors, `currentColor`, `none`, `transparent`); `display: none` subtree pruning; `visibility: hidden` with child `visibility: visible` override.
 * **Stroke compatibility**: Ordinary strokes under uniform scale or reflection are normalized; strokes under anisotropic scaling or shear are strictly rejected (`SVG_STROKE_AFFINE_MISMATCH`) unless `vector-effect="non-scaling-stroke"` is declared.
 * **Paint servers**: `<linearGradient>` and centered `<radialGradient>` in `objectBoundingBox` and `userSpaceOnUse`; context-aware percentage resolution in `userSpaceOnUse`; stop normalization (monotonicity, clamping, duplicate handling); template `href` inheritance; reference cycle detection; zero-size geometry bounding box handling.
-* **Clipping**: Retained path clipping via `<clipPath>` (`userSpaceOnUse` and `objectBoundingBox`), clip transforms, and `clip-rule`. Supports a single exact geometry child from the `<path>`, non-rounded `<rect>`, `<polygon>`, and `<polyline>` subset with transform composition ($M_{\text{clipPath}} \cdot M_{\text{child}}$). Circular/elliptical/line clips, rounded rectangles, multiple clip children, and empty clip paths are strictly rejected (`SVG_UNSUPPORTED_CLIP_GEOMETRY`).
 * **Compositing**: 12 supported `mix-blend-mode` values on shapes and groups. CSS `isolation: isolate` is strictly rejected.
-* **Security & limits**: XML `DOCTYPE` and `ENTITY` declarations are forbidden (`SVG_SECURITY_VIOLATION`), external URLs in `href` are forbidden, and configurable limits protect against CPU exhaustion.
-* **Deferred constructs**: `<mask>`, `<filter>`, `<text>`, `<image>`, `<pattern>`, `<use>`, `<symbol>`, percentage dimensions outside gradients, elliptical rounded corners ($rx \ne ry$), and path arc `A` commands are deferred to subsequent milestones.
+* **Security & limits**: XML `DOCTYPE` and `ENTITY` declarations are forbidden (`SVG_SECURITY_VIOLATION`), external URLs in `href` are forbidden, reference cycles in `<use>` are detected and rejected (`SVG_REFERENCE_CYCLE`), and configurable limits protect against CPU/memory exhaustion (`max_use_instances`, exact `max_expanded_elements`, `max_reference_depth`, `max_file_bytes`, `max_elements`, etc.).
+* **Deferred constructs**: `<mask>`, `<filter>`, `<text>`, `<image>`, and `<pattern>` are deferred to subsequent milestones.
 
 Groups carry `data-drawcv-id`; generated SVG IDs are unique and deterministic for the
 same scene frame.

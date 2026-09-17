@@ -35,6 +35,7 @@ from drawcv import (
     CubicTo,
     Drawable,
     Ellipse,
+    EllipticalArcTo,
     FillRule,
     FillStyle,
     GradientStop,
@@ -173,9 +174,9 @@ class TestSVGPathParser:
         assert scene_eo.objects[0].fill_rule == FillRule.EVEN_ODD
 
     def test_unsupported_path_commands_rejected(self):
-        # Arc command 'A' is deferred in Milestone 1
+        # Non-standard / unsupported path command 'B'
         svg = """<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
-          <path d="M 10 10 A 5 5 0 0 0 20 20"/>
+          <path d="M 10 10 B 20 20"/>
         </svg>"""
         with pytest.raises(SVGImportError) as exc_info:
             SVGImporter().parse(svg)
@@ -231,13 +232,19 @@ class TestSVGPrimitives:
         assert rr.x == 10 and rr.y == 20
 
     def test_rectangle_elliptical_corners_strictly_rejected(self):
-        # rx != ry must be strictly rejected (no Bezier approximation)
+        # rx != ry is supported in M2 as exact Path with 4 EllipticalArcTo (no Bezier approximation)
         svg = """<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
           <rect x="10" y="20" width="100" height="80" rx="20" ry="10"/>
         </svg>"""
-        with pytest.raises(SVGImportError) as exc_info:
-            SVGImporter().parse(svg)
-        assert exc_info.value.diagnostic.code == "SVG_UNSUPPORTED_ELLIPTICAL_ROUNDED_RECT"
+        scene = SVGImporter().parse(svg).scene
+        p = scene.objects[0]
+        assert isinstance(p, Path)
+        arc_cmds = [cmd for sub in p.subpaths for cmd in sub.commands if isinstance(cmd, EllipticalArcTo)]
+        assert len(arc_cmds) == 4
+
+        # Negative rx/ry is strictly rejected
+        with pytest.raises(SVGImportError):
+            SVGImporter().parse('<svg width="100" height="100"><rect width="50" height="50" rx="-10"/></svg>')
 
     def test_rectangle_zero_dimension_omitted(self):
         svg = """<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
@@ -1115,29 +1122,26 @@ class TestReviewHardeningAndRegressions:
         assert resvg_img[20, 20, 3] == 0
 
     def test_unsupported_clip_geometries_strictly_rejected(self):
-        # Circle clip
-        svg_circle = """<svg width="100" height="100"><defs><clipPath id="c"><circle cx="50" cy="50" r="30"/></clipPath></defs><rect width="100" height="100" clip-path="url(#c)"/></svg>"""
-        with pytest.raises(SVGImportError) as exc_circle:
-            SVGImporter().parse(svg_circle)
-        assert exc_circle.value.diagnostic.code == "SVG_UNSUPPORTED_CLIP_GEOMETRY"
-
-        # Ellipse clip
-        svg_ellipse = """<svg width="100" height="100"><defs><clipPath id="c"><ellipse cx="50" cy="50" rx="30" ry="20"/></clipPath></defs><rect width="100" height="100" clip-path="url(#c)"/></svg>"""
-        with pytest.raises(SVGImportError) as exc_ellipse:
-            SVGImporter().parse(svg_ellipse)
-        assert exc_ellipse.value.diagnostic.code == "SVG_UNSUPPORTED_CLIP_GEOMETRY"
-
-        # Line clip
+        # Line clip remains unsupported geometry
         svg_line = """<svg width="100" height="100"><defs><clipPath id="c"><line x1="0" y1="0" x2="100" y2="100"/></clipPath></defs><rect width="100" height="100" clip-path="url(#c)"/></svg>"""
         with pytest.raises(SVGImportError) as exc_line:
             SVGImporter().parse(svg_line)
         assert exc_line.value.diagnostic.code == "SVG_UNSUPPORTED_CLIP_GEOMETRY"
 
-        # Rounded rectangle clip
+        # Circle clip is supported in M2
+        svg_circle = """<svg width="100" height="100"><defs><clipPath id="c"><circle cx="50" cy="50" r="30"/></clipPath></defs><rect width="100" height="100" clip-path="url(#c)"/></svg>"""
+        scene_circle = SVGImporter().parse(svg_circle).scene
+        assert scene_circle.objects[0].clip is not None
+
+        # Ellipse clip is supported in M2
+        svg_ellipse = """<svg width="100" height="100"><defs><clipPath id="c"><ellipse cx="50" cy="50" rx="30" ry="20"/></clipPath></defs><rect width="100" height="100" clip-path="url(#c)"/></svg>"""
+        scene_ellipse = SVGImporter().parse(svg_ellipse).scene
+        assert scene_ellipse.objects[0].clip is not None
+
+        # Rounded rectangle clip is supported in M2
         svg_rounded_rect = """<svg width="100" height="100"><defs><clipPath id="c"><rect x="10" y="10" width="50" height="50" rx="5"/></clipPath></defs><rect width="100" height="100" clip-path="url(#c)"/></svg>"""
-        with pytest.raises(SVGImportError) as exc_rr:
-            SVGImporter().parse(svg_rounded_rect)
-        assert exc_rr.value.diagnostic.code == "SVG_UNSUPPORTED_CLIP_GEOMETRY"
+        scene_rr = SVGImporter().parse(svg_rounded_rect).scene
+        assert scene_rr.objects[0].clip is not None
 
     def test_empty_or_multiple_children_clip_path_rejected(self):
         # Empty clipPath
@@ -1272,40 +1276,32 @@ class TestReviewHardeningAndRegressions:
 
     # 10. Follow-up: Percentages outside gradients strictly rejected
     def test_percentages_outside_gradients_strictly_rejected(self):
-        # rect percentage width
-        with pytest.raises(SVGImportError) as exc_rect:
-            SVGImporter().parse('<svg width="100" height="100"><rect x="0" y="0" width="50%" height="50"/></svg>')
-        assert exc_rect.value.diagnostic.code == "SVG_UNSUPPORTED_LENGTH_UNIT"
+        # In M2, percentages on shapes and strokes are supported and resolve against viewport
+        scene = SVGImporter().parse('<svg width="100" height="100"><rect x="0" y="0" width="50%" height="50"/></svg>').scene
+        assert scene.objects[0].width == 50.0
 
-        # circle percentage radius
-        with pytest.raises(SVGImportError) as exc_circle:
-            SVGImporter().parse('<svg width="100" height="100"><circle cx="50" cy="50" r="50%"/></svg>')
-        assert exc_circle.value.diagnostic.code == "SVG_UNSUPPORTED_LENGTH_UNIT"
+        scene_circle = SVGImporter().parse('<svg width="100" height="100"><circle cx="50" cy="50" r="50%"/></svg>').scene
+        assert scene_circle.objects[0].radius == 50.0
 
-        # ellipse percentage radius
-        with pytest.raises(SVGImportError) as exc_ellipse:
-            SVGImporter().parse('<svg width="100" height="100"><ellipse cx="50" cy="50" rx="50%" ry="20"/></svg>')
-        assert exc_ellipse.value.diagnostic.code == "SVG_UNSUPPORTED_LENGTH_UNIT"
+        scene_ellipse = SVGImporter().parse('<svg width="100" height="100"><ellipse cx="50" cy="50" rx="50%" ry="20"/></svg>').scene
+        assert scene_ellipse.objects[0].radius_x == 50.0 and scene_ellipse.objects[0].radius_y == 20.0
 
-        # line percentage coordinate
-        with pytest.raises(SVGImportError) as exc_line:
-            SVGImporter().parse('<svg width="100" height="100"><line x1="10%" y1="0" x2="100" y2="100"/></svg>')
-        assert exc_line.value.diagnostic.code == "SVG_UNSUPPORTED_LENGTH_UNIT"
+        scene_line = SVGImporter().parse('<svg width="100" height="100"><line x1="10%" y1="0" x2="100" y2="100"/></svg>').scene
+        assert scene_line.objects[0].start.x == 10.0
 
-        # stroke-width percentage
-        with pytest.raises(SVGImportError) as exc_sw:
-            SVGImporter().parse('<svg width="100" height="100"><rect width="100" height="100" stroke="black" stroke-width="10%"/></svg>')
-        assert exc_sw.value.diagnostic.code == "SVG_UNSUPPORTED_LENGTH_UNIT"
+        scene_sw = SVGImporter().parse('<svg width="100" height="100"><rect width="100" height="100" stroke="black" stroke-width="10%"/></svg>').scene
+        assert scene_sw.objects[0].stroke.width == 10.0
 
-        # stroke-dasharray percentage
-        with pytest.raises(SVGImportError) as exc_da:
-            SVGImporter().parse('<svg width="100" height="100"><line x1="0" y1="0" x2="100" y2="100" stroke="black" stroke-dasharray="10% 5%"/></svg>')
-        assert exc_da.value.diagnostic.code == "SVG_UNSUPPORTED_LENGTH_UNIT"
+        scene_da = SVGImporter().parse('<svg width="100" height="100"><line x1="0" y1="0" x2="100" y2="100" stroke="black" stroke-dasharray="10% 5%"/></svg>').scene
+        assert scene_da.objects[0].stroke.dash_array == (10.0, 5.0)
 
-        # stroke-dashoffset percentage
-        with pytest.raises(SVGImportError) as exc_do:
-            SVGImporter().parse('<svg width="100" height="100"><line x1="0" y1="0" x2="100" y2="100" stroke="black" stroke-dashoffset="10%"/></svg>')
-        assert exc_do.value.diagnostic.code == "SVG_UNSUPPORTED_LENGTH_UNIT"
+        scene_do = SVGImporter().parse('<svg width="100" height="100"><line x1="0" y1="0" x2="100" y2="100" stroke="black" stroke-dashoffset="10%"/></svg>').scene
+        assert scene_do.objects[0].stroke.dash_offset == 10.0
+
+        # Unsupported length units are strictly rejected
+        with pytest.raises(SVGImportError) as exc_unit:
+            SVGImporter().parse('<svg width="100" height="100"><rect width="50ch" height="50"/></svg>')
+        assert exc_unit.value.diagnostic.code == "SVG_UNSUPPORTED_LENGTH_UNIT"
 
     # 11. Follow-up: Radial gradient r <= 0 exact solid color mapping
     def test_radial_gradient_zero_radius_paints_last_stop_color(self):

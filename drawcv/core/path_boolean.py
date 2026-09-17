@@ -14,6 +14,7 @@ from drawcv.core.transform import Transform
 from drawcv.shapes.path import (
     Close,
     CubicTo,
+    EllipticalArcTo,
     LineTo,
     MoveTo,
     Path,
@@ -106,6 +107,11 @@ def drawcv_to_pathops(path: Path) -> pathops.Path:
                 end_w = to_w(cmd.end, "CubicTo.end")
                 p_ops.cubicTo(c1_w.x, c1_w.y, c2_w.x, c2_w.y, end_w.x, end_w.y)
                 has_drawing_command = True
+
+            elif isinstance(cmd, EllipticalArcTo):
+                raise PathBooleanError(
+                    "EllipticalArcTo commands are not supported in PathOps boolean operations without flattening."
+                )
 
             elif isinstance(cmd, Close):
                 if not has_close:

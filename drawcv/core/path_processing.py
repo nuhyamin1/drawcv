@@ -380,7 +380,8 @@ def slice_bezier(p0: Point, p1: Point, p2: Point, p3: Point, progress: float) ->
 
 def slice_path(path: Any, progress: float) -> Any:
     """Arc-length slice of a compound Path up to fractional progress in [0, 1]."""
-    from drawcv.shapes.path import Path, Subpath, MoveTo, LineTo, QuadraticTo, CubicTo, Close
+    from drawcv.shapes.path import Path, Subpath, MoveTo, LineTo, QuadraticTo, CubicTo, EllipticalArcTo, Close
+    from drawcv.core.geometry_utils import elliptical_arc_length, elliptical_arc_split
 
     if progress <= 0.0:
         empty = Path(fill_rule=path.fill_rule, stroke=path.stroke, fill=None)
@@ -436,6 +437,13 @@ def slice_path(path: Any, progress: float) -> Any:
                 cmd_records.append((sp, cmd, seg_len, current_pt, cmd.end))
                 total_length += seg_len
                 current_pt = cmd.end
+            elif isinstance(cmd, EllipticalArcTo):
+                seg_len = elliptical_arc_length(
+                    current_pt, cmd.end, cmd.radius_x, cmd.radius_y, cmd.x_axis_rotation, cmd.large_arc, cmd.sweep
+                )
+                cmd_records.append((sp, cmd, seg_len, current_pt, cmd.end))
+                total_length += seg_len
+                current_pt = cmd.end
 
     if total_length <= 1e-9:
         return path
@@ -479,6 +487,11 @@ def slice_path(path: Any, progress: float) -> Any:
                 m2 = Point(u * cmd.control.x + t * cmd.end.x, u * cmd.control.y + t * cmd.end.y)
                 m12 = Point(u * m1.x + t * m2.x, u * m1.y + t * m2.y)
                 current_sp.commands.append(QuadraticTo(m1, m12))
+            elif isinstance(cmd, EllipticalArcTo):
+                cut_pt, s_rx, s_ry, s_phi, s_large, s_sweep = elliptical_arc_split(
+                    p_start, cmd.end, cmd.radius_x, cmd.radius_y, cmd.x_axis_rotation, cmd.large_arc, cmd.sweep, frac
+                )
+                current_sp.commands.append(EllipticalArcTo(s_rx, s_ry, s_phi, s_large, s_sweep, cut_pt))
             break
         else:
             current_sp.commands.append(cmd)

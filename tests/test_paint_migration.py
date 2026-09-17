@@ -24,8 +24,8 @@ from drawcv import (
 from drawcv.serialization.registry import CURRENT_SCHEMA_VERSION, SchemaMigrator
 
 
-def test_schema_version_is_1_7():
-    assert CURRENT_SCHEMA_VERSION == "1.7"
+def test_schema_version_is_1_8():
+    assert CURRENT_SCHEMA_VERSION == "1.8"
 
 
 def test_migrate_1_5_to_1_6_legacy_document():
@@ -80,8 +80,11 @@ def test_migrate_1_5_to_1_6_legacy_document():
     migrated_1_6 = SchemaMigrator.migrate(doc_1_5, target_version="1.6")
     assert migrated_1_6["version"] == "1.6"
 
+    migrated_1_7 = SchemaMigrator.migrate(doc_1_5, target_version="1.7")
+    assert migrated_1_7["version"] == "1.7"
+
     migrated = SchemaMigrator.migrate(doc_1_5)
-    assert migrated["version"] == "1.7"
+    assert migrated["version"] == "1.8"
 
     # Verify paint defaults injected
     rect_data = migrated["scene"]["layers"][0]["objects"][0]
@@ -92,7 +95,7 @@ def test_migrate_1_5_to_1_6_legacy_document():
     assert "color" in rect_data["stroke"]
 
     scene = Scene.from_dict(doc_1_5)
-    assert scene.to_dict()["version"] == "1.7"
+    assert scene.to_dict()["version"] == "1.8"
     loaded_rect = scene.layers[0].objects[0]
     assert isinstance(loaded_rect.fill.paint, LinearGradient)
     assert loaded_rect.fill.paint.spread == "pad"
@@ -132,7 +135,7 @@ def test_full_chain_migration_1_0_to_1_6():
     }
 
     scene = Scene.from_dict(doc_1_0)
-    assert scene.to_dict()["version"] == "1.7"
+    assert scene.to_dict()["version"] == "1.8"
     assert scene.timeline is not None
     assert scene.layers[0].objects[0].stroke.color == Color(0, 0, 0, 1.0)
 

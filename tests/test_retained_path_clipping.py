@@ -29,7 +29,7 @@ from drawcv.effects.clipping import (
     clip_to_dict, clip_from_dict, capture_clip_state, restore_clip_state,
     get_clip_point_mapper, evaluate_clip_coverage, is_point_in_clip
 )
-from drawcv.serialization.registry import SchemaMigrator
+from drawcv.serialization.registry import CURRENT_SCHEMA_VERSION, SchemaMigrator
 
 SVG_NS = {"s": "http://www.w3.org/2000/svg"}
 
@@ -766,8 +766,8 @@ def test_newly_serialized_scene_declares_schema_1_7():
     scene.add(rect)
 
     doc = scene.to_dict()
-    assert doc["version"] == "1.7"
-    assert doc["schema_version"] == "1.7"
+    assert doc["version"] == CURRENT_SCHEMA_VERSION
+    assert doc["schema_version"] == CURRENT_SCHEMA_VERSION
     assert doc["scene"]["layers"][0]["objects"][0]["clip"]["type"] == "polygon"
 
 

@@ -494,3 +494,435 @@ def measure_text_size(
     (w, h), baseline = cv2.getTextSize(text, font_face, float(font_scale), max(1, int(thickness)))
     return int(w), int(h), int(baseline)
 
+
+# -----------------------------------------------------------------------------
+# SVG Elliptical Arc Mathematical Utilities
+# -----------------------------------------------------------------------------
+
+def svg_arc_to_center_parameterization(
+    p1: Point,
+    p2: Point,
+    rx: float,
+    ry: float,
+    phi_deg: float,
+    large_arc: bool,
+    sweep: bool,
+) -> tuple[Point, float, float, float, float, float]:
+    """Convert SVG elliptical arc endpoint parametrization to center parametrization.
+
+    Implements W3C SVG Implementation Notes (Appendix B.2) with exact radius correction.
+
+    Returns:
+        tuple: (center, corrected_rx, corrected_ry, phi_rad, theta1_rad, delta_theta_rad)
+    """
+    rx = abs(float(rx))
+    ry = abs(float(ry))
+    phi = math.radians(float(phi_deg) % 360.0)
+    cos_phi = math.cos(phi)
+    sin_phi = math.sin(phi)
+
+    dx = (p1.x - p2.x) / 2.0
+    dy = (p1.y - p2.y) / 2.0
+    x1p = cos_phi * dx + sin_phi * dy
+    y1p = -sin_phi * dx + cos_phi * dy
+
+    # Radius correction: radii must be large enough to bridge p1 and p2
+    lamb = (x1p * x1p) / (rx * rx) + (y1p * y1p) / (ry * ry)
+    if lamb > 1.0:
+        s = math.sqrt(lamb)
+        rx *= s
+        ry *= s
+
+    num = max(0.0, rx * rx * ry * ry - rx * rx * y1p * y1p - ry * ry * x1p * x1p)
+    den = rx * rx * y1p * y1p + ry * ry * x1p * x1p
+    factor = math.sqrt(num / den) if den > 0.0 else 0.0
+    if bool(large_arc) == bool(sweep):
+        factor = -factor
+
+    cxp = factor * (rx * y1p / ry)
+    cyp = factor * (-ry * x1p / rx)
+
+    cx = cos_phi * cxp - sin_phi * cyp + (p1.x + p2.x) / 2.0
+    cy = sin_phi * cxp + cos_phi * cyp + (p1.y + p2.y) / 2.0
+
+    def _angle(u_x: float, u_y: float, v_x: float, v_y: float) -> float:
+        dot = u_x * v_x + u_y * v_y
+        mag = math.hypot(u_x, u_y) * math.hypot(v_x, v_y)
+        cos_ang = max(-1.0, min(1.0, dot / (mag + 1e-15)))
+        ang = math.acos(cos_ang)
+        if u_x * v_y - u_y * v_x < 0.0:
+            ang = -ang
+        return ang
+
+    ux = (x1p - cxp) / rx
+    uy = (y1p - cyp) / ry
+    vx = (-x1p - cxp) / rx
+    vy = (-y1p - cyp) / ry
+
+    theta1 = _angle(1.0, 0.0, ux, uy)
+    dtheta = _angle(ux, uy, vx, vy) % (2.0 * math.pi)
+
+    if not sweep and dtheta > 0.0:
+        dtheta -= 2.0 * math.pi
+    elif sweep and dtheta < 0.0:
+        dtheta += 2.0 * math.pi
+
+    return Point(cx, cy), rx, ry, phi, theta1, dtheta
+
+
+def flatten_elliptical_arc(
+    p1: Point,
+    p2: Point,
+    rx: float,
+    ry: float,
+    phi_deg: float,
+    large_arc: bool,
+    sweep: bool,
+    tolerance: float = 0.5,
+    map_point: Callable[[Point], Point] | None = None,
+) -> list[Point]:
+    """Sample an SVG elliptical arc into line segments with adaptive subdivision in mapped space.
+
+    Subdivides adaptively so that the distance between the mapped true arc midpoint
+    and the mapped chord midpoint is within tolerance in screen/world space.
+
+    Bounded Safety Budget:
+        Subdivision is bounded by max_depth=12 and a soft subdivision threshold of
+        max_segments=4096. Once segment_count >= max_segments, recursive branching
+        halts immediately and any pending intervals resolve directly to their endpoints,
+        guaranteeing bounded recursion and termination on pathological transforms.
+    """
+    map_fn = map_point if map_point is not None else (lambda p: p)
+    p1_m = map_fn(p1)
+    p2_m = map_fn(p2)
+
+    if p1.x == p2.x and p1.y == p2.y:
+        return [p1_m]
+    if rx <= 0.0 or ry <= 0.0:
+        return [p1_m, p2_m]
+
+    center, eff_rx, eff_ry, phi_rad, theta1, dtheta = svg_arc_to_center_parameterization(
+        p1, p2, rx, ry, phi_deg, large_arc, sweep
+    )
+
+    span = abs(dtheta)
+    if span <= 1e-12:
+        return [p1_m, p2_m]
+
+    cos_phi = math.cos(phi_rad)
+    sin_phi = math.sin(phi_rad)
+
+    def eval_local(theta: float) -> Point:
+        cos_t = math.cos(theta)
+        sin_t = math.sin(theta)
+        x = center.x + eff_rx * cos_phi * cos_t - eff_ry * sin_phi * sin_t
+        y = center.y + eff_rx * sin_phi * cos_t + eff_ry * cos_phi * sin_t
+        return Point(x, y)
+
+    tol = max(1e-4, float(tolerance))
+    max_depth = 12
+    max_segments = 4096  # Soft subdivision threshold halting further recursive splits
+
+    # Initial partition to ensure no initial segment span exceeds pi/2
+    num_initial = max(2, int(math.ceil(span / (math.pi / 2.0))))
+    points: list[Point] = [p1_m]
+    segment_count = 0
+
+    def subdivide(t_start: float, t_end: float, pt_start_m: Point, pt_end_m: Point, depth: int) -> None:
+        nonlocal segment_count
+        t_mid = 0.5 * (t_start + t_end)
+        pt_mid_loc = eval_local(t_mid)
+        pt_mid_m = map_fn(pt_mid_loc)
+
+        chord_mid_x = 0.5 * (pt_start_m.x + pt_end_m.x)
+        chord_mid_y = 0.5 * (pt_start_m.y + pt_end_m.y)
+        dist = math.hypot(pt_mid_m.x - chord_mid_x, pt_mid_m.y - chord_mid_y)
+
+        if dist <= tol:
+            points.append(pt_end_m)
+            segment_count += 1
+        elif depth >= max_depth or segment_count >= max_segments:
+            # Safety budget reached: cap supersedes tolerance to guarantee termination
+            points.append(pt_end_m)
+            segment_count += 1
+        else:
+            subdivide(t_start, t_mid, pt_start_m, pt_mid_m, depth + 1)
+            subdivide(t_mid, t_end, pt_mid_m, pt_end_m, depth + 1)
+
+    for i in range(num_initial):
+        t_a = theta1 + (i / num_initial) * dtheta
+        t_b = theta1 + ((i + 1) / num_initial) * dtheta
+        pt_a_m = points[-1]
+        pt_b_m = map_fn(eval_local(t_b)) if i < num_initial - 1 else p2_m
+        subdivide(t_a, t_b, pt_a_m, pt_b_m, 0)
+
+    return points
+
+
+def elliptical_arc_extrema_bounds(
+    p1: Point,
+    p2: Point,
+    rx: float,
+    ry: float,
+    phi_deg: float,
+    large_arc: bool,
+    sweep: bool,
+    transform_matrix: np.ndarray | None = None,
+) -> tuple[float, float, float, float]:
+    """Calculate exact closed-form analytical bounding box (min_x, min_y, width, height)
+    of an SVG elliptical arc, optionally transformed by an affine matrix.
+    """
+    def to_m(p: Point) -> tuple[float, float]:
+        if transform_matrix is None or np.allclose(transform_matrix, np.eye(3)):
+            return p.x, p.y
+        vec = transform_matrix @ np.array([p.x, p.y, 1.0], dtype=np.float64)
+        return float(vec[0]), float(vec[1])
+
+    p1_m = to_m(p1)
+    p2_m = to_m(p2)
+
+    if p1.x == p2.x and p1.y == p2.y:
+        return (p1_m[0], p1_m[1], 0.0, 0.0)
+    if rx <= 0.0 or ry <= 0.0:
+        min_x = min(p1_m[0], p2_m[0])
+        max_x = max(p1_m[0], p2_m[0])
+        min_y = min(p1_m[1], p2_m[1])
+        max_y = max(p1_m[1], p2_m[1])
+        return (min_x, min_y, max_x - min_x, max_y - min_y)
+
+    center, eff_rx, eff_ry, phi, theta1, dtheta = svg_arc_to_center_parameterization(
+        p1, p2, rx, ry, phi_deg, large_arc, sweep
+    )
+
+    cos_phi = math.cos(phi)
+    sin_phi = math.sin(phi)
+
+    # Local ellipse vectors: C, Ax = [eff_rx * cos_phi, eff_rx * sin_phi], Bx = [-eff_ry * sin_phi, eff_ry * cos_phi]
+    if transform_matrix is None or np.allclose(transform_matrix, np.eye(3)):
+        Cx, Cy = center.x, center.y
+        Ax = eff_rx * cos_phi
+        Ay = eff_rx * sin_phi
+        Bx = -eff_ry * sin_phi
+        By = eff_ry * cos_phi
+    else:
+        m00 = float(transform_matrix[0, 0])
+        m01 = float(transform_matrix[0, 1])
+        m02 = float(transform_matrix[0, 2])
+        m10 = float(transform_matrix[1, 0])
+        m11 = float(transform_matrix[1, 1])
+        m12 = float(transform_matrix[1, 2])
+
+        Cx = m00 * center.x + m01 * center.y + m02
+        Cy = m10 * center.x + m11 * center.y + m12
+
+        ax_loc = eff_rx * cos_phi
+        ay_loc = eff_rx * sin_phi
+        bx_loc = -eff_ry * sin_phi
+        by_loc = eff_ry * cos_phi
+
+        Ax = m00 * ax_loc + m01 * ay_loc
+        Ay = m10 * ax_loc + m11 * ay_loc
+        Bx = m00 * bx_loc + m01 * by_loc
+        By = m10 * bx_loc + m11 * by_loc
+
+    def eval_t(theta: float) -> tuple[float, float]:
+        cos_t = math.cos(theta)
+        sin_t = math.sin(theta)
+        return Cx + Ax * cos_t + Bx * sin_t, Cy + Ay * cos_t + By * sin_t
+
+    candidates: list[tuple[float, float]] = [p1_m, p2_m]
+
+    # Critical angles for dx/dt = -Ax sin(t) + Bx cos(t) = 0 => tan(t) = Bx / Ax
+    tx1 = math.atan2(Bx, Ax)
+    for t_cand in (tx1, tx1 + math.pi):
+        if is_angle_in_sweep(t_cand, theta1, dtheta):
+            candidates.append(eval_t(t_cand))
+
+    # Critical angles for dy/dt = -Ay sin(t) + By cos(t) = 0 => tan(t) = By / Ay
+    ty1 = math.atan2(By, Ay)
+    for t_cand in (ty1, ty1 + math.pi):
+        if is_angle_in_sweep(t_cand, theta1, dtheta):
+            candidates.append(eval_t(t_cand))
+
+    min_x = min(pt[0] for pt in candidates)
+    max_x = max(pt[0] for pt in candidates)
+    min_y = min(pt[1] for pt in candidates)
+    max_y = max(pt[1] for pt in candidates)
+
+    return (min_x, min_y, max_x - min_x, max_y - min_y)
+
+
+def transform_elliptical_arc(
+    p1: Point,
+    p2: Point,
+    rx: float,
+    ry: float,
+    phi_deg: float,
+    large_arc: bool,
+    sweep: bool,
+    matrix: np.ndarray,
+) -> tuple[Point, Point, float, float, float, bool, bool]:
+    """Analytically transform SVG elliptical arc parameters under an affine transformation matrix.
+
+    Uses Singular Value Decomposition (SVD) on J = A @ R(phi) @ diag(rx, ry).
+
+    Raises:
+        ValidationError: If matrix is singular or near-singular (condition number > 1e10).
+
+    Returns:
+        tuple: (p1_w, p2_w, rx_w, ry_w, phi_w_deg, large_arc_w, sweep_w)
+    """
+    A = np.asarray(matrix[:2, :2], dtype=np.float64)
+    det_A = float(np.linalg.det(A))
+    if abs(det_A) < 1e-12:
+        raise ValidationError(f"Singular affine transformation (det={det_A}) on EllipticalArcTo cannot be represented")
+
+    # Check condition number to guard against near-singular matrix
+    cond = float(np.linalg.cond(A))
+    if cond > 1e10:
+        raise ValidationError(f"Near-singular affine transformation (cond={cond:.2e}) on EllipticalArcTo cannot be represented")
+
+    # Center parameterization of original arc to get effective corrected radii
+    _, eff_rx, eff_ry, phi_rad, _, _ = svg_arc_to_center_parameterization(
+        p1, p2, rx, ry, phi_deg, large_arc, sweep
+    )
+
+    # Transformed endpoints
+    p1_vec = matrix @ np.array([p1.x, p1.y, 1.0], dtype=np.float64)
+    p2_vec = matrix @ np.array([p2.x, p2.y, 1.0], dtype=np.float64)
+    p1_w = Point(float(p1_vec[0]), float(p1_vec[1]))
+    p2_w = Point(float(p2_vec[0]), float(p2_vec[1]))
+
+    cos_phi = math.cos(phi_rad)
+    sin_phi = math.sin(phi_rad)
+    R = np.array([[cos_phi, -sin_phi], [sin_phi, cos_phi]], dtype=np.float64)
+    D = np.diag([eff_rx, eff_ry])
+    J = A @ R @ D
+
+    U, s, Vt = np.linalg.svd(J)
+    rx_w, ry_w = float(s[0]), float(s[1])
+
+    # Ensure U is a proper rotation matrix with det(U) = +1
+    if np.linalg.det(U) < 0:
+        U[:, 1] = -U[:, 1]
+        Vt[1, :] = -Vt[1, :]
+
+    phi_w_deg = math.degrees(math.atan2(float(U[1, 0]), float(U[0, 0]))) % 180.0
+
+    # Derived radii must be finite and strictly positive
+    if not (math.isfinite(rx_w) and rx_w > 0.0 and math.isfinite(ry_w) and ry_w > 0.0):
+        raise ValidationError(f"Derived arc radii are unrepresentable: rx={rx_w}, ry={ry_w}")
+
+    # Large-arc flag is invariant under non-singular affine transformation
+    large_arc_w = bool(large_arc)
+
+    # Sweep flag reverses if and only if reflection occurs (det(A) < 0)
+    sweep_w = bool(sweep) if det_A > 0.0 else not bool(sweep)
+
+    return p1_w, p2_w, rx_w, ry_w, phi_w_deg, large_arc_w, sweep_w
+
+
+def elliptical_arc_length(
+    p1: Point,
+    p2: Point,
+    rx: float,
+    ry: float,
+    phi_deg: float,
+    large_arc: bool,
+    sweep: bool,
+) -> float:
+    """Calculate the exact arc length of an SVG elliptical arc.
+
+    Uses closed-form circular arc formula when rx == ry, and Gauss-Legendre
+    quadrature on the elliptic integral when rx != ry.
+    """
+    if p1.x == p2.x and p1.y == p2.y:
+        return 0.0
+    if rx <= 0.0 or ry <= 0.0:
+        return p1.distance_to(p2)
+
+    _, eff_rx, eff_ry, _, theta1, dtheta = svg_arc_to_center_parameterization(
+        p1, p2, rx, ry, phi_deg, large_arc, sweep
+    )
+
+    span = abs(dtheta)
+    if span <= 1e-12:
+        return 0.0
+
+    if math.isclose(eff_rx, eff_ry, rel_tol=1e-7):
+        return eff_rx * span
+
+    # 16-point Gauss-Legendre quadrature
+    nodes, weights = np.polynomial.legendre.leggauss(16)
+    t_vals = 0.5 * span * (nodes + 1.0)
+    w_vals = 0.5 * span * weights
+    # Arc-length integrand in local ellipse space integrated over actual [theta1, theta1 + dtheta]
+    angles = theta1 + (t_vals if dtheta > 0 else -t_vals)
+    integrand = np.sqrt((eff_rx * np.sin(angles)) ** 2 + (eff_ry * np.cos(angles)) ** 2)
+    return float(np.sum(integrand * w_vals))
+
+
+def elliptical_arc_split(
+    p1: Point,
+    p2: Point,
+    rx: float,
+    ry: float,
+    phi_deg: float,
+    large_arc: bool,
+    sweep: bool,
+    fraction: float,
+) -> tuple[Point, float, float, float, bool, bool]:
+    """Split an SVG elliptical arc at arc-length fraction in [0, 1].
+
+    Returns:
+        tuple: (cut_point, rx, ry, phi_deg, sub_large_arc, sweep)
+    """
+    center, eff_rx, eff_ry, phi_rad, theta1, dtheta = svg_arc_to_center_parameterization(
+        p1, p2, rx, ry, phi_deg, large_arc, sweep
+    )
+
+    frac = max(0.0, min(1.0, float(fraction)))
+    if frac <= 0.0:
+        return p1, eff_rx, eff_ry, phi_deg, False, sweep
+    if frac >= 1.0:
+        return p2, eff_rx, eff_ry, phi_deg, large_arc, sweep
+
+    span = abs(dtheta)
+    if span <= 1e-12:
+        return p2, eff_rx, eff_ry, phi_deg, False, sweep
+
+    if math.isclose(eff_rx, eff_ry, rel_tol=1e-7):
+        u_frac = frac
+    else:
+        nodes, weights = np.polynomial.legendre.leggauss(16)
+        t_vals = 0.5 * span * (nodes + 1.0)
+        w_vals = 0.5 * span * weights
+        angles = theta1 + (t_vals if dtheta > 0 else -t_vals)
+        integrand = np.sqrt((eff_rx * np.sin(angles)) ** 2 + (eff_ry * np.cos(angles)) ** 2)
+        total_len = float(np.sum(integrand * w_vals))
+        target_len = frac * total_len
+
+        low_u, high_u = 0.0, 1.0
+        for _ in range(25):
+            mid_u = 0.5 * (low_u + high_u)
+            sub_span = mid_u * span
+            sub_t = 0.5 * sub_span * (nodes + 1.0)
+            sub_w = 0.5 * sub_span * weights
+            sub_angles = theta1 + (sub_t if dtheta > 0 else -sub_t)
+            sub_int = np.sqrt((eff_rx * np.sin(sub_angles)) ** 2 + (eff_ry * np.cos(sub_angles)) ** 2)
+            cur_len = float(np.sum(sub_int * sub_w))
+            if cur_len < target_len:
+                low_u = mid_u
+            else:
+                high_u = mid_u
+        u_frac = 0.5 * (low_u + high_u)
+
+    theta_cut = theta1 + u_frac * dtheta
+    cos_phi = math.cos(phi_rad)
+    sin_phi = math.sin(phi_rad)
+    x_cut = center.x + eff_rx * cos_phi * math.cos(theta_cut) - eff_ry * sin_phi * math.sin(theta_cut)
+    y_cut = center.y + eff_rx * sin_phi * math.cos(theta_cut) + eff_ry * cos_phi * math.sin(theta_cut)
+    sub_large = abs(u_frac * dtheta) >= math.pi
+
+    return Point(x_cut, y_cut), eff_rx, eff_ry, phi_deg, sub_large, sweep
+

@@ -12,6 +12,7 @@ from drawcv.shapes.line import Line
 from drawcv.shapes.path import (
     Close,
     CubicTo,
+    EllipticalArcTo,
     LineTo,
     MoveTo,
     Path,
@@ -33,6 +34,7 @@ __all__ = [
     "Close",
     "CubicTo",
     "Ellipse",
+    "EllipticalArcTo",
     "FreehandStroke",
     "ImageObject",
     "Line",

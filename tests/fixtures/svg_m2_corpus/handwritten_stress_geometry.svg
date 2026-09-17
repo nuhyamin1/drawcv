@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="220" viewBox="0 0 220 220">
+  <defs>
+    <!-- ObjectBoundingBox clip with elliptical arc geometry -->
+    <clipPath id="obb-clip" clipPathUnits="objectBoundingBox">
+      <ellipse cx="0.5" cy="0.5" rx="0.4" ry="0.45"/>
+    </clipPath>
+  </defs>
+
+  <rect width="220" height="220" fill="#f8f9fa"/>
+
+  <!-- Path testing closepath continuation: M ... Z followed immediately by L and C -->
+  <path d="M 20 30 L 60 30 L 40 10 Z L 50 40 L 30 40 Z C 20 60 40 80 60 60"
+        fill="#9b59b6" stroke="#2c3e50" stroke-width="2"/>
+
+  <!-- Path with smooth cubic (S) and smooth quadratic (T) -->
+  <path d="M 80 30 C 90 10 110 10 120 30 S 150 50 160 30"
+        fill="none" stroke="#e74c3c" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 80 70 Q 100 50 120 70 T 160 70"
+        fill="none" stroke="#27ae60" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Horizontal and Vertical lines plus exact Elliptical Arc Path -->
+  <path d="M 20 100 H 100 V 150 H 20 Z" fill="#3498db"/>
+  <path d="M 115 125 A 35 35 0 1 1 185 125 A 35 35 0 1 1 115 125 Z" fill="#e67e22"/>
+
+  <!-- Element with objectBoundingBox clip -->
+  <rect x="30" y="160" width="160" height="50" fill="#16a085" clip-path="url(#obb-clip)"/>
+</svg>
