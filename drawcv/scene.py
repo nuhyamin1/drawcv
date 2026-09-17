@@ -4,7 +4,10 @@ from __future__ import annotations
 import copy
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Generator, Iterator, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Generator, Iterator, TypeVar
+
+if TYPE_CHECKING:
+    from drawcv.svg_import import SVGImportLimits
 
 from drawcv.core.color import Color
 from drawcv.core.drawable import Drawable
@@ -981,6 +984,34 @@ class Scene:
         """Load Scene document from a JSON file."""
         text = Path(filepath).read_text(encoding="utf-8")
         return cls.from_json(text)
+
+    @classmethod
+    def from_svg(
+        cls,
+        source: str | bytes,
+        *,
+        strict: bool = True,
+        viewport: tuple[int, int] | None = None,
+        limits: SVGImportLimits | None = None,
+    ) -> Scene:
+        """Construct Scene from SVG string or bytes using retained SVG importer."""
+        from drawcv.svg_import import SVGImporter
+        importer = SVGImporter(strict=strict, viewport=viewport, limits=limits)
+        return importer.parse(source).scene
+
+    @classmethod
+    def load_svg(
+        cls,
+        filepath: str | Path,
+        *,
+        strict: bool = True,
+        viewport: tuple[int, int] | None = None,
+        limits: SVGImportLimits | None = None,
+    ) -> Scene:
+        """Load Scene document from an SVG file."""
+        from drawcv.svg_import import SVGImporter
+        importer = SVGImporter(strict=strict, viewport=viewport, limits=limits)
+        return importer.parse_file(filepath).scene
 
     # -------------------------------------------------------------------------
     # Internal Helpers & Dunder Methods

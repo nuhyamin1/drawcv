@@ -164,11 +164,23 @@ from drawcv.core.path_processing import (
 __version__ = "0.9.0"
 
 from drawcv.svg import SVGExporter, SVGExport, SVGFallback
+from drawcv.svg_import import (
+    SVGImporter,
+    SVGImportResult,
+    SVGImportDiagnostic,
+    SVGImportError,
+    SVGImportLimits,
+)
 
 __all__ = [
     "SVGExporter",
     "SVGExport",
     "SVGFallback",
+    "SVGImporter",
+    "SVGImportResult",
+    "SVGImportDiagnostic",
+    "SVGImportError",
+    "SVGImportLimits",
     "FontAsset", "TextMetrics", "TextLineMetrics",
     "GradientStop", "LinearGradient", "RadialGradient",
     "AddObjectCommand",

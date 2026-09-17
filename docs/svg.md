@@ -74,11 +74,40 @@ no raster fallback, not pixel identity. The tested SVG engine samples gradients 
 half-pixel centers; DrawCV samples integer centers. Clip edges receive the viewer's
 antialiasing. Use PNG export for exact raster reproduction.
 
-## Persistence and animation
+## Persistence, import and animation
 
-JSON remains the editable DrawCV format at schema 1.4. SVG is a one-way interchange
-format: there is no SVG importer or SVG-to-DrawCV round trip. Paths can be edited in
-SVG tools, but SVG does not retain every DrawCV object type or history/timeline state.
+JSON remains the primary editable DrawCV format at schema 1.7. DrawCV also provides a native,
+high-fidelity retained SVG importer (`SVGImporter`) for supported SVG vector documents:
+
+```python
+from drawcv import Scene, SVGImporter
+
+# Direct convenience constructors
+scene = Scene.from_svg("<svg width='200' height='200'>...</svg>", strict=True)
+scene = Scene.load_svg("vector_art.svg", strict=True)
+
+# Advanced importer API with resource bounds and explicit viewport
+importer = SVGImporter(strict=True, viewport=(400, 300))
+result = importer.parse_file("input.svg")
+scene = result.scene
+```
+
+### Strict import invariant
+
+Anything accepted by `SVGImporter` in strict mode becomes genuine retained DrawCV objects, and subsequent export with `SVGExporter(strict=True)` succeeds with zero PNG raster fallbacks. Zero hidden rasterization is performed in the importer.
+
+### Supported import subset (Milestone 1)
+
+* **Shapes and paths**: `<path>` (M/m, L/l, Q/q, C/c, Z/z, compound paths, `fill-rule` nonzero and evenodd), `<rect>` (square and circular rounded rectangles with $rx=ry$), `<circle>`, `<ellipse>`, `<line>`, `<polyline>` (unfilled maps to `Polyline`, filled maps to open `Path`), `<polygon>` (maps to closed `Path`), `<g>`.
+* **Transforms**: `matrix`, `translate`, `scale`, `rotate` (with pivot), `skewX`, `skewY`, and transform lists multiplied in SVG left-to-right composition order.
+* **Style and cascade**: Presentation attributes and inline `style=""` declarations with full inheritance cascade; colors (`#hex`, `rgb()`, `rgba()`, 147 named CSS colors, `currentColor`, `none`, `transparent`); `display: none` subtree pruning; `visibility: hidden` with child `visibility: visible` override.
+* **Stroke compatibility**: Ordinary strokes under uniform scale or reflection are normalized; strokes under anisotropic scaling or shear are strictly rejected (`SVG_STROKE_AFFINE_MISMATCH`) unless `vector-effect="non-scaling-stroke"` is declared.
+* **Paint servers**: `<linearGradient>` and centered `<radialGradient>` in `objectBoundingBox` and `userSpaceOnUse`; context-aware percentage resolution in `userSpaceOnUse`; stop normalization (monotonicity, clamping, duplicate handling); template `href` inheritance; reference cycle detection; zero-size geometry bounding box handling.
+* **Clipping**: Retained path clipping via `<clipPath>` (`userSpaceOnUse` and `objectBoundingBox`), clip transforms, and `clip-rule`. Supports a single exact geometry child from the `<path>`, non-rounded `<rect>`, `<polygon>`, and `<polyline>` subset with transform composition ($M_{\text{clipPath}} \cdot M_{\text{child}}$). Circular/elliptical/line clips, rounded rectangles, multiple clip children, and empty clip paths are strictly rejected (`SVG_UNSUPPORTED_CLIP_GEOMETRY`).
+* **Compositing**: 12 supported `mix-blend-mode` values on shapes and groups. CSS `isolation: isolate` is strictly rejected.
+* **Security & limits**: XML `DOCTYPE` and `ENTITY` declarations are forbidden (`SVG_SECURITY_VIOLATION`), external URLs in `href` are forbidden, and configurable limits protect against CPU exhaustion.
+* **Deferred constructs**: `<mask>`, `<filter>`, `<text>`, `<image>`, `<pattern>`, `<use>`, `<symbol>`, percentage dimensions outside gradients, elliptical rounded corners ($rx \ne ry$), and path arc `A` commands are deferred to subsequent milestones.
+
 Groups carry `data-drawcv-id`; generated SVG IDs are unique and deterministic for the
 same scene frame.
 
