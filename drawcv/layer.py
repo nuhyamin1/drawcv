@@ -253,6 +253,7 @@ class Layer:
 
     def to_dict(self) -> dict[str, Any]:
         """Return a plain JSON-compatible dictionary representation."""
+        from drawcv.effects.clipping import clip_to_dict
         return {
             "name": self.name,
             "visible": bool(self.visible),
@@ -260,7 +261,7 @@ class Layer:
             "opacity": float(self.opacity),
             "blend_mode": self.blend_mode.value,
             "z_order": int(self.z_order),
-            "clip": self.clip.to_dict() if self.clip is not None else None,
+            "clip": clip_to_dict(self.clip),
             "mask": self.mask.to_dict() if self.mask is not None else None,
             "effects": [e.to_dict() for e in self.effects],
             "objects": [obj.to_dict() for obj in self._objects],

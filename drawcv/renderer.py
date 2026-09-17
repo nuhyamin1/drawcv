@@ -30,7 +30,7 @@ from drawcv.compositing import composite_blend
 from drawcv.core.transform import Transform
 from drawcv.core.stroking import stroke_mask
 from drawcv.core.geometry_utils import _FONT_FAMILY_TO_CV, evaluate_fill_rule_mask, flatten_arc
-from drawcv.effects.clipping import ClipPath, ClipRect
+from drawcv.effects.clipping import ClipPath, ClipRect, evaluate_clip_coverage
 from drawcv.effects.executor import execute_effects_pipeline
 from drawcv.effects.mask import Mask
 from drawcv.group import Group
@@ -359,19 +359,9 @@ class OpenCVRenderer:
 
         # e. Final Clip Stencil (Applied AFTER blur/shadow)
         if getattr(entity, "clip", None) is not None:
-            clip_obj = entity.clip
-            clip_mask = np.zeros((destination.height, destination.width), dtype=np.uint8)
-            if isinstance(clip_obj, ClipRect):
-                corners = [c if isinstance(entity, Layer) else entity.to_world(c) for c in clip_obj.corners]
-                pts = np.array([[int(round(p.x)), int(round(p.y))] for p in corners], dtype=np.int32).reshape((-1, 1, 2))
-                cv2.fillPoly(clip_mask, [pts], 255)
-            elif isinstance(clip_obj, ClipPath):
-                pts_world = [p if isinstance(entity, Layer) else entity.to_world(p) for p in clip_obj.points]
-                pts = np.array([[int(round(p.x)), int(round(p.y))] for p in pts_world], dtype=np.int32).reshape((-1, 1, 2))
-                cv2.fillPoly(clip_mask, [pts], 255)
-
-            sub_clip = clip_mask[y1:y2, x1:x2]
-            base_buffer[y1:y2, x1:x2][sub_clip == 0] = 0.0
+            clip_cov = evaluate_clip_coverage(entity.clip, entity, destination.width, destination.height)
+            sub_cov = clip_cov[y1:y2, x1:x2, None]
+            base_buffer[y1:y2, x1:x2] *= sub_cov
 
         # f. Entity Opacity (4-channel scale)
         entity_op = (self._get_render_opacity(entity)

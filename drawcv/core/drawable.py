@@ -418,6 +418,7 @@ class Drawable(ABC):
 
     def _get_semantic_state(self) -> dict[str, Any]:
         """Capture authoritative semantic state snapshot for in-place undo/redo."""
+        from drawcv.effects.clipping import capture_clip_state
         state = {
             "id": self.id,
             "name": self.name,
@@ -429,7 +430,7 @@ class Drawable(ABC):
             "tags": sorted(list(self.tags)),
             "metadata": copy.deepcopy(self.metadata),
             "transform": self.transform.copy(),
-            "clip": copy.deepcopy(self.clip),
+            "clip": capture_clip_state(self.clip),
             "mask": copy.deepcopy(self.mask),
             "effects": [copy.deepcopy(e) for e in self.effects],
             "timing": self.timing.to_dict() if self.timing is not None else None,
@@ -456,8 +457,9 @@ class Drawable(ABC):
         elif isinstance(tf_val, dict):
             self.transform = Transform.from_dict(tf_val)
 
+        from drawcv.effects.clipping import restore_clip_state
         clip_val = state.get("clip")
-        self.clip = copy.deepcopy(clip_val)
+        self.clip = restore_clip_state(self.clip, clip_val)
 
         mask_val = state.get("mask")
         self.mask = copy.deepcopy(mask_val)
@@ -481,6 +483,7 @@ class Drawable(ABC):
 
     def _base_to_dict(self) -> dict[str, Any]:
         """Serialize common retained-mode attributes to plain JSON-compatible primitives."""
+        from drawcv.effects.clipping import clip_to_dict
         return {
             "id": self.id,
             "name": self.name,
@@ -492,7 +495,7 @@ class Drawable(ABC):
             "tags": sorted(list(self.tags)),
             "metadata": copy.deepcopy(self.metadata),
             "transform": self.transform.to_dict(),
-            "clip": self.clip.to_dict() if self.clip is not None else None,
+            "clip": clip_to_dict(self.clip),
             "mask": self.mask.to_dict() if self.mask is not None else None,
             "effects": [e.to_dict() for e in self.effects],
             "timing": self.timing.to_dict() if self.timing is not None else None,

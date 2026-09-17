@@ -3,7 +3,18 @@
 from drawcv.core.enums import DisplacementChannel, EdgeDetectionMethod
 from drawcv.core.exceptions import ValidationError
 from drawcv.effects.blur import BlurEffect
-from drawcv.effects.clipping import ClipPath, ClipRect, clip_from_dict
+from drawcv.effects.clipping import (
+    ClipPath,
+    ClipRect,
+    capture_clip_state,
+    clip_from_dict,
+    clip_to_dict,
+    evaluate_clip_contours,
+    evaluate_clip_coverage,
+    get_clip_point_mapper,
+    is_point_in_clip,
+    restore_clip_state,
+)
 from drawcv.effects.color import (
     BrightnessContrastEffect,
     ColorMatrixEffect,
@@ -58,6 +69,13 @@ __all__ = [
     "SepiaEffect",
     "ShadowEffect",
     "SharpenEffect",
+    "capture_clip_state",
     "clip_from_dict",
+    "clip_to_dict",
     "effect_from_dict",
+    "evaluate_clip_contours",
+    "evaluate_clip_coverage",
+    "get_clip_point_mapper",
+    "is_point_in_clip",
+    "restore_clip_state",
 ]

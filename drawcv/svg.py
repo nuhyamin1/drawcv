@@ -15,7 +15,7 @@ from drawcv.core.enums import ArcClosure, BlendMode, FillRule, ImageInterpolatio
 from drawcv.core.exceptions import RenderError, ValidationError
 from drawcv.core.geometry import Point
 from drawcv.core.geometry_utils import flatten_arc
-from drawcv.effects.clipping import ClipPath, ClipRect
+from drawcv.effects.clipping import ClipPath, ClipRect, get_clip_point_mapper
 from drawcv.group import Group
 from drawcv.layer import Layer
 from drawcv.renderer import OpenCVRenderer, _IsolatedSurface
@@ -154,12 +154,40 @@ class _Writer:
         group.set("opacity", _number(entity.opacity))
         if entity.clip is not None:
             clip = entity.clip
-            points = clip.corners if isinstance(clip, ClipRect) else clip.points
-            if not isinstance(entity, Layer):
-                points = [entity.to_world(p) for p in points]
             ident = self.identifier()
             node = ET.SubElement(self.defs, "clipPath", {"id": ident, "clipPathUnits": "userSpaceOnUse"})
-            ET.SubElement(node, "path", {"d": _points(points, True), "clip-rule": "evenodd"})
+            map_point = get_clip_point_mapper(clip, entity)
+
+            if isinstance(clip, Path):
+                def coords(p):
+                    p_w = map_point(p)
+                    return f"{_number(p_w.x)} {_number(p_w.y)}"
+
+                commands = []
+                for subpath in clip.subpaths:
+                    for cmd in subpath.commands:
+                        if isinstance(cmd, (MoveTo, LineTo)):
+                            commands.append(("M " if isinstance(cmd, MoveTo) else "L ") + coords(cmd.point))
+                        elif isinstance(cmd, QuadraticTo):
+                            commands.append("Q " + coords(cmd.control) + " " + coords(cmd.end))
+                        elif isinstance(cmd, CubicTo):
+                            commands.append("C " + coords(cmd.control1) + " " + coords(cmd.control2) + " " + coords(cmd.end))
+                        elif isinstance(cmd, Close):
+                            commands.append("Z")
+                        else:
+                            raise RenderError("Unsupported path command in clip")
+                    if subpath.commands and not isinstance(subpath.commands[-1], Close):
+                        # Implicit closure for filled clip boundary in SVG
+                        commands.append("Z")
+
+                d_str = " ".join(commands)
+                rule = "nonzero" if clip.fill_rule == FillRule.NON_ZERO else "evenodd"
+                ET.SubElement(node, "path", {"d": d_str, "clip-rule": rule})
+            else:
+                points = clip.corners if isinstance(clip, ClipRect) else clip.points
+                points = [map_point(p) for p in points]
+                ET.SubElement(node, "path", {"d": _points(points, True), "clip-rule": "evenodd"})
+
             group.set("clip-path", f"url(#{ident})")
         if isinstance(entity, (Layer, Group)):
             children = entity.objects if isinstance(entity, Layer) else entity.children
@@ -212,7 +240,7 @@ class _Writer:
             return "effects"
         if entity.mask is not None:
             return "mask"
-        if entity.clip is not None and not isinstance(entity.clip, (ClipRect, ClipPath)):
+        if entity.clip is not None and not isinstance(entity.clip, (ClipRect, ClipPath, Path)):
             return "unsupported clip"
         if isinstance(entity, FreehandStroke) and entity.variable_width:
             return "variable-width stroke"

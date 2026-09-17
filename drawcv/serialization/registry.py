@@ -11,7 +11,7 @@ from drawcv.core.exceptions import (
     UnsupportedVersionError,
 )
 
-CURRENT_SCHEMA_VERSION = "1.6"
+CURRENT_SCHEMA_VERSION = "1.7"
 CURRENT_FORMAT_IDENTIFIER = "drawcv"
 
 _DRAWABLE_REGISTRY: dict[str, type] = {}
@@ -149,7 +149,10 @@ class SchemaMigrator:
             )
         
         if "version" not in data:
-            raise InvalidFormatError("Missing required document header 'version'")
+            if "schema_version" in data:
+                data["version"] = data["schema_version"]
+            else:
+                raise InvalidFormatError("Missing required document header 'version'")
         
         version_str = str(data["version"]).strip()
         if not version_str or not any(c.isdigit() for c in version_str):
@@ -335,3 +338,37 @@ def _migrate_1_5_to_1_6(data: dict[str, Any]) -> dict[str, Any]:
 
 
 SchemaMigrator.register_migration("1.5", _migrate_1_5_to_1_6)
+
+
+def _migrate_1_6_to_1_7(data: dict[str, Any]) -> dict[str, Any]:
+    """Forward-migrate document schema 1.6 to 1.7 migrating legacy polygon clips."""
+    migrated = copy.deepcopy(data)
+    migrated["version"] = "1.7"
+    if "schema_version" in migrated:
+        migrated["schema_version"] = "1.7"
+
+    def _patch_clip_dict(clip_dict: Any) -> None:
+        if isinstance(clip_dict, dict) and clip_dict.get("type") == "path" and "points" in clip_dict:
+            clip_dict["type"] = "polygon"
+
+    def _patch_drawable(d: dict[str, Any]) -> None:
+        if not isinstance(d, dict):
+            return
+        if "clip" in d and d["clip"] is not None:
+            _patch_clip_dict(d["clip"])
+        if d.get("type") == "group" and "children" in d:
+            for child in d.get("children", []):
+                _patch_drawable(child)
+
+    scene_data = migrated.get("scene", {})
+    for layer in scene_data.get("layers", []):
+        if isinstance(layer, dict):
+            if "clip" in layer and layer["clip"] is not None:
+                _patch_clip_dict(layer["clip"])
+            for obj_data in layer.get("objects", []):
+                _patch_drawable(obj_data)
+
+    return migrated
+
+
+SchemaMigrator.register_migration("1.6", _migrate_1_6_to_1_7)

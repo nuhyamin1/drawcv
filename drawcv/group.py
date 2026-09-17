@@ -304,10 +304,16 @@ class Group(Drawable):
         """Test whether a world-space point intersects any visible child in this group."""
         if not self.effective_visible:
             return False
+        from drawcv.effects.clipping import is_point_in_clip
+        if self.clip is not None and not is_point_in_clip(self.clip, self, world_point):
+            return False
         # Test in reverse order (topmost child first)
         for child in reversed(self._children):
-            if child.effective_visible and child.contains_point(world_point):
-                return True
+            if child.effective_visible:
+                if child.clip is not None and not is_point_in_clip(child.clip, child, world_point):
+                    continue
+                if child.contains_point(world_point):
+                    return True
         return False
 
     def clone(self, new_id: bool = True) -> Group:

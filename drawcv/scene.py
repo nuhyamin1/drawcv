@@ -728,9 +728,13 @@ class Scene:
 
         point = Point(x, y)
         hits: list[Drawable] = []
+        from drawcv.effects.clipping import is_point_in_clip
 
         for layer in reversed(self.layers):
             if not layer.visible or layer.opacity <= 0.0:
+                continue
+
+            if layer.clip is not None and not is_point_in_clip(layer.clip, layer, point):
                 continue
 
             visible_items = [
@@ -752,7 +756,12 @@ class Scene:
         if not drawable.effective_visible or drawable.effective_opacity <= 0.0:
             return
 
+        from drawcv.effects.clipping import is_point_in_clip
+        if drawable.clip is not None and not is_point_in_clip(drawable.clip, drawable, point):
+            return
+
         if isinstance(drawable, Group):
+            start_len = len(hits)
             indexed_children = [
                 (idx, child) for idx, child in enumerate(drawable.children)
                 if child.visible and child.opacity > 0.0
@@ -764,7 +773,7 @@ class Scene:
             )
             for _, child in sorted_children:
                 self._hit_test_recursive(child, point, hits)
-            if drawable.contains_point(point) and drawable not in hits:
+            if len(hits) > start_len and drawable not in hits:
                 hits.append(drawable)
         else:
             if drawable.contains_point(point):
@@ -900,6 +909,7 @@ class Scene:
         return {
             "format": CURRENT_FORMAT_IDENTIFIER,
             "version": CURRENT_SCHEMA_VERSION,
+            "schema_version": CURRENT_SCHEMA_VERSION,
             "scene": {
                 "width": self.width,
                 "height": self.height,

@@ -153,11 +153,18 @@ class TestEffectsSerialization:
         pts = [Point(0, 0), Point(100, 0), Point(50, 100)]
         cp = ClipPath(pts)
         d = cp.to_dict()
-        assert d["type"] == "path"
+        assert d["type"] == "polygon"
         assert len(d["points"]) == 3
         restored = ClipPath.from_dict(d)
         assert len(restored.points) == 3
         assert restored.points[1] == Point(100, 0)
+
+        # Backward compatibility with legacy schema-1.6 "type": "path"
+        legacy_d = {"type": "path", "points": [p.to_dict() for p in pts]}
+        from drawcv.effects.clipping import clip_from_dict
+        restored_legacy = clip_from_dict(legacy_d)
+        assert isinstance(restored_legacy, ClipPath)
+        assert len(restored_legacy.points) == 3
 
     def test_mask_raster_envelope_and_validation(self):
         arr = np.zeros((100, 150), dtype=np.uint8)

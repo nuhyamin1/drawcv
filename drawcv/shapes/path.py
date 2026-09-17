@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import copy
 import math
-from typing import Sequence
+from typing import Any, Callable, Sequence
 
 
 from drawcv.core.bounds import BoundingBox
@@ -104,6 +104,64 @@ class Subpath:
         if isinstance(last, Close) and self.start_point is not None:
             return self.start_point
         return None
+
+
+# -----------------------------------------------------------------------------
+# Subpath Serialization Codecs
+# -----------------------------------------------------------------------------
+
+def serialize_subpaths(subpaths: list[Subpath]) -> list[dict[str, Any]]:
+    """Serialize a list of Subpaths to canonical JSON dictionary representation."""
+    subpaths_data = []
+    for sp in subpaths:
+        cmds_data = []
+        for cmd in sp.commands:
+            if isinstance(cmd, MoveTo):
+                cmds_data.append({"type": "move_to", "point": cmd.point.to_dict()})
+            elif isinstance(cmd, LineTo):
+                cmds_data.append({"type": "line_to", "point": cmd.point.to_dict()})
+            elif isinstance(cmd, QuadraticTo):
+                cmds_data.append({"type": "quadratic_to", "control": cmd.control.to_dict(), "end": cmd.end.to_dict()})
+            elif isinstance(cmd, CubicTo):
+                cmds_data.append({
+                    "type": "cubic_to",
+                    "control1": cmd.control1.to_dict(),
+                    "control2": cmd.control2.to_dict(),
+                    "end": cmd.end.to_dict(),
+                })
+            elif isinstance(cmd, Close):
+                cmds_data.append({"type": "close"})
+        subpaths_data.append({"commands": cmds_data, "closed": bool(sp.closed)})
+    return subpaths_data
+
+
+def deserialize_subpaths(subpaths_data: list[dict[str, Any]]) -> list[Subpath]:
+    """Construct a list of Subpaths from canonical serialized dictionaries."""
+    if not isinstance(subpaths_data, list):
+        raise ValidationError("Path 'subpaths' data must be a list")
+    subpaths = []
+    for sp_dict in subpaths_data:
+        cmds = []
+        for c_dict in sp_dict.get("commands", []):
+            c_type = c_dict.get("type", "")
+            if c_type in ("move_to", "moveTo"):
+                cmds.append(MoveTo(Point.from_dict(c_dict["point"])))
+            elif c_type in ("line_to", "lineTo"):
+                cmds.append(LineTo(Point.from_dict(c_dict["point"])))
+            elif c_type in ("quadratic_to", "quadraticTo"):
+                cmds.append(QuadraticTo(Point.from_dict(c_dict["control"]), Point.from_dict(c_dict["end"])))
+            elif c_type in ("cubic_to", "cubicTo"):
+                cmds.append(CubicTo(
+                    Point.from_dict(c_dict["control1"]),
+                    Point.from_dict(c_dict["control2"]),
+                    Point.from_dict(c_dict["end"]),
+                ))
+            elif c_type in ("close", "closePath"):
+                cmds.append(Close())
+            else:
+                raise ValidationError(f"Unknown path command type '{c_type}'")
+        subpaths.append(Subpath(commands=cmds, closed=bool(sp_dict.get("closed", False))))
+    return subpaths
 
 
 # -----------------------------------------------------------------------------
@@ -346,6 +404,86 @@ class Path(Drawable):
             return list(zip(world_contours, closed_flags))
         return world_contours
 
+    def flatten_with_mapper(
+        self,
+        map_point: Callable[[Point], Point],
+        tolerance: float = 0.5,
+        *,
+        include_closed: bool = False,
+    ):
+        """Derive flattened point contours transformed through a custom point mapper.
+
+        Evaluates de Casteljau adaptive subdivision on mapped control points
+        so the tolerance (in screen pixels) remains scale-invariant.
+        """
+        world_contours: list[list[Point]] = []
+        closed_flags: list[bool] = []
+
+        for sp in self.subpaths:
+            if not sp.commands:
+                continue
+
+            current_w: Point | None = None
+            start_w: Point | None = None
+            contour: list[Point] = []
+
+            for cmd in sp.commands:
+                if isinstance(cmd, MoveTo):
+                    pt_w = map_point(cmd.point)
+                    if contour:
+                        world_contours.append(contour)
+                        closed_flags.append(False)
+                        contour = []
+                    current_w = pt_w
+                    start_w = pt_w
+                    contour.append(pt_w)
+
+                elif isinstance(cmd, LineTo):
+                    if current_w is None:
+                        current_w = map_point(Point(0.0, 0.0))
+                        start_w = current_w
+                        contour.append(current_w)
+                    pt_w = map_point(cmd.point)
+                    contour.append(pt_w)
+                    current_w = pt_w
+
+                elif isinstance(cmd, QuadraticTo):
+                    if current_w is None:
+                        current_w = map_point(Point(0.0, 0.0))
+                        start_w = current_w
+                        contour.append(current_w)
+                    ctrl_w = map_point(cmd.control)
+                    end_w = map_point(cmd.end)
+                    subdiv = flatten_quadratic_bezier(current_w, ctrl_w, end_w, tolerance=tolerance)
+                    # Skip the first point since it matches current_w
+                    contour.extend(subdiv[1:])
+                    current_w = end_w
+
+                elif isinstance(cmd, CubicTo):
+                    if current_w is None:
+                        current_w = map_point(Point(0.0, 0.0))
+                        start_w = current_w
+                        contour.append(current_w)
+                    c1_w = map_point(cmd.control1)
+                    c2_w = map_point(cmd.control2)
+                    end_w = map_point(cmd.end)
+                    subdiv = flatten_cubic_bezier(current_w, c1_w, c2_w, end_w, tolerance=tolerance)
+                    contour.extend(subdiv[1:])
+                    current_w = end_w
+
+                elif isinstance(cmd, Close):
+                    if start_w is not None and current_w is not None and current_w != start_w:
+                        contour.append(start_w)
+                        current_w = start_w
+
+            if contour:
+                world_contours.append(contour)
+                closed_flags.append(sp.closed)
+
+        if include_closed:
+            return list(zip(world_contours, closed_flags))
+        return world_contours
+
     # -------------------------------------------------------------------------
     # Bounds Hierarchy
     # -------------------------------------------------------------------------
@@ -508,30 +646,9 @@ class Path(Drawable):
     def to_dict(self) -> dict[str, Any]:
         """Return a plain JSON-compatible dictionary representation."""
         res = self._base_to_dict()
-        subpaths_data = []
-        for sp in self.subpaths:
-            cmds_data = []
-            for cmd in sp.commands:
-                if isinstance(cmd, MoveTo):
-                    cmds_data.append({"type": "move_to", "point": cmd.point.to_dict()})
-                elif isinstance(cmd, LineTo):
-                    cmds_data.append({"type": "line_to", "point": cmd.point.to_dict()})
-                elif isinstance(cmd, QuadraticTo):
-                    cmds_data.append({"type": "quadratic_to", "control": cmd.control.to_dict(), "end": cmd.end.to_dict()})
-                elif isinstance(cmd, CubicTo):
-                    cmds_data.append({
-                        "type": "cubic_to",
-                        "control1": cmd.control1.to_dict(),
-                        "control2": cmd.control2.to_dict(),
-                        "end": cmd.end.to_dict(),
-                    })
-                elif isinstance(cmd, Close):
-                    cmds_data.append({"type": "close"})
-            subpaths_data.append({"commands": cmds_data, "closed": bool(sp.closed)})
-
         res.update({
             "type": "path",
-            "subpaths": subpaths_data,
+            "subpaths": serialize_subpaths(self.subpaths),
             "fill_rule": self.fill_rule.value if hasattr(self.fill_rule, "value") else str(self.fill_rule),
             "stroke": self.stroke.to_dict() if self.stroke else None,
             "fill": self.fill.to_dict() if self.fill else None,
@@ -542,29 +659,7 @@ class Path(Drawable):
     def from_dict(cls, data: dict[str, Any]) -> Path:
         """Construct a Path from dictionary representation."""
         base_kwargs = cls._base_from_dict(data)
-        subpaths = []
-        for sp_dict in data.get("subpaths", []):
-            cmds = []
-            for c_dict in sp_dict.get("commands", []):
-                c_type = c_dict.get("type", "")
-                if c_type in ("move_to", "moveTo"):
-                    cmds.append(MoveTo(Point.from_dict(c_dict["point"])))
-                elif c_type in ("line_to", "lineTo"):
-                    cmds.append(LineTo(Point.from_dict(c_dict["point"])))
-                elif c_type in ("quadratic_to", "quadraticTo"):
-                    cmds.append(QuadraticTo(Point.from_dict(c_dict["control"]), Point.from_dict(c_dict["end"])))
-                elif c_type in ("cubic_to", "cubicTo"):
-                    cmds.append(CubicTo(
-                        Point.from_dict(c_dict["control1"]),
-                        Point.from_dict(c_dict["control2"]),
-                        Point.from_dict(c_dict["end"]),
-                    ))
-                elif c_type in ("close", "closePath"):
-                    cmds.append(Close())
-                else:
-                    raise ValidationError(f"Unknown path command type '{c_type}'")
-            subpaths.append(Subpath(commands=cmds, closed=bool(sp_dict.get("closed", False))))
-
+        subpaths = deserialize_subpaths(data.get("subpaths", []))
         fill_rule_val = FillRule(data["fill_rule"]) if "fill_rule" in data else FillRule.NON_ZERO
         stroke = StrokeStyle.from_dict(data["stroke"]) if data.get("stroke") is not None else None
         fill = FillStyle.from_dict(data["fill"]) if data.get("fill") is not None else None
