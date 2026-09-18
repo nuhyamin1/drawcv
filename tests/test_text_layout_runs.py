@@ -2,6 +2,11 @@ import math
 import numpy as np
 import pytest
 
+pytest.importorskip("uharfbuzz")
+pytest.importorskip("freetype")
+pytest.importorskip("icu")
+pytest.importorskip("regex")
+
 from drawcv.canvas import Canvas
 from drawcv.core.color import Color
 from drawcv.core.geometry import Point

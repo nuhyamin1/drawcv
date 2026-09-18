@@ -9,6 +9,11 @@
 from pathlib import Path
 import pytest
 
+pytest.importorskip("uharfbuzz")
+pytest.importorskip("freetype")
+pytest.importorskip("icu")
+pytest.importorskip("regex")
+
 from drawcv import (
     Color,
     DictFontResolver,

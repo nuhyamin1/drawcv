@@ -10,6 +10,11 @@ import cv2
 import numpy as np
 import pytest
 
+pytest.importorskip("uharfbuzz")
+pytest.importorskip("freetype")
+pytest.importorskip("icu")
+pytest.importorskip("regex")
+
 from drawcv import (
     DictFontResolver,
     FontAsset,

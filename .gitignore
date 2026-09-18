@@ -78,3 +78,4 @@ ehthumbs.db
 .tempmediaStorage/
 scratch/
 .test-deps/
+dist_backup/
