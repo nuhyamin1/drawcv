@@ -1,0 +1,8 @@
+<svg width="400" height="150" viewBox="0 0 400 150" xmlns="http://www.w3.org/2000/svg">
+  <text x="40" y="60" font-family="Noto Sans" font-size="26" fill="none">
+    Hidden <tspan fill="#2b6cb0">Visible Tspan</tspan>
+  </text>
+  <text x="40" y="110" font-family="Noto Sans" font-size="26" fill="#c53030">
+    Visible <tspan fill="none">Hidden Tspan</tspan> Suffix
+  </text>
+</svg>

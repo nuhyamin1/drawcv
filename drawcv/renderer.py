@@ -705,24 +705,52 @@ class OpenCVRenderer:
                 self._render_rectangle(plate_shape, canvas)
 
         # 2. Text Glyphs
-        text_alpha = text_obj.color.a * eff_alpha
-        if text_alpha <= 0.0 or not text_obj.text:
+        if not text_obj.text:
             return
 
-        text_bgr = text_obj.color.to_bgr()
-        if text_obj.fonts is not None:
+        if text_obj.fonts is not None or text_obj.runs is not None:
             layout = text_obj._font_layout()
             if layout.ink is None:
                 return
             metrics = text_obj.measure()
-            origin = np.array([[1., 0., metrics.layout_bounds.x + layout.left],
-                               [0., 1., metrics.layout_bounds.y + layout.top], [0., 0., 1.]])
-            matrix = text_obj.world_matrix @ origin
-            mask = cv2.warpAffine(layout.mask, matrix[:2], (canvas.width, canvas.height),
-                                  flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
-            self._composite_mask(canvas, mask, text_bgr, text_alpha)
+            if getattr(layout, "styled_runs", None):
+                for srun in layout.styled_runs:
+                    srun_fill_none = srun.fill_none or (srun.color is None and text_obj.fill_none)
+                    if srun_fill_none or srun.mask is None:
+                        continue
+                    run_color = srun.color if srun.color is not None else text_obj.color
+                    run_alpha = run_color.a * srun.fill_opacity * eff_alpha
+                    if run_alpha <= 0.0:
+                        continue
+                    run_bgr = run_color.to_bgr()
+                    origin = np.array([[1., 0., metrics.layout_bounds.x + srun.left],
+                                       [0., 1., metrics.layout_bounds.y + srun.top], [0., 0., 1.]])
+                    matrix = text_obj.world_matrix @ origin
+                    mask = cv2.warpAffine(srun.mask, matrix[:2], (canvas.width, canvas.height),
+                                          flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+                    self._composite_mask(canvas, mask, run_bgr, run_alpha)
+            else:
+                if text_obj.fill_none:
+                    return
+                run_alpha = text_obj.color.a * text_obj.fill_opacity * eff_alpha
+                if run_alpha <= 0.0 or layout.mask is None:
+                    return
+                text_bgr = text_obj.color.to_bgr()
+                origin = np.array([[1., 0., metrics.layout_bounds.x + layout.left],
+                                   [0., 1., metrics.layout_bounds.y + layout.top], [0., 0., 1.]])
+                matrix = text_obj.world_matrix @ origin
+                mask = cv2.warpAffine(layout.mask, matrix[:2], (canvas.width, canvas.height),
+                                      flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+                self._composite_mask(canvas, mask, text_bgr, run_alpha)
             return
-        font_face = self._get_cv_font(text_obj.font_family)
+
+        if text_obj.fill_none:
+            return
+        text_alpha = text_obj.color.a * text_obj.fill_opacity * eff_alpha
+        if text_alpha <= 0.0:
+            return
+        text_bgr = text_obj.color.to_bgr()
+        font_face = _FONT_FAMILY_TO_CV.get(text_obj.font_family, cv2.FONT_HERSHEY_SIMPLEX)
         metrics = text_obj.get_line_metrics()
         line_step = text_obj.get_text_bounds_dimensions()[2] * 1.4
         gb = text_obj.get_geometry_bounds()

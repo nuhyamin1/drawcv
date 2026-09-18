@@ -6,6 +6,9 @@ import math
 from typing import Any
 import uuid
 
+from dataclasses import dataclass
+from enum import Enum
+
 from drawcv.core.bounds import BoundingBox
 from drawcv.core.color import Color
 from drawcv.core.drawable import Drawable
@@ -18,16 +21,139 @@ from drawcv.styles.fill import FillStyle
 from drawcv.typography import FontAsset, TextMetrics, TextLineMetrics
 
 
+class TextAnchor(str, Enum):
+    START = "start"
+    MIDDLE = "middle"
+    END = "end"
+
+
+@dataclass(frozen=True)
+class TextRun:
+    """Immutable rich text run with optional per-span style and positioning overrides."""
+    text: str
+    fonts: tuple[FontAsset, ...] | None = None
+    font_size: float | None = None
+    font_family_name: str | None = None
+    font_weight: str | int | None = None
+    font_style: str | None = None
+    fill: Color | None = None
+    fill_none: bool = False
+    fill_opacity: float | None = None
+    x: float | None = None
+    y: float | None = None
+    dx: float = 0.0
+    dy: float = 0.0
+    text_anchor: TextAnchor | None = None
+    direction: str | None = None
+    xml_space: str | None = None
+    is_font_substituted: bool = False
+
+    def __post_init__(self):
+        if not isinstance(self.text, str):
+            raise ValidationError(f"TextRun 'text' must be a string, got {type(self.text).__name__}")
+        if self.fonts is not None:
+            if isinstance(self.fonts, (list, tuple)):
+                object.__setattr__(self, "fonts", tuple(self.fonts))
+            if not self.fonts or not all(isinstance(f, FontAsset) for f in self.fonts):
+                raise ValidationError("TextRun 'fonts' must be None or a nonempty sequence of FontAsset instances")
+        if self.font_size is not None:
+            if isinstance(self.font_size, bool) or not isinstance(self.font_size, (int, float)) or not math.isfinite(self.font_size) or self.font_size <= 0:
+                raise ValidationError(f"TextRun font_size must be positive and finite, got {self.font_size}")
+            if self.font_size > 4096:
+                raise ValidationError("TextRun font_size cannot exceed 4096px")
+        if self.fill is not None and not isinstance(self.fill, Color):
+            raise ValidationError(f"TextRun fill must be Color or None, got {type(self.fill).__name__}")
+        if not isinstance(self.fill_none, bool):
+            raise ValidationError("TextRun fill_none must be a boolean")
+        if self.fill_opacity is not None:
+            if isinstance(self.fill_opacity, bool) or not isinstance(self.fill_opacity, (int, float)) or not (0.0 <= float(self.fill_opacity) <= 1.0):
+                raise ValidationError(f"TextRun fill_opacity must be in range [0, 1], got {self.fill_opacity}")
+        if self.text_anchor is not None:
+            if isinstance(self.text_anchor, str):
+                try:
+                    object.__setattr__(self, "text_anchor", TextAnchor(self.text_anchor.strip().lower()))
+                except ValueError:
+                    raise ValidationError(f"Invalid TextAnchor '{self.text_anchor}'")
+            elif not isinstance(self.text_anchor, TextAnchor):
+                raise ValidationError(f"TextRun text_anchor must be TextAnchor or str, got {type(self.text_anchor).__name__}")
+        if self.direction is not None and self.direction not in ("auto", "ltr", "rtl"):
+            raise ValidationError("TextRun direction must be auto, ltr, or rtl")
+        if self.xml_space is not None and self.xml_space not in ("default", "preserve"):
+            raise ValidationError(f"TextRun xml_space must be 'default', 'preserve', or None, got '{self.xml_space}'")
+
+    def to_dict(self) -> dict[str, Any]:
+        d: dict[str, Any] = {"text": self.text}
+        if self.fonts is not None:
+            d["fonts"] = [f.to_dict() for f in self.fonts]
+        if self.font_size is not None:
+            d["font_size"] = self.font_size
+        if self.font_family_name is not None:
+            d["font_family_name"] = self.font_family_name
+        if self.font_weight is not None:
+            d["font_weight"] = self.font_weight
+        if self.font_style is not None:
+            d["font_style"] = self.font_style
+        if self.fill is not None:
+            d["fill"] = self.fill.to_dict()
+        if self.fill_none:
+            d["fill_none"] = True
+        if self.fill_opacity is not None:
+            d["fill_opacity"] = self.fill_opacity
+        if self.x is not None:
+            d["x"] = self.x
+        if self.y is not None:
+            d["y"] = self.y
+        if self.dx != 0.0:
+            d["dx"] = self.dx
+        if self.dy != 0.0:
+            d["dy"] = self.dy
+        if self.text_anchor is not None:
+            d["text_anchor"] = self.text_anchor.value
+        if self.direction is not None:
+            d["direction"] = self.direction
+        if self.xml_space is not None:
+            d["xml_space"] = self.xml_space
+        if self.is_font_substituted:
+            d["is_font_substituted"] = True
+        return d
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> TextRun:
+        fonts = tuple(FontAsset.from_dict(f) for f in data["fonts"]) if data.get("fonts") is not None else None
+        fill = Color.from_dict(data["fill"]) if data.get("fill") is not None else None
+        ta = TextAnchor(data["text_anchor"]) if data.get("text_anchor") is not None else None
+        f_op = float(data["fill_opacity"]) if "fill_opacity" in data and data["fill_opacity"] is not None else None
+        return cls(
+            text=str(data.get("text", "")),
+            fonts=fonts,
+            font_size=data.get("font_size"),
+            font_family_name=data.get("font_family_name"),
+            font_weight=data.get("font_weight"),
+            font_style=data.get("font_style"),
+            fill=fill,
+            fill_none=bool(data.get("fill_none", False)),
+            fill_opacity=f_op,
+            x=data.get("x"),
+            y=data.get("y"),
+            dx=float(data.get("dx", 0.0)),
+            dy=float(data.get("dy", 0.0)),
+            text_anchor=ta,
+            direction=data.get("direction"),
+            xml_space=data.get("xml_space"),
+            is_font_substituted=bool(data.get("is_font_substituted", False)),
+        )
+
+
 class Text(Drawable):
     """Retained-mode vector typography text drawable.
     
     Supports Hershey fonts, multi-line strings, alignment options,
-    exact font metrics, and background plates (rectangular or rounded).
+    exact font metrics, rich positioned runs, and background plates (rectangular or rounded).
     """
 
     def __init__(
         self,
-        text: str,
+        text: str = "",
         position: Point | tuple[float, float] = Point(0, 0),
         color: Color = Color.black(),
         font_family: FontFamily = FontFamily.SIMPLEX,
@@ -40,9 +166,19 @@ class Text(Drawable):
         *,
         fonts: tuple[FontAsset, ...] | None = None,
         font_size: float = 32,
+        font_family_name: str | None = None,
+        font_weight: str | int | None = None,
+        font_style: str | None = None,
+        runs: tuple[TextRun, ...] | list[TextRun] | None = None,
+        text_origin: str = "top_left",
+        text_anchor: TextAnchor | str | None = None,
+        fill_opacity: float = 1.0,
+        fill_none: bool = False,
+        is_font_substituted: bool = False,
         wrap_width: float | None = None,
         line_spacing: float = 1.2,
         direction: str = "auto",
+        xml_space: str = "default",
         id: str | None = None,
         name: str | None = None,
         visible: bool = True,
@@ -82,6 +218,14 @@ class Text(Drawable):
             super_kwargs["effects"] = effects
 
         super().__init__(**super_kwargs)
+
+        if runs is not None:
+            runs_tuple = tuple(runs)
+            if not text:
+                text = "".join(r.text for r in runs_tuple)
+            self.runs: tuple[TextRun, ...] | None = runs_tuple
+        else:
+            self.runs = None
 
         if not isinstance(text, str):
             raise ValidationError(f"Text 'text' must be a string, got {type(text).__name__}")
@@ -139,17 +283,32 @@ class Text(Drawable):
         self.padding = float(padding)
         self.fonts = fonts
         self.font_size = font_size
+        self.font_family_name = font_family_name
+        self.font_weight = font_weight
+        self.font_style = font_style
+        self.text_origin = text_origin
+        self.text_anchor = TextAnchor(text_anchor.strip().lower()) if isinstance(text_anchor, str) else text_anchor
+        self.fill_opacity = float(fill_opacity)
+        self.fill_none = bool(fill_none)
+        self.is_font_substituted = bool(is_font_substituted)
         self.wrap_width = wrap_width
         self.line_spacing = line_spacing
         self.direction = direction
+        if xml_space not in ("default", "preserve"):
+            raise ValidationError(f"Text xml_space must be 'default' or 'preserve', got '{xml_space}'")
+        self.xml_space = xml_space
         self._validate_font_options()
         object.__setattr__(self, "_font_initialized", True)
 
     def __setattr__(self, name, value):
         if name == "fonts" and isinstance(value, (list, tuple)):
             value = tuple(value)
+        if name == "runs" and isinstance(value, (list, tuple)):
+            value = tuple(value)
         if getattr(self, "_font_initialized", False) and name in (
-            "fonts", "font_size", "wrap_width", "line_spacing", "direction", "text"
+            "fonts", "font_size", "font_family_name", "font_weight", "font_style",
+            "runs", "text_origin", "text_anchor", "fill_opacity", "fill_none", "is_font_substituted",
+            "wrap_width", "line_spacing", "direction", "xml_space", "text"
         ):
             candidate = copy.copy(self)
             object.__setattr__(candidate, name, value)
@@ -163,6 +322,23 @@ class Text(Drawable):
     def _validate_font_options(self):
         if not isinstance(self.text, str):
             raise ValidationError("Text content must be a string")
+        if self.text_origin not in ("top_left", "baseline"):
+            raise ValidationError(f"text_origin must be 'top_left' or 'baseline', got '{self.text_origin}'")
+        if self.text_anchor is not None:
+            if isinstance(self.text_anchor, str):
+                try:
+                    object.__setattr__(self, "text_anchor", TextAnchor(self.text_anchor.strip().lower()))
+                except ValueError:
+                    raise ValidationError(f"Invalid TextAnchor '{self.text_anchor}'")
+            elif not isinstance(self.text_anchor, TextAnchor):
+                raise ValidationError(f"text_anchor must be TextAnchor or str, got {type(self.text_anchor).__name__}")
+        if self.runs is not None:
+            if not isinstance(self.runs, tuple) or not all(isinstance(r, TextRun) for r in self.runs):
+                raise ValidationError("runs must be None or a sequence of TextRun instances")
+        if isinstance(self.fill_opacity, bool) or not isinstance(self.fill_opacity, (int, float)) or not (0.0 <= float(self.fill_opacity) <= 1.0):
+            raise ValidationError(f"fill_opacity must be in range [0, 1], got {self.fill_opacity}")
+        if not isinstance(self.fill_none, bool):
+            raise ValidationError("fill_none must be a boolean")
         if self.fonts is not None and (not isinstance(self.fonts, tuple) or not self.fonts
                                      or not all(isinstance(f, FontAsset) for f in self.fonts)):
             raise ValidationError("fonts must be None or a nonempty sequence of FontAsset values")
@@ -175,34 +351,82 @@ class Text(Drawable):
             raise ValidationError("line_spacing must be >= 1 and font_size <= 4096px")
         if self.direction not in ("auto", "ltr", "rtl"):
             raise ValidationError("direction must be auto, ltr or rtl")
+        if self.xml_space not in ("default", "preserve"):
+            raise ValidationError("xml_space must be 'default' or 'preserve'")
 
     def _font_layout(self):
         self._validate_font_options()
-        from drawcv.typography.layout import layout_text
-        return layout_text(self.text, self.fonts, self.font_size, self.wrap_width,
-                           self.alignment.value, self.direction, self.line_spacing)
+        from drawcv.typography.layout import layout_text, layout_text_runs
+        runs = self.runs
+        if runs is not None or self.text_origin == "baseline":
+            if runs is None:
+                runs = (TextRun(
+                    text=self.text,
+                    fonts=self.fonts,
+                    font_size=self.font_size,
+                    font_family_name=self.font_family_name,
+                    font_weight=self.font_weight,
+                    font_style=self.font_style,
+                    fill=None,
+                    fill_none=self.fill_none,
+                    fill_opacity=None,
+                    text_anchor=self.text_anchor,
+                    direction=self.direction,
+                    xml_space=self.xml_space,
+                    is_font_substituted=self.is_font_substituted,
+                ),)
+            return layout_text_runs(
+                runs,
+                self.fonts,
+                self.font_size,
+                self.wrap_width,
+                self.alignment.value,
+                self.direction,
+                self.line_spacing,
+                self.text_origin,
+                self.text_anchor.value if self.text_anchor is not None else None,
+                self.position.x,
+                self.position.y,
+                root_fill_opacity=self.fill_opacity,
+                root_fill_none=self.fill_none,
+            )
+        return layout_text(
+            self.text,
+            self.fonts,
+            self.font_size,
+            self.wrap_width,
+            self.alignment.value,
+            self.direction,
+            self.line_spacing,
+        )
 
     def measure(self) -> TextMetrics:
         """Measure font text in local coordinates; Hershey retains its metric API."""
-        if self.fonts is None:
+        if self.fonts is None and self.runs is None:
             raise ValidationError("measure() requires font text; use get_line_metrics() for Hershey")
         layout = self._font_layout()
-        plate_w = layout.width + 2*self.padding
-        x = self.position.x - {TextAlignment.LEFT: 0, TextAlignment.CENTER: plate_w/2,
-                                TextAlignment.RIGHT: plate_w}[self.alignment]
-        y = self.position.y
-        ox, oy = x+self.padding, y+self.padding
+        plate_w = layout.width + 2 * self.padding
+        if self.runs is not None or self.text_origin == "baseline":
+            x = self.position.x
+            y = self.position.y
+        else:
+            x = self.position.x - {TextAlignment.LEFT: 0, TextAlignment.CENTER: plate_w / 2.0,
+                                    TextAlignment.RIGHT: plate_w}[self.alignment]
+            y = self.position.y
+        ox, oy = x + self.padding, y + self.padding
+
         def shifted(box):
-            return BoundingBox(box.x+ox, box.y+oy, box.width, box.height) if box is not None else None
-        return TextMetrics(max((l.advance_width for l in layout.lines), default=0),
+            return BoundingBox(box.x + ox, box.y + oy, box.width, box.height) if box is not None else None
+
+        return TextMetrics(
+            max((l.advance_width for l in layout.lines), default=0),
             BoundingBox(ox, oy, layout.width, layout.height),
-            BoundingBox(x, y, plate_w, layout.height+2*self.padding), shifted(layout.ink),
-            tuple(TextLineMetrics(l.text, l.advance_width, l.baseline+oy,
-                                  shifted(l.line_box), shifted(l.ink_bounds)) for l in layout.lines))
+            BoundingBox(x, y, plate_w, layout.height + 2 * self.padding),
+            shifted(layout.ink),
+            tuple(TextLineMetrics(l.text, l.advance_width, l.baseline + oy,
+                                  shifted(l.line_box), shifted(l.ink_bounds)) for l in layout.lines),
+        )
 
-
-    # -------------------------------------------------------------------------
-    # Metrics and Geometry
     # -------------------------------------------------------------------------
 
     def get_line_metrics(self) -> list[tuple[str, int, int, int]]:
@@ -249,7 +473,7 @@ class Text(Drawable):
 
     def get_geometry_bounds(self) -> BoundingBox:
         """Intrinsic geometric bounds in local coordinates (including padding if any)."""
-        if self.fonts is not None:
+        if self.fonts is not None or self.runs is not None:
             metrics = self.measure()
             return metrics.paragraph_bounds.union(metrics.ink_bounds) if metrics.ink_bounds else metrics.paragraph_bounds
         text_w, text_h, _ = self.get_text_bounds_dimensions()
@@ -273,7 +497,7 @@ class Text(Drawable):
     def get_bounds(self) -> BoundingBox:
         """World-space bounding box enclosing transformed text rectangle."""
         gb = self.get_geometry_bounds()
-        if self.fonts is not None:
+        if self.fonts is not None or self.runs is not None:
             # Bilinear resampling can contribute one local pixel beyond ink.
             gb = BoundingBox(gb.x-1, gb.y-1, gb.width+2, gb.height+2)
         corners = [
@@ -341,9 +565,23 @@ class Text(Drawable):
             background_fill=copy.deepcopy(self.background_fill),
             background_radius=self.background_radius,
             padding=self.padding,
-            fonts=self.fonts, font_size=self.font_size, wrap_width=self.wrap_width,
-            line_spacing=self.line_spacing, direction=self.direction,
-            timing=copy.deepcopy(self.timing), render_progress=self.render_progress,
+            fonts=self.fonts,
+            font_size=self.font_size,
+            font_family_name=self.font_family_name,
+            font_weight=self.font_weight,
+            font_style=self.font_style,
+            runs=copy.deepcopy(self.runs),
+            text_origin=self.text_origin,
+            text_anchor=self.text_anchor,
+            fill_opacity=self.fill_opacity,
+            fill_none=self.fill_none,
+            is_font_substituted=self.is_font_substituted,
+            wrap_width=self.wrap_width,
+            line_spacing=self.line_spacing,
+            direction=self.direction,
+            xml_space=self.xml_space,
+            timing=copy.deepcopy(self.timing),
+            render_progress=self.render_progress,
             id=str(uuid.uuid4()) if new_id else self.id,
             name=self.name,
             visible=self.visible,
@@ -360,8 +598,21 @@ class Text(Drawable):
 
     def _get_shape_state(self) -> dict[str, Any]:
         return {
-            "fonts": self.fonts, "font_size": self.font_size, "wrap_width": self.wrap_width,
-            "line_spacing": self.line_spacing, "direction": self.direction,
+            "fonts": self.fonts,
+            "font_size": self.font_size,
+            "font_family_name": self.font_family_name,
+            "font_weight": self.font_weight,
+            "font_style": self.font_style,
+            "runs": copy.deepcopy(self.runs),
+            "text_origin": self.text_origin,
+            "text_anchor": self.text_anchor.value if hasattr(self.text_anchor, "value") else str(self.text_anchor) if self.text_anchor is not None else None,
+            "fill_opacity": float(self.fill_opacity),
+            "fill_none": bool(self.fill_none),
+            "is_font_substituted": bool(self.is_font_substituted),
+            "wrap_width": self.wrap_width,
+            "line_spacing": self.line_spacing,
+            "direction": self.direction,
+            "xml_space": self.xml_space,
             "text": self.text,
             "position": self.position.copy(),
             "color": self.color.copy(),
@@ -375,9 +626,16 @@ class Text(Drawable):
         }
 
     def _apply_shape_state(self, state: dict[str, Any]) -> None:
-        for name in ("fonts", "font_size", "wrap_width", "line_spacing", "direction"):
+        for name in (
+            "fonts", "font_size", "font_family_name", "font_weight", "font_style",
+            "runs", "text_origin", "fill_opacity", "fill_none", "is_font_substituted",
+            "wrap_width", "line_spacing", "direction", "xml_space"
+        ):
             if name in state:
                 setattr(self, name, state[name])
+        if "text_anchor" in state:
+            ta = state["text_anchor"]
+            self.text_anchor = TextAnchor(ta) if isinstance(ta, str) else ta
         if "text" in state:
             self.text = str(state["text"])
         if "position" in state:
@@ -422,6 +680,26 @@ class Text(Drawable):
         if self.fonts is not None or (self.font_size, self.wrap_width, self.line_spacing, self.direction) != (32, None, 1.2, 'auto'):
             res.update(fonts=[f.to_dict() for f in self.fonts] if self.fonts is not None else None, font_size=self.font_size,
                        wrap_width=self.wrap_width, line_spacing=self.line_spacing, direction=self.direction)
+        if self.runs is not None:
+            res["runs"] = [r.to_dict() for r in self.runs]
+        if self.font_family_name is not None:
+            res["font_family_name"] = self.font_family_name
+        if self.font_weight is not None:
+            res["font_weight"] = self.font_weight
+        if self.font_style is not None:
+            res["font_style"] = self.font_style
+        if self.text_origin != "top_left":
+            res["text_origin"] = self.text_origin
+        if self.text_anchor is not None:
+            res["text_anchor"] = self.text_anchor.value if hasattr(self.text_anchor, "value") else str(self.text_anchor)
+        if self.fill_opacity != 1.0:
+            res["fill_opacity"] = self.fill_opacity
+        if self.fill_none:
+            res["fill_none"] = True
+        if self.xml_space != "default":
+            res["xml_space"] = self.xml_space
+        if self.is_font_substituted:
+            res["is_font_substituted"] = True
         return res
 
     @classmethod
@@ -433,6 +711,8 @@ class Text(Drawable):
         font_family = FontFamily(data["font_family"]) if "font_family" in data else FontFamily.SIMPLEX
         alignment = TextAlignment(data["alignment"]) if "alignment" in data else TextAlignment.LEFT
         bg_fill = FillStyle.from_dict(data["background_fill"]) if data.get("background_fill") is not None else None
+        runs = tuple(TextRun.from_dict(r) for r in data["runs"]) if data.get("runs") is not None else None
+        ta = TextAnchor(data["text_anchor"]) if data.get("text_anchor") is not None else None
         return cls(
             text=str(data.get("text", "")),
             position=pos,
@@ -445,8 +725,19 @@ class Text(Drawable):
             background_radius=float(data.get("background_radius", 0.0)),
             padding=float(data.get("padding", 0.0)),
             fonts=tuple(FontAsset.from_dict(f) for f in data["fonts"]) if data.get("fonts") is not None else None,
-            font_size=data.get("font_size", 32), wrap_width=data.get("wrap_width"),
-            line_spacing=data.get("line_spacing", 1.2), direction=data.get("direction", "auto"),
+            font_size=data.get("font_size", 32),
+            font_family_name=data.get("font_family_name"),
+            font_weight=data.get("font_weight"),
+            font_style=data.get("font_style"),
+            runs=runs,
+            text_origin=data.get("text_origin", "top_left"),
+            text_anchor=ta,
+            fill_opacity=float(data.get("fill_opacity", 1.0)),
+            fill_none=bool(data.get("fill_none", False)),
+            is_font_substituted=bool(data.get("is_font_substituted", False)),
+            wrap_width=data.get("wrap_width"),
+            line_spacing=data.get("line_spacing", 1.2),
+            direction=data.get("direction", "auto"),
+            xml_space=data.get("xml_space", "default"),
             **base_kwargs,
         )
-

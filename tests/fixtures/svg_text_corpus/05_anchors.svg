@@ -1,0 +1,5 @@
+<svg width="300" height="200" viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg">
+  <text x="150" y="50" font-family="Noto Sans" font-size="24" fill="#2b6cb0" text-anchor="start">Start</text>
+  <text x="150" y="100" font-family="Noto Sans" font-size="24" fill="#c53030" text-anchor="middle">Middle</text>
+  <text x="150" y="150" font-family="Noto Sans" font-size="24" fill="#2f855a" text-anchor="end">End</text>
+</svg>

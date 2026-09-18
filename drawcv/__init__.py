@@ -1,6 +1,13 @@
 """DrawCV — A highly manipulable 2D drawing library built on OpenCV and NumPy."""
 
-from drawcv.typography import FontAsset, TextMetrics, TextLineMetrics
+from drawcv.typography import (
+    DictFontResolver,
+    FontAsset,
+    FontResolver,
+    ResolvedFontDescriptor,
+    TextLineMetrics,
+    TextMetrics,
+)
 from drawcv.canvas import Canvas
 from drawcv.styles.paint import (
     GradientStop,
@@ -135,7 +142,7 @@ from drawcv.shapes.polygon import Polygon
 from drawcv.shapes.polyline import Polyline
 from drawcv.shapes.rectangle import Rectangle
 from drawcv.shapes.rounded_rectangle import RoundedRectangle
-from drawcv.shapes.text import Text
+from drawcv.shapes.text import Text, TextAnchor, TextRun
 from drawcv.styles.fill import FillStyle
 from drawcv.styles.stroke import StrokeStyle
 from drawcv.animation import (
@@ -183,6 +190,7 @@ __all__ = [
     "SVGImportError",
     "SVGImportLimits",
     "FontAsset", "TextMetrics", "TextLineMetrics",
+    "FontResolver", "DictFontResolver", "ResolvedFontDescriptor",
     "GradientStop", "LinearGradient", "RadialGradient",
     "AddObjectCommand",
     "align_bottom",
@@ -310,6 +318,8 @@ __all__ = [
     "Subpath",
     "Text",
     "TextAlignment",
+    "TextAnchor",
+    "TextRun",
     "Timeline",
     "Timing",
     "to_json",

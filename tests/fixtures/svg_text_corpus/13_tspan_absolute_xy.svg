@@ -1,0 +1,6 @@
+<svg width="400" height="200" viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
+  <text font-family="Noto Sans" font-size="26" fill="#2d3748">
+    <tspan x="30" y="60" fill="#2b6cb0">Chunk One</tspan>
+    <tspan x="180" y="120" fill="#c53030">Chunk Two</tspan>
+  </text>
+</svg>

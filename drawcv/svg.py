@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import base64
 from dataclasses import dataclass
+import math
 from pathlib import Path as FilePath
+import unicodedata
 import xml.etree.ElementTree as ET
 
 import cv2
@@ -30,6 +32,7 @@ from drawcv.shapes.polygon import Polygon
 from drawcv.shapes.polyline import Polyline
 from drawcv.shapes.rectangle import Rectangle
 from drawcv.shapes.rounded_rectangle import RoundedRectangle
+from drawcv.shapes.text import Text, TextAnchor, TextRun
 from drawcv.styles.paint import (
     ConicGradient,
     ImagePaint,
@@ -100,6 +103,53 @@ class SVGExporter:
         if not isinstance(scene, Scene):
             raise ValidationError("SVG export requires a Scene")
         return _Writer(scene, self.strict).export()
+
+
+def _text_native_svg_fallback_reason(text: Text) -> str | None:
+    if text.is_font_substituted:
+        return "font substituted"
+    if text.fonts is None and text.runs is None:
+        return "Hershey font text"
+    if text.font_family_name is None:
+        return "missing font family name"
+    if text.text_origin != "baseline":
+        return f"text origin {text.text_origin}"
+    if text.direction not in ("ltr", "rtl", "auto"):
+        return f"text direction {text.direction}"
+    if text.direction == "auto":
+        full_text = text.text
+        if any(unicodedata.bidirectional(c) in ("R", "AL", "RLE", "RLO") for c in full_text):
+            return "text direction auto with RTL text"
+    if text.background_fill is not None and text.background_fill.enabled and text.background_fill.opacity > 0.0:
+        return "background plate"
+    if text.padding > 0.0:
+        return "text padding"
+    if text.wrap_width is not None:
+        return "wrapped text"
+    if "\n" in text.text:
+        return "multiline text"
+    if text.runs is not None:
+        for r in text.runs:
+            if r.is_font_substituted:
+                return "font substituted"
+            if r.direction == "auto":
+                return "run direction auto"
+            if r.direction is not None and r.direction not in ("ltr", "rtl"):
+                return f"run direction {r.direction}"
+
+            has_semantic_font_override = (
+                r.font_family_name is not None
+                or r.font_weight is not None
+                or r.font_style is not None
+            )
+            if has_semantic_font_override:
+                if r.fonts is None:
+                    return "semantic font override without run font asset"
+
+            if r.fonts is not None and r.fonts != text.fonts:
+                if not has_semantic_font_override:
+                    return "run font asset override without SVG semantic descriptor"
+    return None
 
 
 class _Writer:
@@ -215,6 +265,79 @@ class _Writer:
             children = entity.objects if isinstance(entity, Layer) else entity.children
             for _, child in sorted(enumerate(children), key=lambda pair: (pair[1].z_index, pair[0])):
                 self.entity(child, group)
+        elif isinstance(entity, Text):
+            group.set("transform", _matrix(entity.world_matrix))
+            text_attrs = {
+                "x": _number(entity.position.x),
+                "y": _number(entity.position.y),
+                "font-size": _number(entity.font_size),
+            }
+            if entity.fill_none:
+                text_attrs["fill"] = "none"
+            else:
+                text_attrs["fill"] = _color(entity.color)
+                eff_fill_op = entity.fill_opacity * entity.color.a
+                if eff_fill_op < 1.0:
+                    text_attrs["fill-opacity"] = _number(eff_fill_op)
+
+            if entity.font_family_name is not None:
+                text_attrs["font-family"] = entity.font_family_name
+            if entity.font_weight is not None and str(entity.font_weight).lower() not in ("400", "normal"):
+                text_attrs["font-weight"] = str(entity.font_weight)
+            if entity.font_style is not None and str(entity.font_style).lower() != "normal":
+                text_attrs["font-style"] = str(entity.font_style)
+            if entity.text_anchor is not None and entity.text_anchor != TextAnchor.START:
+                text_attrs["text-anchor"] = entity.text_anchor.value if isinstance(entity.text_anchor, TextAnchor) else str(entity.text_anchor)
+            if entity.xml_space == "preserve":
+                text_attrs["xml:space"] = "preserve"
+            if entity.direction == "rtl":
+                text_attrs["direction"] = "rtl"
+            text_node = ET.SubElement(group, "text", text_attrs)
+            if entity.runs:
+                eff_root_dir = "rtl" if entity.direction == "rtl" else "ltr"
+                for r in entity.runs:
+                    tspan_attrs = {}
+                    if r.x is not None:
+                        tspan_attrs["x"] = _number(r.x)
+                    if r.y is not None:
+                        tspan_attrs["y"] = _number(r.y)
+                    if r.dx != 0.0:
+                        tspan_attrs["dx"] = _number(r.dx)
+                    if r.dy != 0.0:
+                        tspan_attrs["dy"] = _number(r.dy)
+                    if r.font_size is not None and not math.isclose(r.font_size, entity.font_size):
+                        tspan_attrs["font-size"] = _number(r.font_size)
+                    if r.font_family_name is not None and r.font_family_name != entity.font_family_name:
+                        tspan_attrs["font-family"] = r.font_family_name
+                    if r.font_weight is not None and r.font_weight != entity.font_weight:
+                        tspan_attrs["font-weight"] = str(r.font_weight)
+                    if r.font_style is not None and r.font_style != entity.font_style:
+                        tspan_attrs["font-style"] = str(r.font_style)
+                    if r.fill_none:
+                        tspan_attrs["fill"] = "none"
+                    else:
+                        if r.fill is not None:
+                            run_fill_color = r.fill
+                            if entity.fill_none or (run_fill_color.r, run_fill_color.g, run_fill_color.b) != (entity.color.r, entity.color.g, entity.color.b):
+                                tspan_attrs["fill"] = _color(run_fill_color)
+                        else:
+                            run_fill_color = entity.color
+
+                        run_prop_op = r.fill_opacity if r.fill_opacity is not None else entity.fill_opacity
+                        run_eff_svg_fill_op = run_prop_op * run_fill_color.a
+                        inherited_svg_fill_op = eff_fill_op if not entity.fill_none else 1.0
+                        if not math.isclose(run_eff_svg_fill_op, inherited_svg_fill_op, abs_tol=1e-5):
+                            tspan_attrs["fill-opacity"] = _number(run_eff_svg_fill_op)
+                    if r.text_anchor is not None and r.text_anchor != entity.text_anchor:
+                        tspan_attrs["text-anchor"] = r.text_anchor.value if isinstance(r.text_anchor, TextAnchor) else str(r.text_anchor)
+                    if r.direction is not None and r.direction != eff_root_dir:
+                        tspan_attrs["direction"] = r.direction
+                    if r.xml_space is not None and r.xml_space != entity.xml_space:
+                        tspan_attrs["xml:space"] = r.xml_space
+                    tspan = ET.SubElement(text_node, "tspan", tspan_attrs)
+                    tspan.text = r.text
+            else:
+                text_node.text = entity.text
         else:
             attrs = {"d": self.geometry(entity), "fill": "none", "stroke": "none"}
             fill = getattr(entity, "fill", None)
@@ -266,6 +389,8 @@ class _Writer:
             return "unsupported clip"
         if isinstance(entity, FreehandStroke) and entity.variable_width:
             return "variable-width stroke"
+        if isinstance(entity, Text):
+            return _text_native_svg_fallback_reason(entity)
         fill = getattr(entity, "fill", None)
         if fill is not None and fill.enabled:
             reason = cls._paint_fallback_reason(fill.paint)
@@ -277,7 +402,7 @@ class _Writer:
             if reason:
                 return f"stroke {reason}"
         supported = (Layer, Group, Line, Rectangle, Circle, Ellipse, Polygon, Polyline,
-                     RoundedRectangle, Arc, BezierCurve, Path, FreehandStroke)
+                     RoundedRectangle, Arc, BezierCurve, Path, FreehandStroke, Text)
         if type(entity) not in supported:
             return f"{type(entity).__name__} rendering"
         return None

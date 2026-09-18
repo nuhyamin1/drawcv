@@ -1,0 +1,5 @@
+<svg width="400" height="150" viewBox="0 0 400 150" xmlns="http://www.w3.org/2000/svg">
+  <text x="40" y="85" font-family="Noto Sans" font-size="28" fill="#1a202c">
+    Outer <tspan fill="#e53e3e">Mid <tspan fill="#3182ce">Inner</tspan> Back</tspan> End
+  </text>
+</svg>

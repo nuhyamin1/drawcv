@@ -1,0 +1,6 @@
+<svg width="400" height="150" viewBox="0 0 400 150" xmlns="http://www.w3.org/2000/svg">
+  <text x="40" y="60" font-family="Noto Sans" font-size="26" fill="#111111" fill-opacity="0.5">Root Half</text>
+  <text x="40" y="110" font-family="Noto Sans" font-size="26" fill="#111111">
+    Solid <tspan fill-opacity="0.3">Span Low</tspan> <tspan fill-opacity="0.7">Span High</tspan>
+  </text>
+</svg>

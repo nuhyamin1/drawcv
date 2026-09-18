@@ -556,26 +556,29 @@ def test_schema_1_8_forward_and_backward_policies():
             "layers": [],
         },
     }
-    migrated = SchemaMigrator.migrate(doc_1_7)
+    migrated = SchemaMigrator.migrate(doc_1_7, target_version="1.8")
     assert migrated["version"] == "1.8"
 
-    # 2. New arc document serializes as 1.8
+    # 2. New arc document serializes as CURRENT_SCHEMA_VERSION (1.9)
     scene = Scene(200, 200)
     p = Path().move_to(0, 0).arc_to(30, 20, 0, False, True, 50, 50)
     scene.add(p)
-    doc_1_8 = scene.to_dict()
-    assert doc_1_8["version"] == "1.8"
-    assert doc_1_8["schema_version"] == "1.8"
+    doc_1_9 = scene.to_dict()
+    assert doc_1_9["version"] == CURRENT_SCHEMA_VERSION
+    assert doc_1_9["schema_version"] == CURRENT_SCHEMA_VERSION
 
-    # 3. 1.8 JSON round-trips normally
-    json_str = json.dumps(doc_1_8)
+    # 3. JSON round-trips normally
+    json_str = json.dumps(doc_1_9)
     restored = Scene.from_dict(json.loads(json_str))
-    assert restored.to_dict()["version"] == "1.8"
+    assert restored.to_dict()["version"] == CURRENT_SCHEMA_VERSION
     assert isinstance(restored.objects[0].subpaths[0].commands[1], EllipticalArcTo)
 
-    # 4. Do not pretend a 1.8 document is 1.7 (downgrade rejection)
+    # 4. Do not pretend a newer document is an older version (downgrade rejection)
+    doc_1_8 = SchemaMigrator.migrate(doc_1_7, target_version="1.8")
     with pytest.raises(UnsupportedVersionError):
         SchemaMigrator.migrate(doc_1_8, target_version="1.7")
+    with pytest.raises(UnsupportedVersionError):
+        SchemaMigrator.migrate(doc_1_9, target_version="1.8")
 
     # 5. Unknown/future schema rejected according to existing policy
     doc_future = {

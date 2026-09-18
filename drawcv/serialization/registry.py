@@ -11,7 +11,7 @@ from drawcv.core.exceptions import (
     UnsupportedVersionError,
 )
 
-CURRENT_SCHEMA_VERSION = "1.8"
+CURRENT_SCHEMA_VERSION = "1.9"
 CURRENT_FORMAT_IDENTIFIER = "drawcv"
 
 _DRAWABLE_REGISTRY: dict[str, type] = {}
@@ -384,3 +384,39 @@ def _migrate_1_7_to_1_8(data: dict[str, Any]) -> dict[str, Any]:
 
 
 SchemaMigrator.register_migration("1.7", _migrate_1_7_to_1_8)
+
+
+def _migrate_1_8_to_1_9(data: dict[str, Any]) -> dict[str, Any]:
+    """Forward-migrate document schema 1.8 to 1.9 for M1 retained rich text and positioning."""
+    migrated = copy.deepcopy(data)
+    migrated["version"] = "1.9"
+    if "schema_version" in migrated:
+        migrated["schema_version"] = "1.9"
+
+    def _patch_text(d: dict[str, Any]) -> None:
+        if not isinstance(d, dict):
+            return
+        if d.get("type") == "text":
+            d.setdefault("text_origin", "top_left")
+            d.setdefault("text_anchor", None)
+            d.setdefault("fill_opacity", 1.0)
+            d.setdefault("fill_none", False)
+            d.setdefault("runs", None)
+            d.setdefault("font_family_name", None)
+            d.setdefault("font_weight", None)
+            d.setdefault("font_style", None)
+            d.setdefault("is_font_substituted", False)
+        if d.get("type") == "group" and "children" in d:
+            for child in d.get("children", []):
+                _patch_text(child)
+
+    scene_data = migrated.get("scene", {})
+    for layer in scene_data.get("layers", []):
+        if isinstance(layer, dict):
+            for obj_data in layer.get("objects", []):
+                _patch_text(obj_data)
+
+    return migrated
+
+
+SchemaMigrator.register_migration("1.8", _migrate_1_8_to_1_9)

@@ -24,7 +24,7 @@ from drawcv.shapes.polygon import Polygon
 from drawcv.shapes.polyline import Polyline
 from drawcv.shapes.rectangle import Rectangle
 from drawcv.shapes.rounded_rectangle import RoundedRectangle
-from drawcv.shapes.text import Text
+from drawcv.shapes.text import Text, TextAnchor, TextRun
 
 __all__ = [
     "Arc",
@@ -50,5 +50,7 @@ __all__ = [
     "StrokePoint",
     "Subpath",
     "Text",
+    "TextAnchor",
+    "TextRun",
 ]
 

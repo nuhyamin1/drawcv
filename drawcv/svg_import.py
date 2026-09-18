@@ -32,6 +32,8 @@ from drawcv.shapes.path import Close, CubicTo, EllipticalArcTo, LineTo, MoveTo, 
 from drawcv.shapes.polyline import Polyline
 from drawcv.shapes.rectangle import Rectangle
 from drawcv.shapes.rounded_rectangle import RoundedRectangle
+from drawcv.shapes.text import Text, TextAnchor, TextRun
+from drawcv.typography.resolver import FontResolver, ResolvedFontDescriptor
 from drawcv.styles.fill import FillStyle
 from drawcv.styles.paint import GradientStop, LinearGradient, PaintLike, RadialGradient
 from drawcv.styles.stroke import StrokeStyle
@@ -1139,6 +1141,15 @@ class ComputedStyle:
     visibility: str = "visible"
     clip_rule: FillRule = FillRule.NON_ZERO
 
+    # Typography properties (inherited)
+    font_family: str | None = None
+    font_size: float = 16.0
+    font_weight: str | int | None = None
+    font_style: str | None = None
+    text_anchor: str = "start"
+    direction: str = "ltr"
+    xml_space: str = "default"
+
     # Non-inherited properties (reset per-element)
     opacity: float = 1.0
     display: str = "inline"
@@ -1167,6 +1178,13 @@ class ComputedStyle:
             color=self.color,
             visibility=self.visibility,
             clip_rule=self.clip_rule,
+            font_family=self.font_family,
+            font_size=self.font_size,
+            font_weight=self.font_weight,
+            font_style=self.font_style,
+            text_anchor=self.text_anchor,
+            direction=self.direction,
+            xml_space=self.xml_space,
             opacity=1.0,
             display="inline",
             mix_blend_mode=BlendMode.NORMAL,
@@ -1401,6 +1419,106 @@ class SVGStyleResolver:
                     ),
                 )
             style.overflow = ov_clean
+
+        # 21. Typography properties
+        fam_val = get_prop("font-family")
+        if fam_val is not None:
+            style.font_family = fam_val.strip()
+
+        fs_val = get_prop("font-size")
+        if fs_val is not None:
+            parsed_fs = SVGLength.parse(fs_val.strip(), limits=limits)
+            if parsed_fs.unit == "%":
+                computed_fs = style.font_size * parsed_fs.value / 100.0
+            else:
+                computed_fs = parsed_fs.to_absolute(context_name="font-size", limits=limits)
+            if computed_fs < 0.0:
+                raise SVGImportError(
+                    f"Negative font-size '{fs_val}' is invalid",
+                    diagnostic=SVGImportDiagnostic(
+                        code="SVG_MALFORMED_LENGTH",
+                        severity="error",
+                        message=f"Negative font-size '{fs_val}'",
+                        attribute="font-size",
+                    ),
+                )
+            if computed_fs == 0.0:
+                raise SVGImportError(
+                    "Font-size zero is not supported in Milestone 1",
+                    diagnostic=SVGImportDiagnostic(
+                        code="SVG_UNSUPPORTED_FONT_SIZE",
+                        severity="error",
+                        message="Font-size zero is not supported",
+                        attribute="font-size",
+                    ),
+                )
+            if computed_fs > 4096.0:
+                raise SVGImportError(
+                    f"Font-size {computed_fs} exceeds maximum allowed size of 4096px",
+                    diagnostic=SVGImportDiagnostic(
+                        code="SVG_UNSUPPORTED_FONT_SIZE",
+                        severity="error",
+                        message="Font-size exceeds 4096px",
+                        attribute="font-size",
+                    ),
+                )
+            style.font_size = computed_fs
+
+        fw_val = get_prop("font-weight")
+        if fw_val is not None:
+            style.font_weight = fw_val.strip().lower()
+
+        fst_val = get_prop("font-style")
+        if fst_val is not None:
+            style.font_style = fst_val.strip().lower()
+
+        ta_val = get_prop("text-anchor")
+        if ta_val is not None:
+            clean_ta = ta_val.strip().lower()
+            if clean_ta in ("start", "middle", "end"):
+                style.text_anchor = clean_ta
+
+        dir_val = get_prop("direction")
+        if dir_val is not None:
+            clean_dir = dir_val.strip().lower()
+            if clean_dir in ("ltr", "rtl"):
+                style.direction = clean_dir
+
+        ws_val = get_prop("white-space")
+        if ws_val is not None:
+            clean_ws = ws_val.strip().lower()
+            if clean_ws in ("normal", "collapse"):
+                style.xml_space = "default"
+            else:
+                raise SVGImportError(
+                    f"CSS 'white-space: {ws_val}' is not supported in Milestone 1",
+                    diagnostic=SVGImportDiagnostic(
+                        code="SVG_UNSUPPORTED_CSS_PROPERTY",
+                        severity="error",
+                        message=f"CSS 'white-space: {ws_val}' is not supported",
+                        attribute="white-space",
+                    ),
+                )
+        else:
+            xml_space_val = attrs.get("xml:space") or attrs.get("{http://www.w3.org/xml/1998/namespace}space") or element.attrib.get("{http://www.w3.org/XML/1998/namespace}space")
+            if xml_space_val is not None:
+                clean_xs = xml_space_val.strip().lower()
+                if clean_xs in ("default", "preserve"):
+                    style.xml_space = clean_xs
+
+        base_val = get_prop("dominant-baseline") or get_prop("alignment-baseline")
+        if base_val is not None:
+            clean_base = base_val.strip().lower()
+            if clean_base not in ("auto", "alphabetic"):
+                raise SVGImportError(
+                    f"SVG baseline property '{base_val}' is not supported in Milestone 1",
+                    diagnostic=SVGImportDiagnostic(
+                        code="SVG_UNSUPPORTED_BASELINE_PROPERTY",
+                        severity="error",
+                        message=f"Unsupported baseline property '{base_val}'",
+                        attribute="dominant-baseline",
+                    ),
+                )
 
         return style
 
@@ -1729,6 +1847,150 @@ def bind_paint_server(
 
 
 # -----------------------------------------------------------------------------
+# SVG Text Stream Whitespace Normalization
+# -----------------------------------------------------------------------------
+
+@dataclass
+class SVGTextSegment:
+    text: str
+    element: ET.Element
+    style: ComputedStyle
+    is_element_start: bool = False
+    x: float | None = None
+    y: float | None = None
+    dx: float | None = None
+    dy: float | None = None
+
+
+def normalize_svg_text_stream(
+    segments: list[SVGTextSegment],
+    parent_map: dict[ET.Element, ET.Element] | None = None,
+) -> list[SVGTextSegment]:
+    """Normalize whitespace across flattened XML text content stream according to SVG/XML rules.
+
+    In xml:space="default":
+      - Newlines (\\r, \\n) are removed (NOT converted to spaces).
+      - Tabs (\\t) become spaces.
+      - Leading and trailing spaces are removed.
+      - Contiguous spaces across node boundaries are collapsed to a single space.
+    In xml:space="preserve":
+      - Newlines and tabs become spaces and all spaces are preserved.
+    """
+    # 1. Transform newlines and tabs
+    transformed: list[SVGTextSegment] = []
+    for seg in segments:
+        text = seg.text
+        if seg.style.xml_space == "preserve":
+            t = text.replace("\r\n", " ").replace("\r", " ").replace("\n", " ").replace("\t", " ")
+        else:
+            t = text.replace("\r\n", "").replace("\r", "").replace("\n", "").replace("\t", " ")
+        transformed.append(SVGTextSegment(t, seg.element, seg.style, seg.is_element_start, seg.x, seg.y, seg.dx, seg.dy))
+
+    # 2. Collapse contiguous spaces and remove leading spaces across stream
+    collapsed: list[SVGTextSegment] = []
+    at_start = True
+    last_was_space = False
+    for seg in transformed:
+        if seg.style.xml_space == "preserve":
+            collapsed.append(seg)
+            if seg.text:
+                at_start = False
+                last_was_space = seg.text.endswith(" ")
+        else:
+            chars = []
+            for ch in seg.text:
+                if ch == " ":
+                    if at_start or last_was_space:
+                        continue
+                    chars.append(" ")
+                    last_was_space = True
+                else:
+                    chars.append(ch)
+                    at_start = False
+                    last_was_space = False
+            collapsed.append(SVGTextSegment("".join(chars), seg.element, seg.style, seg.is_element_start, seg.x, seg.y, seg.dx, seg.dy))
+
+    if parent_map is None and segments:
+        all_elements = {seg.element for seg in segments}
+        parent_map = {child: parent for parent in all_elements for child in parent}
+
+    # 3. Strip trailing spaces if default mode
+    final: list[SVGTextSegment] = []
+    trailing = True
+    for seg in reversed(collapsed):
+        if trailing and seg.style.xml_space == "default":
+            t = seg.text.rstrip(" ")
+            if t:
+                trailing = False
+            final.append(SVGTextSegment(t, seg.element, seg.style, seg.is_element_start, seg.x, seg.y, seg.dx, seg.dy))
+        else:
+            final.append(seg)
+            if seg.text:
+                trailing = False
+
+    # 4. Propagate pending positioning forward to first addressable descendant text segment within owner
+    def is_descendant(child: ET.Element, ancestor: ET.Element) -> bool:
+        if parent_map is None:
+            return True
+        curr: ET.Element | None = child
+        while curr is not None:
+            if curr is ancestor:
+                return True
+            curr = parent_map.get(curr)
+        return False
+
+    pending_x_stack: list[tuple[ET.Element, float]] = []
+    pending_y_stack: list[tuple[ET.Element, float]] = []
+    pending_dx_stack: list[tuple[ET.Element, float]] = []
+    pending_dy_stack: list[tuple[ET.Element, float]] = []
+
+    ordered = list(reversed(final))
+    result: list[SVGTextSegment] = []
+    for seg in ordered:
+        pending_x_stack = [entry for entry in pending_x_stack if is_descendant(seg.element, entry[0])]
+        pending_y_stack = [entry for entry in pending_y_stack if is_descendant(seg.element, entry[0])]
+        pending_dx_stack = [entry for entry in pending_dx_stack if is_descendant(seg.element, entry[0])]
+        pending_dy_stack = [entry for entry in pending_dy_stack if is_descendant(seg.element, entry[0])]
+
+        if seg.x is not None:
+            pending_x_stack.append((seg.element, seg.x))
+        if seg.y is not None:
+            pending_y_stack.append((seg.element, seg.y))
+        if seg.dx is not None:
+            pending_dx_stack.append((seg.element, seg.dx))
+        if seg.dy is not None:
+            pending_dy_stack.append((seg.element, seg.dy))
+
+        if not seg.text:
+            continue
+
+        run_x = pending_x_stack[-1][1] if pending_x_stack else None
+        pending_x_stack.clear()
+
+        run_y = pending_y_stack[-1][1] if pending_y_stack else None
+        pending_y_stack.clear()
+
+        run_dx = pending_dx_stack[-1][1] if pending_dx_stack else None
+        pending_dx_stack.clear()
+
+        run_dy = pending_dy_stack[-1][1] if pending_dy_stack else None
+        pending_dy_stack.clear()
+
+        result.append(SVGTextSegment(
+            text=seg.text,
+            element=seg.element,
+            style=seg.style,
+            is_element_start=seg.is_element_start,
+            x=run_x,
+            y=run_y,
+            dx=run_dx,
+            dy=run_dy,
+        ))
+
+    return result
+
+
+# -----------------------------------------------------------------------------
 # Main SVG Importer Architecture
 # -----------------------------------------------------------------------------
 
@@ -1739,14 +2001,18 @@ class SVGImporter:
         self,
         *,
         strict: bool = True,
+        strict_fonts: bool = True,
         viewport: tuple[int, int] | None = None,
         limits: SVGImportLimits | None = None,
+        font_resolver: FontResolver | None = None,
     ):
         if not strict:
             raise NotImplementedError("Permissive SVG import (strict=False) is not yet implemented in Milestone 1")
         self.strict = strict
+        self.strict_fonts = strict_fonts
         self.viewport = viewport
         self.limits = limits if limits is not None else SVGImportLimits()
+        self.font_resolver = font_resolver
 
     def parse_file(self, filepath: str | FilePath) -> SVGImportResult:
         p = FilePath(filepath)
@@ -1900,10 +2166,10 @@ class SVGImporter:
                     "SVG <filter> is not supported in Milestone 1",
                     diagnostic=SVGImportDiagnostic(code="SVG_UNSUPPORTED_FILTER", severity="error", message="SVG <filter> unsupported", element_tag=tag),
                 )
-            if tag_lower in ("text", "tspan", "textpath"):
+            if tag_lower == "textpath":
                 raise SVGImportError(
-                    "SVG typography <text> is deferred in Milestone 1",
-                    diagnostic=SVGImportDiagnostic(code="SVG_UNSUPPORTED_TEXT", severity="error", message="SVG <text> deferred", element_tag=tag),
+                    "SVG <textPath> is not supported",
+                    diagnostic=SVGImportDiagnostic(code="SVG_UNSUPPORTED_TEXTPATH", severity="error", message="SVG <textPath> unsupported", element_tag=tag),
                 )
             if tag_lower in ("image",):
                 raise SVGImportError(
@@ -2943,6 +3209,481 @@ class SVGImporter:
                     p.line_to(pt)
                 p.close()
                 drawable = p
+                drawable.transform = Transform.from_matrix(tf_mat)
+
+            elif tag_lower == "text":
+                if style.stroke and style.stroke.lower() != "none":
+                    raise SVGImportError(
+                        "SVG text stroke is not supported in Milestone 1",
+                        diagnostic=SVGImportDiagnostic(
+                            code="SVG_UNSUPPORTED_TEXT_STROKE",
+                            severity="error",
+                            message="Text stroke is not supported",
+                            element_tag="text",
+                        ),
+                    )
+                if style.fill and style.fill.startswith("url("):
+                    raise SVGImportError(
+                        "SVG text paint servers are not supported in Milestone 1",
+                        diagnostic=SVGImportDiagnostic(
+                            code="SVG_UNSUPPORTED_TEXT_PAINT_SERVER",
+                            severity="error",
+                            message="Text paint server is not supported",
+                            element_tag="text",
+                        ),
+                    )
+
+                def _check_coord_list(attr_name: str, val: str | None, tag_name: str):
+                    if val is not None and len(re.split(r"[\s,]+", val.strip())) > 1:
+                        raise SVGImportError(
+                            f"Multi-value coordinate lists on SVG {tag_name} are not supported in Milestone 1",
+                            diagnostic=SVGImportDiagnostic(
+                                code="SVG_UNSUPPORTED_TEXT_COORDINATE_LIST",
+                                severity="error",
+                                message=f"Multi-value coordinate list '{val}' on {attr_name} is not supported",
+                                element_tag=tag_name,
+                                attribute=attr_name,
+                            ),
+                        )
+
+                def _validate_text_element(node: ET.Element, tag_name: str) -> None:
+                    node_attrs = {k.lower(): v.strip() for k, v in node.attrib.items()}
+                    node_inline = SVGStyleResolver.parse_inline_style(node_attrs.get("style", ""))
+
+                    def get_val(key: str) -> str | None:
+                        return node_inline.get(key, node_attrs.get(key))
+
+                    if tag_name == "tspan":
+                        op_val = get_val("opacity")
+                        if op_val is not None:
+                            try:
+                                op_f = float(op_val)
+                            except (ValueError, TypeError):
+                                op_f = None
+                            if op_f is not None and op_f < 1.0:
+                                raise SVGImportError(
+                                    "Per-tspan opacity is not supported in Milestone 1 (use fill-opacity)",
+                                    diagnostic=SVGImportDiagnostic(
+                                        code="SVG_UNSUPPORTED_TEXT_OPACITY",
+                                        severity="error",
+                                        message="Per-tspan opacity is not supported",
+                                        element_tag="tspan",
+                                        attribute="opacity",
+                                    ),
+                                )
+
+                    rot_val = get_val("rotate")
+                    if rot_val is not None and rot_val.strip() not in ("", "0", "0deg", "0rad"):
+                        raise SVGImportError(
+                            "SVG text rotate is not supported in Milestone 1",
+                            diagnostic=SVGImportDiagnostic(
+                                code="SVG_UNSUPPORTED_TEXT_ROTATE",
+                                severity="error",
+                                message="Text rotate is not supported",
+                                element_tag=tag_name,
+                                attribute="rotate",
+                            ),
+                        )
+
+                    tl_val = get_val("textlength")
+                    if tl_val is not None:
+                        raise SVGImportError(
+                            "SVG textLength is not supported in Milestone 1",
+                            diagnostic=SVGImportDiagnostic(
+                                code="SVG_UNSUPPORTED_TEXT_LENGTH",
+                                severity="error",
+                                message="SVG textLength is not supported",
+                                element_tag=tag_name,
+                                attribute="textLength",
+                            ),
+                        )
+
+                    la_val = get_val("lengthadjust")
+                    if la_val is not None:
+                        raise SVGImportError(
+                            "SVG lengthAdjust is not supported in Milestone 1",
+                            diagnostic=SVGImportDiagnostic(
+                                code="SVG_UNSUPPORTED_TEXT_LENGTH_ADJUST",
+                                severity="error",
+                                message="SVG lengthAdjust is not supported",
+                                element_tag=tag_name,
+                                attribute="lengthAdjust",
+                            ),
+                        )
+
+                    ls_val = get_val("letter-spacing")
+                    if ls_val is not None and ls_val.strip().lower() not in ("normal", "0", "0px", ""):
+                        raise SVGImportError(
+                            "SVG letter-spacing is not supported in Milestone 1",
+                            diagnostic=SVGImportDiagnostic(
+                                code="SVG_UNSUPPORTED_LETTER_SPACING",
+                                severity="error",
+                                message="letter-spacing is not supported",
+                                element_tag=tag_name,
+                                attribute="letter-spacing",
+                            ),
+                        )
+
+                    ws_val = get_val("word-spacing")
+                    if ws_val is not None and ws_val.strip().lower() not in ("normal", "0", "0px", ""):
+                        raise SVGImportError(
+                            "SVG word-spacing is not supported in Milestone 1",
+                            diagnostic=SVGImportDiagnostic(
+                                code="SVG_UNSUPPORTED_WORD_SPACING",
+                                severity="error",
+                                message="word-spacing is not supported",
+                                element_tag=tag_name,
+                                attribute="word-spacing",
+                            ),
+                        )
+
+                    td_val = get_val("text-decoration")
+                    if td_val is not None and td_val.strip().lower() not in ("none", ""):
+                        raise SVGImportError(
+                            "SVG text-decoration is not supported in Milestone 1",
+                            diagnostic=SVGImportDiagnostic(
+                                code="SVG_UNSUPPORTED_TEXT_DECORATION",
+                                severity="error",
+                                message="text-decoration is not supported",
+                                element_tag=tag_name,
+                                attribute="text-decoration",
+                            ),
+                        )
+
+                    wm_val = get_val("writing-mode")
+                    if wm_val is not None and wm_val.strip().lower() not in ("horizontal-tb", "lr", "lr-tb", ""):
+                        raise SVGImportError(
+                            f"SVG writing-mode '{wm_val}' is not supported in Milestone 1",
+                            diagnostic=SVGImportDiagnostic(
+                                code="SVG_UNSUPPORTED_WRITING_MODE",
+                                severity="error",
+                                message=f"writing-mode '{wm_val}' is not supported",
+                                element_tag=tag_name,
+                                attribute="writing-mode",
+                            ),
+                        )
+
+                    for base_prop in ("alignment-baseline", "dominant-baseline", "baseline-shift"):
+                        bp_val = get_val(base_prop)
+                        if bp_val is not None and bp_val.strip().lower() not in ("auto", "alphabetic", "baseline", "0", "0px", ""):
+                            raise SVGImportError(
+                                f"SVG {base_prop} is not supported in Milestone 1",
+                                diagnostic=SVGImportDiagnostic(
+                                    code="SVG_UNSUPPORTED_BASELINE_PROPERTY",
+                                    severity="error",
+                                    message=f"{base_prop} is not supported",
+                                    element_tag=tag_name,
+                                    attribute=base_prop,
+                                ),
+                            )
+
+                    _check_coord_list("x", node_attrs.get("x"), tag_name)
+                    _check_coord_list("y", node_attrs.get("y"), tag_name)
+                    _check_coord_list("dx", node_attrs.get("dx"), tag_name)
+                    _check_coord_list("dy", node_attrs.get("dy"), tag_name)
+
+                _check_coord_list("x", elem.attrib.get("x"), "text")
+                _check_coord_list("y", elem.attrib.get("y"), "text")
+                _check_coord_list("dx", elem.attrib.get("dx"), "text")
+                _check_coord_list("dy", elem.attrib.get("dy"), "text")
+
+                text_x = current_viewport.resolve_x(
+                    SVGLength.parse(elem.attrib.get("x", "0"), limits=self.limits),
+                    context_name="text x",
+                    limits=self.limits,
+                ) if elem.attrib.get("x") else 0.0
+
+                text_y = current_viewport.resolve_y(
+                    SVGLength.parse(elem.attrib.get("y", "0"), limits=self.limits),
+                    context_name="text y",
+                    limits=self.limits,
+                ) if elem.attrib.get("y") else 0.0
+
+                text_dx = current_viewport.resolve_x(
+                    SVGLength.parse(elem.attrib.get("dx", "0"), limits=self.limits),
+                    context_name="text dx",
+                    limits=self.limits,
+                ) if elem.attrib.get("dx") else 0.0
+
+                text_dy = current_viewport.resolve_y(
+                    SVGLength.parse(elem.attrib.get("dy", "0"), limits=self.limits),
+                    context_name="text dy",
+                    limits=self.limits,
+                ) if elem.attrib.get("dy") else 0.0
+
+                text_x += text_dx
+                text_y += text_dy
+
+                raw_segments: list[SVGTextSegment] = []
+
+                def collect_text_tree(node: ET.Element, current_style: ComputedStyle, is_root: bool = False) -> None:
+                    node_tag = extract_element_tag(node.tag).lower()
+                    if not is_root:
+                        if node_tag == "textpath":
+                            raise SVGImportError(
+                                "SVG <textPath> is not supported in Milestone 1",
+                                diagnostic=SVGImportDiagnostic(
+                                    code="SVG_UNSUPPORTED_TEXTPATH",
+                                    severity="error",
+                                    message="SVG <textPath> is not supported",
+                                    element_tag="textPath",
+                                ),
+                            )
+                        if node_tag != "tspan":
+                            raise SVGImportError(
+                                f"Unsupported child element <{node_tag}> in <text>",
+                                diagnostic=SVGImportDiagnostic(
+                                    code="SVG_UNSUPPORTED_ELEMENT",
+                                    severity="error",
+                                    message=f"Unsupported child element <{node_tag}> in <text>",
+                                    element_tag=node_tag,
+                                ),
+                            )
+                        _validate_text_element(node, "tspan")
+                        node_attrs = {k.lower(): v.strip() for k, v in node.attrib.items()}
+                        node_inline = SVGStyleResolver.parse_inline_style(node_attrs.get("style", ""))
+                        dir_val = node_inline.get("direction", node_attrs.get("direction"))
+                        if dir_val is not None:
+                            if "x" not in node_attrs and "y" not in node_attrs:
+                                raise SVGImportError(
+                                    "Per-tspan direction without absolute positioning (x or y) is not supported in Milestone 1",
+                                    diagnostic=SVGImportDiagnostic(
+                                        code="SVG_UNSUPPORTED_TEXT_DIRECTION",
+                                        severity="error",
+                                        message="Per-tspan direction without absolute positioning is not supported",
+                                        element_tag="tspan",
+                                        attribute="direction",
+                                    ),
+                                )
+                        node_style = SVGStyleResolver.resolve(node, current_style, limits=self.limits)
+                        if node_style.stroke and node_style.stroke.lower() != "none":
+                            raise SVGImportError(
+                                "SVG text stroke is not supported in Milestone 1",
+                                diagnostic=SVGImportDiagnostic(
+                                    code="SVG_UNSUPPORTED_TEXT_STROKE",
+                                    severity="error",
+                                    message="Text stroke is not supported",
+                                    element_tag="tspan",
+                                ),
+                            )
+                        if node_style.fill and node_style.fill.startswith("url("):
+                            raise SVGImportError(
+                                "SVG text paint servers are not supported in Milestone 1",
+                                diagnostic=SVGImportDiagnostic(
+                                    code="SVG_UNSUPPORTED_TEXT_PAINT_SERVER",
+                                    severity="error",
+                                    message="Text paint server is not supported",
+                                    element_tag="tspan",
+                                ),
+                            )
+                        x_str = node.attrib.get("x")
+                        y_str = node.attrib.get("y")
+                        dx_str = node.attrib.get("dx")
+                        dy_str = node.attrib.get("dy")
+                        elem_x = current_viewport.resolve_x(SVGLength.parse(x_str, limits=self.limits), context_name="tspan x", limits=self.limits) if x_str is not None else None
+                        elem_y = current_viewport.resolve_y(SVGLength.parse(y_str, limits=self.limits), context_name="tspan y", limits=self.limits) if y_str is not None else None
+                        elem_dx = current_viewport.resolve_x(SVGLength.parse(dx_str, limits=self.limits), context_name="tspan dx", limits=self.limits) if dx_str is not None else None
+                        elem_dy = current_viewport.resolve_y(SVGLength.parse(dy_str, limits=self.limits), context_name="tspan dy", limits=self.limits) if dy_str is not None else None
+                    else:
+                        _validate_text_element(node, "text")
+                        node_style = current_style
+                        elem_x = None
+                        elem_y = None
+                        elem_dx = None
+                        elem_dy = None
+
+                    if node.text:
+                        raw_segments.append(SVGTextSegment(node.text, node, node_style, is_element_start=True, x=elem_x, y=elem_y, dx=elem_dx, dy=elem_dy))
+                    elif not is_root and (elem_x is not None or elem_y is not None or elem_dx is not None or elem_dy is not None):
+                        raw_segments.append(SVGTextSegment("", node, node_style, is_element_start=True, x=elem_x, y=elem_y, dx=elem_dx, dy=elem_dy))
+
+                    for child in node:
+                        collect_text_tree(child, node_style, is_root=False)
+                        if child.tail:
+                            raw_segments.append(SVGTextSegment(child.tail, node, node_style, is_element_start=False))
+
+                collect_text_tree(elem, style, is_root=True)
+
+                if self.font_resolver is None:
+                    raise SVGImportError(
+                        "SVG text import requires an injected FontResolver",
+                        diagnostic=SVGImportDiagnostic(
+                            code="SVG_MISSING_FONT_RESOLVER",
+                            severity="error",
+                            message="SVG text import requires an injected FontResolver",
+                            element_tag="text",
+                        ),
+                    )
+
+                parent_map = {child: parent for parent in elem.iter() for child in parent}
+                norm_segments = normalize_svg_text_stream(raw_segments, parent_map=parent_map)
+                runs: list[TextRun] = []
+
+                root_fill_none = (style.fill is not None and style.fill.strip().lower() == "none")
+                root_color = SVGColorParser.parse(style.fill, current_color=style.color) if (style.fill and not root_fill_none) else Color.black()
+                root_fill_op = style.fill_opacity
+                root_font_size = style.font_size
+                root_font_weight = style.font_weight
+                root_font_style = style.font_style
+                root_direction = style.direction
+                root_xml_space = style.xml_space
+                root_text_anchor = TextAnchor(style.text_anchor)
+
+                root_desc = self.font_resolver.resolve(style.font_family, weight=style.font_weight, style=style.font_style)
+                if root_desc is None:
+                    raise SVGImportError(
+                        f"Font family '{style.font_family}' could not be resolved",
+                        diagnostic=SVGImportDiagnostic(
+                            code="SVG_UNRESOLVED_FONT",
+                            severity="error",
+                            message=f"Font family '{style.font_family}' could not be resolved",
+                            element_tag="text",
+                        ),
+                    )
+                if (self.strict and self.strict_fonts) and root_desc.is_substituted:
+                    raise SVGImportError(
+                        f"Font family '{style.font_family}' was substituted and is disallowed in strict mode",
+                        diagnostic=SVGImportDiagnostic(
+                            code="SVG_UNRESOLVED_FONT",
+                            severity="error",
+                            message=f"Font family '{style.font_family}' was substituted",
+                            element_tag="text",
+                        ),
+                    )
+                root_fam_name = root_desc.semantic_family
+                root_fonts = root_desc.fonts
+                root_is_sub = root_desc.is_substituted
+
+                for seg in norm_segments:
+                    if not seg.text:
+                        continue
+                    seg_elem = seg.element
+                    seg_style = seg.style
+                    run_x: float | None = seg.x
+                    run_y: float | None = seg.y
+                    run_dx = seg.dx if seg.dx is not None else 0.0
+                    run_dy = seg.dy if seg.dy is not None else 0.0
+
+                    seg_desc = self.font_resolver.resolve(seg_style.font_family, weight=seg_style.font_weight, style=seg_style.font_style)
+                    if seg_desc is None:
+                        raise SVGImportError(
+                            f"Font family '{seg_style.font_family}' could not be resolved",
+                            diagnostic=SVGImportDiagnostic(
+                                code="SVG_UNRESOLVED_FONT",
+                                severity="error",
+                                message=f"Font family '{seg_style.font_family}' could not be resolved",
+                                element_tag=extract_element_tag(seg_elem.tag),
+                            ),
+                        )
+                    if (self.strict and self.strict_fonts) and seg_desc.is_substituted:
+                        raise SVGImportError(
+                            f"Font family '{seg_style.font_family}' was substituted and is disallowed in strict mode",
+                            diagnostic=SVGImportDiagnostic(
+                                code="SVG_UNRESOLVED_FONT",
+                                severity="error",
+                                message=f"Font family '{seg_style.font_family}' was substituted",
+                                element_tag=extract_element_tag(seg_elem.tag),
+                            ),
+                        )
+                    run_fonts = seg_desc.fonts
+                    run_fam = seg_desc.semantic_family
+                    run_sub = seg_desc.is_substituted
+
+                    seg_is_none = (seg_style.fill is not None and seg_style.fill.strip().lower() == "none")
+                    if seg_is_none:
+                        if not root_fill_none:
+                            seg_fill = None
+                            seg_fill_none = True
+                        else:
+                            seg_fill = None
+                            seg_fill_none = False
+                    else:
+                        seg_c = SVGColorParser.parse(seg_style.fill, current_color=seg_style.color) if seg_style.fill else Color.black()
+                        if root_fill_none or seg_c != root_color:
+                            seg_fill = seg_c
+                            seg_fill_none = False
+                        else:
+                            seg_fill = None
+                            seg_fill_none = False
+
+                    if not math.isclose(seg_style.fill_opacity, root_fill_op, abs_tol=1e-5):
+                        seg_fill_op = seg_style.fill_opacity
+                    else:
+                        seg_fill_op = None
+
+                    run_font_size = seg_style.font_size if not math.isclose(seg_style.font_size, root_font_size, abs_tol=1e-5) else None
+                    run_fam_override = run_fam if run_fam != root_fam_name else None
+                    run_weight_override = seg_style.font_weight if seg_style.font_weight != root_font_weight else None
+                    run_style_override = seg_style.font_style if seg_style.font_style != root_font_style else None
+                    run_direction_override = seg_style.direction if seg_style.direction != root_direction else None
+                    run_xml_space_override = seg_style.xml_space if seg_style.xml_space != root_xml_space else None
+                    seg_ta = TextAnchor(seg_style.text_anchor)
+                    run_ta_override = seg_ta if seg_ta != root_text_anchor else None
+
+                    has_font_override = (run_fam_override is not None or run_weight_override is not None or run_style_override is not None)
+                    run_fonts_to_store = run_fonts if has_font_override else (run_fonts if run_fonts != root_fonts else None)
+
+                    runs.append(TextRun(
+                        text=seg.text,
+                        fonts=run_fonts_to_store,
+                        font_size=run_font_size,
+                        font_family_name=run_fam_override,
+                        font_weight=run_weight_override,
+                        font_style=run_style_override,
+                        fill=seg_fill,
+                        fill_none=seg_fill_none,
+                        fill_opacity=seg_fill_op,
+                        x=run_x,
+                        y=run_y,
+                        dx=run_dx,
+                        dy=run_dy,
+                        text_anchor=run_ta_override,
+                        direction=run_direction_override,
+                        xml_space=run_xml_space_override,
+                        is_font_substituted=run_sub,
+                    ))
+
+                if not runs:
+                    return None
+
+                has_complex_structure = (len(runs) > 1 or any(r.x is not None or r.y is not None or r.dx != 0.0 or r.dy != 0.0 for r in runs)
+                                         or any(seg.element is not elem for seg in norm_segments if seg.text))
+                if has_complex_structure:
+                    drawable = Text(
+                        runs=tuple(runs),
+                        position=Point(text_x, text_y),
+                        text_origin="baseline",
+                        text_anchor=root_text_anchor,
+                        font_size=style.font_size,
+                        font_family_name=root_fam_name,
+                        font_weight=style.font_weight,
+                        font_style=style.font_style,
+                        fonts=root_fonts,
+                        color=root_color or Color.black(),
+                        fill_opacity=style.fill_opacity,
+                        fill_none=root_fill_none,
+                        direction=style.direction,
+                        xml_space=root_xml_space,
+                        is_font_substituted=root_is_sub,
+                    )
+                else:
+                    drawable = Text(
+                        text=runs[0].text,
+                        position=Point(text_x, text_y),
+                        text_origin="baseline",
+                        text_anchor=root_text_anchor,
+                        font_size=style.font_size,
+                        font_family_name=root_fam_name,
+                        font_weight=style.font_weight,
+                        font_style=style.font_style,
+                        fonts=root_fonts,
+                        color=root_color or Color.black(),
+                        fill_opacity=style.fill_opacity,
+                        fill_none=root_fill_none,
+                        direction=style.direction,
+                        xml_space=root_xml_space,
+                        is_font_substituted=root_is_sub,
+                    )
                 drawable.transform = Transform.from_matrix(tf_mat)
 
             else:
