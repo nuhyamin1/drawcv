@@ -392,6 +392,63 @@ class Path(Drawable):
     # Vector Path Boolean Operations
     # -------------------------------------------------------------------------
 
+    def length(self, *, tolerance=0.1, space="local", subpath=None) -> float:
+        """Measure centerline arc length; moves add no distance, closures do.
+
+        tolerance is an absolute numerical integration target in the selected
+        coordinate space. World space includes ancestors. Optionally select one
+        subpath by index. Empty paths have length zero; styles are ignored.
+        """
+        from drawcv.core.path_measurement import Measurement
+        return Measurement(self, tolerance=tolerance, space=space, subpath=subpath).length
+
+    def point_at(self, progress, *, tolerance=0.1, space="local", subpath=None) -> Point:
+        """Position at normalized arc-length progress [0, 1], not curve parameter.
+
+        Disconnected subpaths concatenate without a bridge; interior boundaries
+        select the preceding segment. Endpoints retain first/last authored
+        positions. Empty paths raise ValidationError; zero-length paths return
+        their first position. Queries never mutate or cache mutable path state.
+        """
+        from drawcv.core.path_measurement import Measurement
+        return Measurement(self, tolerance=tolerance, space=space, subpath=subpath).query(progress)
+
+    def tangent_at(self, progress, *, tolerance=0.1, space="local", subpath=None) -> Point:
+        """Unit direction at normalized arc-length progress in the selected space.
+
+        Uses curve derivatives. Corners/disconnected boundaries use the incoming
+        segment, except progress zero uses the first nonzero segment. Stationary
+        points use a one-sided derivative. Empty/zero-length paths raise
+        ValidationError because no direction exists.
+        """
+        from drawcv.core.path_measurement import Measurement
+        return Measurement(self, tolerance=tolerance, space=space, subpath=subpath).query(progress, tangent=True)
+
+    def trim(self, start, end, *, tolerance=0.1, space="local", subpath=None,
+             preserve_world_transform=False) -> Path:
+        """Extract normalized arc-length interval [start, end] as a detached Path.
+
+        Curves retain their command types. Full contours retain closure; cut
+        contours are open. Geometry and own styles are copied independently.
+        space selects the distance metric, not output coordinates: local geometry
+        and the resolved local transform are retained unless world preservation
+        is requested. Equal endpoints produce an empty path; start > end raises.
+        """
+        from drawcv.core.path_editing import trim
+        return trim(self, start, end, tolerance=tolerance, space=space, subpath=subpath,
+                    preserve_world_transform=preserve_world_transform)
+
+    def split_at(self, progress, *, tolerance=0.1, space="local", subpath=None,
+                 preserve_world_transform=False) -> tuple[Path, Path]:
+        """Return independent prefix/suffix paths split at normalized arc length.
+
+        Uses trim() semantics. Splitting at 0 or 1 returns an empty path on
+        that side. Original geometry and scene membership remain unchanged.
+        """
+        from drawcv.core.path_editing import split_at
+        return split_at(self, progress, tolerance=tolerance, space=space, subpath=subpath,
+                        preserve_world_transform=preserve_world_transform)
+
     def boolean(self, other: Path, operation: PathBooleanOp | str) -> Path:
         """Execute a 2D vector path boolean operation against another Path.
         

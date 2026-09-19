@@ -1,0 +1,505 @@
+{
+  "format": "drawcv",
+  "scene": {
+    "background": {
+      "a": 1.0,
+      "b": 252,
+      "g": 250,
+      "r": 248
+    },
+    "height": 560,
+    "layers": [
+      {
+        "blend_mode": "normal",
+        "clip": null,
+        "effects": [],
+        "locked": false,
+        "mask": null,
+        "name": "default",
+        "objects": [
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "blend_mode": "normal",
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 70,
+              "g": 45,
+              "r": 24
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.8,
+            "id": "50a93c63-e2ed-494b-947a-7f6f473e801e",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 30.0,
+              "y": 20.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "Trim and split curves by distance",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "blend_mode": "normal",
+            "clip": null,
+            "effects": [],
+            "fill": null,
+            "fill_rule": "even_odd",
+            "id": "96678b58-c699-4239-8185-c5392e7bbec6",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "render_progress": 1.0,
+            "stroke": {
+              "cap_style": "round",
+              "color": {
+                "a": 1.0,
+                "b": 210,
+                "g": 200,
+                "r": 190
+              },
+              "dash_array": [],
+              "dash_offset": 0.0,
+              "join_style": "round",
+              "line_type": "AA",
+              "miter_limit": 4.0,
+              "opacity": 1.0,
+              "space": "screen",
+              "width": 7.0
+            },
+            "subpaths": [
+              {
+                "closed": false,
+                "commands": [
+                  {
+                    "point": {
+                      "x": 60.0,
+                      "y": 180.0
+                    },
+                    "type": "move_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 280.0,
+                      "y": -10.0
+                    },
+                    "control2": {
+                      "x": 520.0,
+                      "y": 320.0
+                    },
+                    "end": {
+                      "x": 830.0,
+                      "y": 110.0
+                    },
+                    "type": "cubic_to"
+                  }
+                ]
+              }
+            ],
+            "tags": [],
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "path",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "blend_mode": "normal",
+            "clip": null,
+            "effects": [],
+            "fill": null,
+            "fill_rule": "even_odd",
+            "id": "bb2ac037-2750-416a-824c-accce9c40a36",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "render_progress": 1.0,
+            "stroke": {
+              "cap_style": "round",
+              "color": {
+                "a": 1.0,
+                "b": 145,
+                "g": 130,
+                "r": 5
+              },
+              "dash_array": [],
+              "dash_offset": 0.0,
+              "join_style": "round",
+              "line_type": "AA",
+              "miter_limit": 4.0,
+              "opacity": 1.0,
+              "space": "screen",
+              "width": 7.0
+            },
+            "subpaths": [
+              {
+                "closed": false,
+                "commands": [
+                  {
+                    "point": {
+                      "x": 206.1475344064849,
+                      "y": 118.96291484304746
+                    },
+                    "type": "move_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 349.32691773364365,
+                      "y": 109.92782615069027
+                    },
+                    "control2": {
+                      "x": 504.34718418957914,
+                      "y": 212.53985326190923
+                    },
+                    "end": {
+                      "x": 683.1148951638249,
+                      "y": 174.37989471858947
+                    },
+                    "type": "cubic_to"
+                  }
+                ]
+              }
+            ],
+            "tags": [],
+            "timing": null,
+            "transform": {
+              "matrix": [
+                [
+                  1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  1.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ]
+              ],
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "path",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "blend_mode": "normal",
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 70,
+              "g": 45,
+              "r": 24
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.6,
+            "id": "5cfee8a0-52eb-42b6-8c12-a1cc93c165c7",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 30.0,
+              "y": 250.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "trim(0.2, 0.8) / original in gray",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "blend_mode": "normal",
+            "clip": null,
+            "effects": [],
+            "fill": null,
+            "fill_rule": "even_odd",
+            "id": "83004aac-6c44-4da1-8bae-e896809e4806",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "render_progress": 1.0,
+            "stroke": {
+              "cap_style": "round",
+              "color": {
+                "a": 1.0,
+                "b": 180,
+                "g": 80,
+                "r": 100
+              },
+              "dash_array": [],
+              "dash_offset": 0.0,
+              "join_style": "round",
+              "line_type": "AA",
+              "miter_limit": 4.0,
+              "opacity": 1.0,
+              "space": "screen",
+              "width": 7.0
+            },
+            "subpaths": [
+              {
+                "closed": false,
+                "commands": [
+                  {
+                    "point": {
+                      "x": 60.0,
+                      "y": 180.0
+                    },
+                    "type": "move_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 156.54050612448373,
+                      "y": 96.62410834703678
+                    },
+                    "control2": {
+                      "x": 256.9322805641623,
+                      "y": 113.38119288913904
+                    },
+                    "end": {
+                      "x": 365.4003618686959,
+                      "y": 140.70043637351088
+                    },
+                    "type": "cubic_to"
+                  }
+                ]
+              }
+            ],
+            "tags": [],
+            "timing": null,
+            "transform": {
+              "matrix": [
+                [
+                  1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  1.0,
+                  220.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ]
+              ],
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 220.0
+            },
+            "type": "path",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "blend_mode": "normal",
+            "clip": null,
+            "effects": [],
+            "fill": null,
+            "fill_rule": "even_odd",
+            "id": "254cd918-f0c9-4e3e-a684-b6c3f4b00f73",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "render_progress": 1.0,
+            "stroke": {
+              "cap_style": "round",
+              "color": {
+                "a": 1.0,
+                "b": 30,
+                "g": 130,
+                "r": 225
+              },
+              "dash_array": [],
+              "dash_offset": 0.0,
+              "join_style": "round",
+              "line_type": "AA",
+              "miter_limit": 4.0,
+              "opacity": 1.0,
+              "space": "screen",
+              "width": 7.0
+            },
+            "subpaths": [
+              {
+                "closed": false,
+                "commands": [
+                  {
+                    "point": {
+                      "x": 365.4003618686959,
+                      "y": 140.70043637351088
+                    },
+                    "type": "move_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 504.11327064751003,
+                      "y": 175.63727386319087
+                    },
+                    "control2": {
+                      "x": 656.0343495390453,
+                      "y": 227.84769869935644
+                    },
+                    "end": {
+                      "x": 830.0,
+                      "y": 110.0
+                    },
+                    "type": "cubic_to"
+                  }
+                ]
+              }
+            ],
+            "tags": [],
+            "timing": null,
+            "transform": {
+              "matrix": [
+                [
+                  1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  1.0,
+                  220.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ]
+              ],
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 220.0
+            },
+            "type": "path",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "blend_mode": "normal",
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 70,
+              "g": 45,
+              "r": 24
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.6,
+            "id": "ca0fcb47-02cc-458f-a9a9-c85e39b61810",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 30.0,
+              "y": 490.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "split_at(0.4) / prefix and suffix remain editable curves",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          }
+        ],
+        "opacity": 1.0,
+        "visible": true,
+        "z_order": 0
+      }
+    ],
+    "timeline": {
+      "tracks": []
+    },
+    "width": 900
+  },
+  "schema_version": "1.10",
+  "version": "1.10"
+}
