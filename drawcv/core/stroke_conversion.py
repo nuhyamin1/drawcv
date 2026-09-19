@@ -1,4 +1,4 @@
-"""Convert standard strokes to detached world-space filled geometry."""
+"""Convert standard and freehand strokes to world-space filled geometry."""
 import copy
 import math
 
@@ -13,13 +13,15 @@ from drawcv.core.path_conversion import path_subpaths
 from drawcv.core.stroking import _stroke_geometry
 from drawcv.core.transform import Transform
 from drawcv.shapes.path import Path
+from drawcv.shapes.freehand import FreehandStroke
 from drawcv.styles.fill import FillStyle
 
 
 def stroke_to_path(obj, *, tolerance=0.25):
     if isinstance(tolerance, bool) or not isinstance(tolerance, (int, float)) or not math.isfinite(tolerance) or tolerance <= 0:
         raise ValidationError("tolerance must be a finite positive number")
-    geometry = Path(subpaths=path_subpaths(obj))
+    freehand = isinstance(obj, FreehandStroke)
+    geometry = None if freehand else Path(subpaths=path_subpaths(obj))
     result = Path(fill_rule=FillRule.NON_ZERO, name=obj.name, opacity=obj.opacity,
                   visible=obj.visible, locked=obj.locked, blend_mode=obj.blend_mode,
                   z_index=obj.z_index, tags=copy.deepcopy(obj.tags), metadata=copy.deepcopy(obj.metadata))
@@ -39,11 +41,19 @@ def stroke_to_path(obj, *, tolerance=0.25):
     if object_space and abs(np.linalg.det(matrix[:2, :2])) == 0:
         return result
     local_tolerance = tolerance / max(scale, 1e-12)
-    contours = geometry.flatten_with_mapper(
-        (lambda p: p) if object_space else obj.to_world,
-        tolerance=min(local_tolerance, tolerance) / 2, include_closed=True)
-    samples = [([(p.x, p.y, style.width) for p in points], loop)
-               for points, loop in contours]
+    if freehand:
+        # Processing interpolates pressure/velocity as well as coordinates.
+        # Evaluate widths before mapping geometry, exactly as in the renderer.
+        points = obj.get_processed_points()
+        widths = obj.get_point_widths(points)
+        mapped = points if object_space else [obj.to_world(p.to_point()) for p in points]
+        samples = [([(p.x, p.y, width) for p, width in zip(mapped, widths)], False)]
+    else:
+        contours = geometry.flatten_with_mapper(
+            (lambda p: p) if object_space else obj.to_world,
+            tolerance=min(local_tolerance, tolerance) / 2, include_closed=True)
+        samples = [([(p.x, p.y, style.width) for p in points], loop)
+                   for points, loop in contours]
     polygons = []
 
     def polygon(points):

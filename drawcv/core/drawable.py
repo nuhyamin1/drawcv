@@ -407,14 +407,16 @@ class Drawable(ABC):
         return to_path(self, preserve_world_transform=preserve_world_transform)
 
     def stroke_to_path(self, *, tolerance: float = 0.25):
-        """Return a detached world-space filled outline of the full standard stroke.
+        """Return a detached world-space filled outline of the full stroke.
 
         Curves and round caps/joins are approximated using a world-unit tolerance.
         The stroke paint and opacity are retained; source fill, clips, masks,
         effects, timing and ancestor appearance are excluded. Geometry is frozen
         at the current transform, with a new ID and identity result transform.
-        Supported shapes are the same as to_path(); variable-width freehand
-        and text outlining are not supported. Missing/zero-width strokes are empty.
+        Supports to_path() shapes and processed FreehandStroke geometry, including
+        pressure/velocity widths. Text outlining is not supported. Missing strokes
+        are empty. Freehand sampling is controlled by its processing settings;
+        tolerance controls its round caps/joins, not centerline resampling.
         """
         from drawcv.core.stroke_conversion import stroke_to_path
         return stroke_to_path(self, tolerance=tolerance)

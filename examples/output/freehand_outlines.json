@@ -1,0 +1,3774 @@
+{
+  "format": "drawcv",
+  "scene": {
+    "background": {
+      "a": 1.0,
+      "b": 252,
+      "g": 250,
+      "r": 248
+    },
+    "height": 600,
+    "layers": [
+      {
+        "blend_mode": "normal",
+        "clip": null,
+        "effects": [],
+        "locked": false,
+        "mask": null,
+        "name": "default",
+        "objects": [
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "blend_mode": "normal",
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 70,
+              "g": 45,
+              "r": 24
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.8,
+            "id": "e3392613-08af-4c60-923a-ee13e204f155",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 30.0,
+              "y": 20.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "Freehand strokes become editable filled paths",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "blend_mode": "normal",
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 70,
+              "g": 45,
+              "r": 24
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.65,
+            "id": "4ae01a6f-fa28-41e5-8698-10e6cc8faf23",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 40.0,
+              "y": 80.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "ORIGINAL STROKE",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "blend_mode": "normal",
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 70,
+              "g": 45,
+              "r": 24
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.65,
+            "id": "de1d92b4-233b-4f6a-b3fd-d50788e4ba0e",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 490.0,
+              "y": 80.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "CONVERTED OUTLINE",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "blend_mode": "normal",
+            "clip": null,
+            "effects": [],
+            "id": "c2b2a6c1-d0c7-4550-97a9-94a96bb283c5",
+            "interpolation": null,
+            "interpolation_samples": 8,
+            "locked": false,
+            "mask": null,
+            "max_width": 32.0,
+            "metadata": {},
+            "min_width": 0.0,
+            "name": null,
+            "opacity": 1.0,
+            "points": [
+              {
+                "pressure": 0.0,
+                "velocity": 100.0,
+                "x": 50.0,
+                "y": 160.0
+              },
+              {
+                "pressure": 0.6,
+                "velocity": 40.0,
+                "x": 130.0,
+                "y": 195.0
+              },
+              {
+                "pressure": 1.0,
+                "velocity": 0.0,
+                "x": 230.0,
+                "y": 145.0
+              },
+              {
+                "pressure": 0.15,
+                "velocity": 85.0,
+                "x": 350.0,
+                "y": 190.0
+              }
+            ],
+            "render_progress": 1.0,
+            "simplification": null,
+            "simplification_tolerance": 1.0,
+            "smoothing": "chaikin",
+            "smoothing_iterations": 2,
+            "smoothing_ratio": 0.25,
+            "stroke": {
+              "cap_style": "round",
+              "color": {
+                "a": 1.0,
+                "b": 145,
+                "g": 130,
+                "r": 5
+              },
+              "dash_array": [],
+              "dash_offset": 0.0,
+              "join_style": "round",
+              "line_type": "AA",
+              "miter_limit": 4.0,
+              "opacity": 1.0,
+              "space": "screen",
+              "width": 20.0
+            },
+            "tags": [],
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "freehand",
+            "variable_width": true,
+            "velocity_max": 100.0,
+            "velocity_min": 0.0,
+            "visible": true,
+            "width_mode": "pressure",
+            "z_index": 0
+          },
+          {
+            "blend_mode": "normal",
+            "clip": null,
+            "effects": [],
+            "fill": {
+              "color": {
+                "a": 1.0,
+                "b": 180,
+                "g": 80,
+                "r": 100
+              },
+              "enabled": true,
+              "opacity": 1.0
+            },
+            "fill_rule": "non_zero",
+            "id": "914c6b74-cafa-4977-bbe1-99678a329a95",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "render_progress": 1.0,
+            "stroke": null,
+            "subpaths": [
+              {
+                "closed": true,
+                "commands": [
+                  {
+                    "point": {
+                      "x": 50.0,
+                      "y": 160.0
+                    },
+                    "type": "move_to"
+                  },
+                  {
+                    "point": {
+                      "x": 55.2404899597168,
+                      "y": 161.63780212402344
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 65.72147369384766,
+                      "y": 164.91342163085938
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 81.31254577636719,
+                      "y": 169.78607177734375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 81.3776626586914,
+                      "y": 169.7990264892578
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 81.3984603881836,
+                      "y": 169.81292724609375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 81.44294738769531,
+                      "y": 169.8268280029297
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 101.0609359741211,
+                      "y": 175.95802307128906
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 120.74040985107422,
+                      "y": 177.11114501953125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 140.97154235839844,
+                      "y": 173.60723876953125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 162.27650451660156,
+                      "y": 165.43479919433594
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 185.53285217285156,
+                      "y": 152.093505859375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 185.6999969482422,
+                      "y": 151.97206115722656
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 185.8989715576172,
+                      "y": 151.8834686279297
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 186.4178924560547,
+                      "y": 151.58578491210938
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 186.4451446533203,
+                      "y": 151.64028930664062
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 188.29736328125,
+                      "y": 150.8156280517578
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 189.21751403808594,
+                      "y": 150.6200408935547
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 189.20152282714844,
+                      "y": 150.55606079101562
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 215.24362182617188,
+                      "y": 143.6864471435547
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 215.25340270996094,
+                      "y": 143.68283081054688
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 215.26283264160156,
+                      "y": 143.68138122558594
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 215.3666229248047,
+                      "y": 143.6540069580078
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 215.369384765625,
+                      "y": 143.66506958007812
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 218.04344177246094,
+                      "y": 143.25540161132812
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 218.43380737304688,
+                      "y": 143.2751922607422
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 218.4330291748047,
+                      "y": 143.24110412597656
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 245.9534912109375,
+                      "y": 143.515869140625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 245.9550323486328,
+                      "y": 143.583984375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 247.6140899658203,
+                      "y": 143.583984375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 248.609130859375,
+                      "y": 143.7954864501953
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 248.62127685546875,
+                      "y": 143.72975158691406
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 250.0065155029297,
+                      "y": 144.09251403808594
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 250.2826690673828,
+                      "y": 144.15121459960938
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 250.35694885253906,
+                      "y": 144.18429565429688
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 276.9805908203125,
+                      "y": 151.1564483642578
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 276.978759765625,
+                      "y": 151.1663360595703
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 278.8101501464844,
+                      "y": 151.71461486816406
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 278.8272399902344,
+                      "y": 151.66900634765625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 279.07879638671875,
+                      "y": 151.7950439453125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 279.3172607421875,
+                      "y": 151.86643981933594
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 279.94769287109375,
+                      "y": 152.23040771484375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 307.6334228515625,
+                      "y": 166.10252380371094
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 308.13427734375,
+                      "y": 166.35348510742188
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 308.45050048828125,
+                      "y": 166.4658660888672
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 308.67535400390625,
+                      "y": 166.62460327148438
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 329.2380676269531,
+                      "y": 176.92767333984375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 343.6411437988281,
+                      "y": 184.14442443847656
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 350.8426818847656,
+                      "y": 187.7528076171875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 350.8182067871094,
+                      "y": 187.81808471679688
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 351.36334228515625,
+                      "y": 188.02484130859375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 352.1250915527344,
+                      "y": 188.88465881347656
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 352.3999938964844,
+                      "y": 190.0
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 352.1250915527344,
+                      "y": 191.11534118652344
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 351.36334228515625,
+                      "y": 191.97515869140625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 350.2892761230469,
+                      "y": 192.38250732421875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 349.1580810546875,
+                      "y": 192.24514770507812
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 349.1573181152344,
+                      "y": 192.2471923828125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 341.3588562011719,
+                      "y": 190.23057556152344
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 325.7619323730469,
+                      "y": 186.19732666015625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 302.743896484375,
+                      "y": 180.2450408935547
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 302.4884033203125,
+                      "y": 180.19195556640625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 302.43841552734375,
+                      "y": 180.16604614257812
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 302.3665771484375,
+                      "y": 180.14747619628906
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 273.02557373046875,
+                      "y": 172.56011962890625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 273.0194091796875,
+                      "y": 172.5935516357422
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 246.0689239501953,
+                      "y": 169.63563537597656
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 220.79080200195312,
+                      "y": 171.03823852539062
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 196.6661834716797,
+                      "y": 176.73890686035156
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 172.86656188964844,
+                      "y": 186.98312377929688
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 172.8542022705078,
+                      "y": 186.95840454101562
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 170.96812438964844,
+                      "y": 187.70989990234375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 170.97589111328125,
+                      "y": 187.73556518554688
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 170.80990600585938,
+                      "y": 187.77293395996094
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 170.71034240722656,
+                      "y": 187.81260681152344
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 170.42845153808594,
+                      "y": 187.85882568359375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 146.7045135498047,
+                      "y": 193.20022583007812
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 146.68698120117188,
+                      "y": 193.14227294921875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 144.97947692871094,
+                      "y": 193.56312561035156
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 144.5937957763672,
+                      "y": 193.56312561035156
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 144.59706115722656,
+                      "y": 193.60226440429688
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 121.93096923828125,
+                      "y": 193.4841766357422
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 121.92591094970703,
+                      "y": 193.4235076904297
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 121.25,
+                      "y": 193.5124969482422
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 119.95118713378906,
+                      "y": 193.3415069580078
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 119.9405517578125,
+                      "y": 193.4072723388672
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 119.44940948486328,
+                      "y": 193.27545166015625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 119.127685546875,
+                      "y": 193.23309326171875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 118.8259506225586,
+                      "y": 193.1081085205078
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 99.0418701171875,
+                      "y": 187.79800415039062
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 99.05365753173828,
+                      "y": 187.72511291503906
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 98.1458969116211,
+                      "y": 187.5813446044922
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 97.62057495117188,
+                      "y": 187.3136749267578
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 97.59508514404297,
+                      "y": 187.3719482421875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 96.50824737548828,
+                      "y": 186.7469024658203
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 96.4732894897461,
+                      "y": 186.72909545898438
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 96.4678955078125,
+                      "y": 186.72369384765625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 78.55705261230469,
+                      "y": 176.4231719970703
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 64.27852630615234,
+                      "y": 168.21157836914062
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 64.14051818847656,
+                      "y": 168.13221740722656
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 64.0999984741211,
+                      "y": 168.12135314941406
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 64.07070922851562,
+                      "y": 168.09205627441406
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 54.7595100402832,
+                      "y": 162.73719787597656
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 54.71350860595703,
+                      "y": 162.7107391357422
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 54.70000076293945,
+                      "y": 162.70712280273438
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 54.69023895263672,
+                      "y": 162.69735717773438
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "type": "close"
+                  }
+                ]
+              }
+            ],
+            "tags": [],
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 450.0,
+              "translation_y": 0.0
+            },
+            "type": "path",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "blend_mode": "normal",
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 70,
+              "g": 45,
+              "r": 24
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.5,
+            "id": "ae295227-073f-46d1-bee7-26602675a032",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 40.0,
+              "y": 225.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "Pressure / smooth taper",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "blend_mode": "normal",
+            "clip": null,
+            "effects": [],
+            "id": "0cd992cb-3a7a-4750-a126-dd7644e9bce4",
+            "interpolation": null,
+            "interpolation_samples": 8,
+            "locked": false,
+            "mask": null,
+            "max_width": 32.0,
+            "metadata": {},
+            "min_width": 0.0,
+            "name": null,
+            "opacity": 1.0,
+            "points": [
+              {
+                "pressure": 0.0,
+                "velocity": 100.0,
+                "x": 50.0,
+                "y": 310.0
+              },
+              {
+                "pressure": 0.6,
+                "velocity": 40.0,
+                "x": 130.0,
+                "y": 345.0
+              },
+              {
+                "pressure": 1.0,
+                "velocity": 0.0,
+                "x": 230.0,
+                "y": 295.0
+              },
+              {
+                "pressure": 0.15,
+                "velocity": 85.0,
+                "x": 350.0,
+                "y": 340.0
+              }
+            ],
+            "render_progress": 1.0,
+            "simplification": null,
+            "simplification_tolerance": 1.0,
+            "smoothing": "chaikin",
+            "smoothing_iterations": 2,
+            "smoothing_ratio": 0.25,
+            "stroke": {
+              "cap_style": "round",
+              "color": {
+                "a": 1.0,
+                "b": 145,
+                "g": 130,
+                "r": 5
+              },
+              "dash_array": [
+                35,
+                20
+              ],
+              "dash_offset": 0.0,
+              "join_style": "round",
+              "line_type": "AA",
+              "miter_limit": 4.0,
+              "opacity": 1.0,
+              "space": "screen",
+              "width": 20.0
+            },
+            "tags": [],
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "freehand",
+            "variable_width": true,
+            "velocity_max": 100.0,
+            "velocity_min": 0.0,
+            "visible": true,
+            "width_mode": "pressure",
+            "z_index": 0
+          },
+          {
+            "blend_mode": "normal",
+            "clip": null,
+            "effects": [],
+            "fill": {
+              "color": {
+                "a": 1.0,
+                "b": 180,
+                "g": 80,
+                "r": 100
+              },
+              "enabled": true,
+              "opacity": 1.0
+            },
+            "fill_rule": "non_zero",
+            "id": "3363e45b-b7db-4194-8710-a1112a29e963",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "render_progress": 1.0,
+            "stroke": null,
+            "subpaths": [
+              {
+                "closed": true,
+                "commands": [
+                  {
+                    "point": {
+                      "x": 101.38383483886719,
+                      "y": 325.9769287109375
+                    },
+                    "type": "move_to"
+                  },
+                  {
+                    "point": {
+                      "x": 120.74053955078125,
+                      "y": 327.11114501953125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 133.09591674804688,
+                      "y": 324.97125244140625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 133.332763671875,
+                      "y": 324.894287109375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 133.6586151123047,
+                      "y": 324.873779296875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 134.3167724609375,
+                      "y": 324.7597961425781
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 134.32278442382812,
+                      "y": 324.8320007324219
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 135.69215393066406,
+                      "y": 324.745849609375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 138.01434326171875,
+                      "y": 325.1888122558594
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 140.15341186523438,
+                      "y": 326.19537353515625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 141.97496032714844,
+                      "y": 327.7023010253906
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 143.36451721191406,
+                      "y": 329.6148681640625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 143.63807678222656,
+                      "y": 330.3058166503906
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 143.63807678222656,
+                      "y": 328.87908935546875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 144.22821044921875,
+                      "y": 326.3891296386719
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 145.3766632080078,
+                      "y": 324.10235595703125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 147.0215301513672,
+                      "y": 322.14208984375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 149.07412719726562,
+                      "y": 320.6139831542969
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 151.39344787597656,
+                      "y": 319.613525390625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 151.39234924316406,
+                      "y": 319.6098937988281
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 162.27650451660156,
+                      "y": 315.434814453125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 179.95761108398438,
+                      "y": 305.29180908203125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 180.12022399902344,
+                      "y": 305.1736755371094
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 180.31378173828125,
+                      "y": 305.0874938964844
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 180.81863403320312,
+                      "y": 304.7978820800781
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 180.84515380859375,
+                      "y": 304.8509216308594
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 182.64712524414062,
+                      "y": 304.0486145019531
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 185.3527374267578,
+                      "y": 303.4735107421875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 188.11878967285156,
+                      "y": 303.4735107421875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 190.8243865966797,
+                      "y": 304.0486145019531
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 193.06216430664062,
+                      "y": 305.0449523925781
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 193.60623168945312,
+                      "y": 303.7771301269531
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 195.19850158691406,
+                      "y": 301.4894714355469
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 197.21868896484375,
+                      "y": 299.5691223144531
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 199.58407592773438,
+                      "y": 298.0947570800781
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 202.1978302001953,
+                      "y": 297.1267395019531
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 202.3123779296875,
+                      "y": 297.10919189453125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 202.3096466064453,
+                      "y": 297.0982971191406
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 215.2434844970703,
+                      "y": 293.6864929199219
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 215.25340270996094,
+                      "y": 293.6828308105469
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 215.26296997070312,
+                      "y": 293.6813659667969
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 215.3666229248047,
+                      "y": 293.6540222167969
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 215.369384765625,
+                      "y": 293.6650695800781
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 218.04344177246094,
+                      "y": 293.2554016113281
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 218.43380737304688,
+                      "y": 293.27520751953125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 218.4330291748047,
+                      "y": 293.2410888671875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 239.94097900390625,
+                      "y": 293.4558410644531
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 239.9425506591797,
+                      "y": 293.5249938964844
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 241.62660217285156,
+                      "y": 293.5249938964844
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 244.33538818359375,
+                      "y": 294.10076904296875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 246.86526489257812,
+                      "y": 295.2271423339844
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 249.10568237304688,
+                      "y": 296.8548889160156
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 250.9586944580078,
+                      "y": 298.9128723144531
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 251.8101043701172,
+                      "y": 300.3875427246094
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 253.26136779785156,
+                      "y": 299.15484619140625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 255.55799865722656,
+                      "y": 297.937255859375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 258.06268310546875,
+                      "y": 297.2418212890625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 260.6583251953125,
+                      "y": 297.1011047363281
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 262.1794738769531,
+                      "y": 297.3504943847656
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 262.19183349609375,
+                      "y": 297.2835998535156
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 262.8953857421875,
+                      "y": 297.46783447265625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 263.2235107421875,
+                      "y": 297.5216369628906
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 263.4588623046875,
+                      "y": 297.61541748046875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 276.9805908203125,
+                      "y": 301.1564636230469
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 276.978759765625,
+                      "y": 301.1663513183594
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 278.81011962890625,
+                      "y": 301.7146301269531
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 278.8272399902344,
+                      "y": 301.66900634765625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 279.078857421875,
+                      "y": 301.7950744628906
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 279.3172607421875,
+                      "y": 301.866455078125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 279.9474792480469,
+                      "y": 302.2303161621094
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 296.5871887207031,
+                      "y": 310.5677490234375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 296.5729064941406,
+                      "y": 310.6058044433594
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 298.2132568359375,
+                      "y": 311.377685546875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 299.91363525390625,
+                      "y": 312.78436279296875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 301.2107849121094,
+                      "y": 314.5697326660156
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 302.0231628417969,
+                      "y": 316.62158203125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 302.29974365234375,
+                      "y": 318.81097412109375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 302.0231628417969,
+                      "y": 321.0003967285156
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 301.2107849121094,
+                      "y": 323.05224609375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 299.91363525390625,
+                      "y": 324.83758544921875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 298.2132568359375,
+                      "y": 326.2442626953125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 296.21649169921875,
+                      "y": 327.18389892578125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 294.04876708984375,
+                      "y": 327.597412109375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 291.8462829589844,
+                      "y": 327.4588317871094
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 290.42608642578125,
+                      "y": 326.99737548828125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 290.4047546386719,
+                      "y": 327.0542297363281
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 273.02557373046875,
+                      "y": 322.56011962890625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 273.0194091796875,
+                      "y": 322.5935363769531
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 258.3410949707031,
+                      "y": 320.9825744628906
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 258.06268310546875,
+                      "y": 320.96746826171875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 257.9705810546875,
+                      "y": 320.94189453125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 257.82318115234375,
+                      "y": 320.92572021484375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 257.8275451660156,
+                      "y": 320.9021911621094
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 255.55799865722656,
+                      "y": 320.27203369140625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 253.26136779785156,
+                      "y": 319.054443359375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 251.28018188476562,
+                      "y": 317.3716125488281
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 249.9432830810547,
+                      "y": 315.6129455566406
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 249.10568237304688,
+                      "y": 316.543212890625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 246.86526489257812,
+                      "y": 318.17095947265625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 244.33538818359375,
+                      "y": 319.2973327636719
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 241.62660217285156,
+                      "y": 319.87310791015625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 240.54136657714844,
+                      "y": 319.87310791015625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 240.54293823242188,
+                      "y": 319.9422607421875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 220.79063415527344,
+                      "y": 321.03826904296875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 208.99166870117188,
+                      "y": 323.8263854980469
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 208.97463989257812,
+                      "y": 323.7582702636719
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 207.7366180419922,
+                      "y": 324.0788269042969
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 204.95294189453125,
+                      "y": 324.2200012207031
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 202.1978302001953,
+                      "y": 323.7979431152344
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 199.58407592773438,
+                      "y": 322.82989501953125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 198.6778564453125,
+                      "y": 322.2650451660156
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 197.43994140625,
+                      "y": 324.4091491699219
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 195.58908081054688,
+                      "y": 326.4647216796875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 193.35130310058594,
+                      "y": 328.090576171875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 192.62635803222656,
+                      "y": 328.413330078125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 192.6528778076172,
+                      "y": 328.46636962890625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 172.86656188964844,
+                      "y": 336.9831237792969
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 172.8542022705078,
+                      "y": 336.9584045410156
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 170.96812438964844,
+                      "y": 337.7098693847656
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 170.97589111328125,
+                      "y": 337.7355651855469
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 170.80982971191406,
+                      "y": 337.77294921875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 170.71034240722656,
+                      "y": 337.8125915527344
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 170.42869567871094,
+                      "y": 337.8587646484375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 157.77706909179688,
+                      "y": 340.7072448730469
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 157.75550842285156,
+                      "y": 340.635986328125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 156.49851989746094,
+                      "y": 341.0122985839844
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 153.94387817382812,
+                      "y": 341.16107177734375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 151.42379760742188,
+                      "y": 340.71673583984375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 149.07412719726562,
+                      "y": 339.70318603515625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 147.0215301513672,
+                      "y": 338.1750793457031
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 145.3766632080078,
+                      "y": 336.2148132324219
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 144.4934539794922,
+                      "y": 334.4561767578125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 144.2347869873047,
+                      "y": 336.5037536621094
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 143.36451721191406,
+                      "y": 338.7018127441406
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 141.97496032714844,
+                      "y": 340.6143798828125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 140.15341186523438,
+                      "y": 342.12127685546875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 138.01434326171875,
+                      "y": 343.1278381347656
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 135.88134765625,
+                      "y": 343.53472900390625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 135.88319396972656,
+                      "y": 343.5568542480469
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 135.7685546875,
+                      "y": 343.5562438964844
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 135.69215393066406,
+                      "y": 343.5708312988281
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 135.43267822265625,
+                      "y": 343.55450439453125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 121.93096923828125,
+                      "y": 343.4841613769531
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 121.92591857910156,
+                      "y": 343.42352294921875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 121.25,
+                      "y": 343.51251220703125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 119.9511947631836,
+                      "y": 343.3415222167969
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 119.9405517578125,
+                      "y": 343.40728759765625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 119.4493179321289,
+                      "y": 343.27545166015625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 119.127685546875,
+                      "y": 343.23309326171875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 118.82604217529297,
+                      "y": 343.108154296875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 99.45372009277344,
+                      "y": 337.9085388183594
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 99.4655990600586,
+                      "y": 337.8351135253906
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 98.55127716064453,
+                      "y": 337.6903076171875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 96.86658477783203,
+                      "y": 336.8319091796875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 95.52960205078125,
+                      "y": 335.49493408203125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 94.67120361328125,
+                      "y": 333.81024169921875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 94.37541961669922,
+                      "y": 331.9427490234375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 94.67120361328125,
+                      "y": 330.07525634765625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 95.52960205078125,
+                      "y": 328.3905334472656
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 96.86658477783203,
+                      "y": 327.0535583496094
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 98.55127716064453,
+                      "y": 326.1951599121094
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 100.41877746582031,
+                      "y": 325.8993835449219
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 101.37195587158203,
+                      "y": 326.05035400390625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "type": "close"
+                  }
+                ]
+              },
+              {
+                "closed": true,
+                "commands": [
+                  {
+                    "point": {
+                      "x": 314.56854248046875,
+                      "y": 319.5774230957031
+                    },
+                    "type": "move_to"
+                  },
+                  {
+                    "point": {
+                      "x": 314.62261962890625,
+                      "y": 319.6045227050781
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 314.6635437011719,
+                      "y": 319.6138610839844
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 314.80987548828125,
+                      "y": 319.6983337402344
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 329.2380676269531,
+                      "y": 326.92767333984375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 343.6411437988281,
+                      "y": 334.1444396972656
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 346.0359802246094,
+                      "y": 335.3443603515625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 346.01397705078125,
+                      "y": 335.40301513671875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 346.84417724609375,
+                      "y": 335.8028259277344
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 347.66754150390625,
+                      "y": 336.8352966308594
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 347.9613952636719,
+                      "y": 338.1227722167969
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 347.66754150390625,
+                      "y": 339.4102478027344
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 346.84417724609375,
+                      "y": 340.4427185058594
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 345.65435791015625,
+                      "y": 341.0157165527344
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 344.3337707519531,
+                      "y": 341.0157165527344
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 343.9741516113281,
+                      "y": 340.842529296875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 343.9521484375,
+                      "y": 340.90118408203125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 341.3588562011719,
+                      "y": 340.2305603027344
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 325.7619323730469,
+                      "y": 336.19732666015625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 310.9302062988281,
+                      "y": 332.3619384765625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 310.73577880859375,
+                      "y": 332.3473815917969
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 310.46905517578125,
+                      "y": 332.2427062988281
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 309.87652587890625,
+                      "y": 332.0894775390625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 309.9024658203125,
+                      "y": 332.02032470703125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 308.8818054199219,
+                      "y": 331.6197509765625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 307.32470703125,
+                      "y": 330.37799072265625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 306.2027587890625,
+                      "y": 328.732421875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 305.61572265625,
+                      "y": 326.82928466796875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 305.61572265625,
+                      "y": 324.837646484375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 306.2027587890625,
+                      "y": 322.9344787597656
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 307.32470703125,
+                      "y": 321.2889099121094
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 308.8818054199219,
+                      "y": 320.0471496582031
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 310.73577880859375,
+                      "y": 319.31951904296875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 312.72186279296875,
+                      "y": 319.1706848144531
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 314.5634460449219,
+                      "y": 319.59100341796875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "type": "close"
+                  }
+                ]
+              },
+              {
+                "closed": true,
+                "commands": [
+                  {
+                    "point": {
+                      "x": 50.0,
+                      "y": 310.0
+                    },
+                    "type": "move_to"
+                  },
+                  {
+                    "point": {
+                      "x": 65.72147369384766,
+                      "y": 314.9134216308594
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 81.31254577636719,
+                      "y": 319.7861022949219
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 81.3776626586914,
+                      "y": 319.7990417480469
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 81.39846801757812,
+                      "y": 319.81292724609375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 81.44294738769531,
+                      "y": 319.82684326171875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 83.46835327148438,
+                      "y": 320.4598388671875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 83.53801727294922,
+                      "y": 320.47369384765625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 83.56027221679688,
+                      "y": 320.4885559082031
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 83.60780334472656,
+                      "y": 320.50341796875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 83.60208129882812,
+                      "y": 320.5165100097656
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 84.7863540649414,
+                      "y": 321.30780029296875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 85.62046813964844,
+                      "y": 322.55615234375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 85.91336822509766,
+                      "y": 324.0286560058594
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 85.62046813964844,
+                      "y": 325.50115966796875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 84.7863540649414,
+                      "y": 326.74951171875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 83.53801727294922,
+                      "y": 327.5836181640625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 82.06550598144531,
+                      "y": 327.87652587890625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 80.5929946899414,
+                      "y": 327.5836181640625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 80.5289306640625,
+                      "y": 327.5408020019531
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 80.52320861816406,
+                      "y": 327.55389404296875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 78.55705261230469,
+                      "y": 326.42315673828125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 64.27852630615234,
+                      "y": 318.2115783691406
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 64.14047241210938,
+                      "y": 318.1321716308594
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 64.0999984741211,
+                      "y": 318.121337890625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 64.07073974609375,
+                      "y": 318.0920715332031
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 54.7595100402832,
+                      "y": 312.7371826171875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 54.713558197021484,
+                      "y": 312.71075439453125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 54.70000076293945,
+                      "y": 312.7071228027344
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 54.69020462036133,
+                      "y": 312.69732666015625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "type": "close"
+                  }
+                ]
+              }
+            ],
+            "tags": [],
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 450.0,
+              "translation_y": 0.0
+            },
+            "type": "path",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "blend_mode": "normal",
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 70,
+              "g": 45,
+              "r": 24
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.5,
+            "id": "c089a451-71bc-454e-86cf-434c304b8d2a",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 40.0,
+              "y": 375.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "Pressure / dashed",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "blend_mode": "normal",
+            "clip": null,
+            "effects": [],
+            "id": "7828158d-77a2-40a1-a936-95a9f521735d",
+            "interpolation": null,
+            "interpolation_samples": 8,
+            "locked": false,
+            "mask": null,
+            "max_width": 32.0,
+            "metadata": {},
+            "min_width": 0.0,
+            "name": null,
+            "opacity": 1.0,
+            "points": [
+              {
+                "pressure": 0.0,
+                "velocity": 100.0,
+                "x": 50.0,
+                "y": 460.0
+              },
+              {
+                "pressure": 0.6,
+                "velocity": 40.0,
+                "x": 130.0,
+                "y": 495.0
+              },
+              {
+                "pressure": 1.0,
+                "velocity": 0.0,
+                "x": 230.0,
+                "y": 445.0
+              },
+              {
+                "pressure": 0.15,
+                "velocity": 85.0,
+                "x": 350.0,
+                "y": 490.0
+              }
+            ],
+            "render_progress": 1.0,
+            "simplification": null,
+            "simplification_tolerance": 1.0,
+            "smoothing": "chaikin",
+            "smoothing_iterations": 2,
+            "smoothing_ratio": 0.25,
+            "stroke": {
+              "cap_style": "round",
+              "color": {
+                "a": 1.0,
+                "b": 145,
+                "g": 130,
+                "r": 5
+              },
+              "dash_array": [],
+              "dash_offset": 0.0,
+              "join_style": "round",
+              "line_type": "AA",
+              "miter_limit": 4.0,
+              "opacity": 1.0,
+              "space": "screen",
+              "width": 20.0
+            },
+            "tags": [],
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "freehand",
+            "variable_width": true,
+            "velocity_max": 100.0,
+            "velocity_min": 0.0,
+            "visible": true,
+            "width_mode": "velocity",
+            "z_index": 0
+          },
+          {
+            "blend_mode": "normal",
+            "clip": null,
+            "effects": [],
+            "fill": {
+              "color": {
+                "a": 1.0,
+                "b": 180,
+                "g": 80,
+                "r": 100
+              },
+              "enabled": true,
+              "opacity": 1.0
+            },
+            "fill_rule": "non_zero",
+            "id": "34d70f56-5a3c-418e-b86e-6ac2c6c1f1fa",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "render_progress": 1.0,
+            "stroke": null,
+            "subpaths": [
+              {
+                "closed": true,
+                "commands": [
+                  {
+                    "point": {
+                      "x": 50.0,
+                      "y": 460.0
+                    },
+                    "type": "move_to"
+                  },
+                  {
+                    "point": {
+                      "x": 55.2404899597168,
+                      "y": 461.6378173828125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 65.72147369384766,
+                      "y": 464.9134216308594
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 81.31254577636719,
+                      "y": 469.7861022949219
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 81.3776626586914,
+                      "y": 469.7990417480469
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 81.39846801757812,
+                      "y": 469.81292724609375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 81.44294738769531,
+                      "y": 469.82684326171875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 101.0609359741211,
+                      "y": 475.9580078125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 120.74053955078125,
+                      "y": 477.11114501953125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 140.97152709960938,
+                      "y": 473.60723876953125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 162.27650451660156,
+                      "y": 465.434814453125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 185.53274536132812,
+                      "y": 452.09356689453125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 185.6999969482422,
+                      "y": 451.9720458984375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 185.89906311035156,
+                      "y": 451.8834228515625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 186.4178924560547,
+                      "y": 451.5857849121094
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 186.4451446533203,
+                      "y": 451.6402893066406
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 188.29736328125,
+                      "y": 450.8156433105469
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 189.21751403808594,
+                      "y": 450.62005615234375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 189.20152282714844,
+                      "y": 450.5560607910156
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 215.2434844970703,
+                      "y": 443.6864929199219
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 215.25340270996094,
+                      "y": 443.6828308105469
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 215.26296997070312,
+                      "y": 443.6813659667969
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 215.3666229248047,
+                      "y": 443.6540222167969
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 215.369384765625,
+                      "y": 443.6650695800781
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 218.04344177246094,
+                      "y": 443.2554016113281
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 218.43380737304688,
+                      "y": 443.27520751953125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 218.4330291748047,
+                      "y": 443.2410888671875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 245.9534912109375,
+                      "y": 443.515869140625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 245.9550323486328,
+                      "y": 443.583984375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 247.6140899658203,
+                      "y": 443.583984375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 248.609130859375,
+                      "y": 443.7955017089844
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 248.62127685546875,
+                      "y": 443.729736328125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 250.0067901611328,
+                      "y": 444.0925598144531
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 250.2826690673828,
+                      "y": 444.1512145996094
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 250.3568878173828,
+                      "y": 444.18426513671875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 276.9805908203125,
+                      "y": 451.1564636230469
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 276.978759765625,
+                      "y": 451.1663513183594
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 278.81011962890625,
+                      "y": 451.7146301269531
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 278.8272399902344,
+                      "y": 451.66900634765625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 279.078857421875,
+                      "y": 451.7950744628906
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 279.3172607421875,
+                      "y": 451.866455078125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 279.9474792480469,
+                      "y": 452.2303161621094
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 307.6334228515625,
+                      "y": 466.1025390625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 308.13409423828125,
+                      "y": 466.3533935546875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 308.45050048828125,
+                      "y": 466.4658508300781
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 308.6755065917969,
+                      "y": 466.62469482421875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 329.2380676269531,
+                      "y": 476.92767333984375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 343.6411437988281,
+                      "y": 484.1444396972656
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 350.8426818847656,
+                      "y": 487.7528076171875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 350.8182067871094,
+                      "y": 487.8180847167969
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 351.36334228515625,
+                      "y": 488.02484130859375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 352.1250915527344,
+                      "y": 488.8846740722656
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 352.3999938964844,
+                      "y": 490.0
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 352.1250915527344,
+                      "y": 491.1153259277344
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 351.36334228515625,
+                      "y": 491.97515869140625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 350.2892761230469,
+                      "y": 492.38250732421875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 349.1580810546875,
+                      "y": 492.2451477050781
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 349.1573181152344,
+                      "y": 492.2471923828125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 341.3588562011719,
+                      "y": 490.2305603027344
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 325.7619323730469,
+                      "y": 486.19732666015625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 302.7441711425781,
+                      "y": 480.2451171875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 302.4884033203125,
+                      "y": 480.19195556640625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 302.4383544921875,
+                      "y": 480.166015625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 302.3665771484375,
+                      "y": 480.1474609375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 273.02557373046875,
+                      "y": 472.56011962890625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 273.0194091796875,
+                      "y": 472.5935363769531
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 246.06884765625,
+                      "y": 469.6356506347656
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 220.79063415527344,
+                      "y": 471.03826904296875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 196.6661834716797,
+                      "y": 476.7388916015625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 172.86656188964844,
+                      "y": 486.9831237792969
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 172.8542022705078,
+                      "y": 486.9584045410156
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 170.96812438964844,
+                      "y": 487.7098693847656
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 170.97589111328125,
+                      "y": 487.7355651855469
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 170.809814453125,
+                      "y": 487.77294921875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 170.71034240722656,
+                      "y": 487.8125915527344
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 170.42869567871094,
+                      "y": 487.8587646484375
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 146.7045135498047,
+                      "y": 493.2002258300781
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 146.68698120117188,
+                      "y": 493.14227294921875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 144.97947692871094,
+                      "y": 493.5631408691406
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 144.5937957763672,
+                      "y": 493.5631408691406
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 144.59706115722656,
+                      "y": 493.6022644042969
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 121.93096923828125,
+                      "y": 493.4841613769531
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 121.92591857910156,
+                      "y": 493.42352294921875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 121.25,
+                      "y": 493.51251220703125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 119.9511947631836,
+                      "y": 493.3415222167969
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 119.9405517578125,
+                      "y": 493.40728759765625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 119.4493179321289,
+                      "y": 493.27545166015625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 119.127685546875,
+                      "y": 493.23309326171875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 118.8260498046875,
+                      "y": 493.108154296875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 99.0418701171875,
+                      "y": 487.7980041503906
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 99.05366516113281,
+                      "y": 487.72509765625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 98.1458969116211,
+                      "y": 487.5813293457031
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 97.6205825805664,
+                      "y": 487.31365966796875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 97.59508514404297,
+                      "y": 487.3719482421875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 96.50825500488281,
+                      "y": 486.7469177246094
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 96.4732894897461,
+                      "y": 486.7290954589844
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 96.4678955078125,
+                      "y": 486.72369384765625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 78.55705261230469,
+                      "y": 476.42315673828125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 64.27852630615234,
+                      "y": 468.2115783691406
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 64.14047241210938,
+                      "y": 468.1321716308594
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 64.0999984741211,
+                      "y": 468.121337890625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 64.07073974609375,
+                      "y": 468.0920715332031
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 54.7595100402832,
+                      "y": 462.7371826171875
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 54.713558197021484,
+                      "y": 462.71075439453125
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 54.70000076293945,
+                      "y": 462.7071228027344
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 54.69020462036133,
+                      "y": 462.69732666015625
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "type": "close"
+                  }
+                ]
+              }
+            ],
+            "tags": [],
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 450.0,
+              "translation_y": 0.0
+            },
+            "type": "path",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "blend_mode": "normal",
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 70,
+              "g": 45,
+              "r": 24
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.5,
+            "id": "7d6101ea-da6c-47d5-8f05-be8616e5d437",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 40.0,
+              "y": 525.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "Velocity / faster means thinner",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          }
+        ],
+        "opacity": 1.0,
+        "visible": true,
+        "z_order": 0
+      }
+    ],
+    "timeline": {
+      "tracks": []
+    },
+    "width": 900
+  },
+  "schema_version": "1.10",
+  "version": "1.10"
+}

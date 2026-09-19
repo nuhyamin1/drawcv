@@ -1,7 +1,7 @@
 # Stroke to path
 
 `shape.stroke_to_path(tolerance=0.25)` converts a standard stroke into an
-editable filled `Path`. It supports the same vector shapes as `to_path()`:
+editable filled `Path`. It supports freehand strokes and the same vector shapes as `to_path()`:
 paths, lines, rectangles, rounded rectangles, circles, ellipses, arcs,
 polygons, polylines and Bézier curves.
 
@@ -38,5 +38,29 @@ especially near sharp cusps. Boolean cleanup uses the existing PathOps backend
 and its floating-point precision. SVG and JSON preserve the resulting filled
 contours without requiring a new schema.
 
-Pressure-sensitive freehand strokes, text and arrow outlining are not supported
-in this milestone and raise `ValidationError`.
+## Freehand strokes
+
+Run `python -m examples.freehand_outlines` for a side-by-side gallery of original
+pressure/velocity strokes and editable outlines.
+
+`FreehandStroke.stroke_to_path()` supports constant, pressure and velocity width
+modes, including dashes and both stroke spaces. It uses the same processed points
+and evaluated widths as the renderer: RDP simplification, Chaikin smoothing and
+Catmull-Rom interpolation run in their usual order. Missing pressure or velocity
+uses the existing width-mode defaults. Widths interpolate along segments and at
+dash cuts. Raw points and their pressure, velocity and timestamp data are unchanged.
+
+```python
+outline = freehand.stroke_to_path(tolerance=0.1)
+scene.add(outline)  # editable filled geometry; also supports strict vector SVG
+```
+
+Freehand centerline detail is controlled by its processing settings, including
+`interpolation_samples`; conversion tolerance refines round caps and joins, not
+the sampled centerline. Empty strokes and strokes with all widths zero produce
+empty outlines. Consecutive coincident samples follow the renderer's existing
+rule of retaining the first sample's width. Conversion outlines the full stroke,
+even if `render_progress` is partial; explicitly convert
+`freehand.slice_at_progress(progress)` to outline a partial stroke.
+
+Text and arrow outlining remain unsupported and raise `ValidationError`.
