@@ -4,6 +4,7 @@ from __future__ import annotations
 import math
 import cv2
 import numpy as np
+import pathops
 
 from drawcv.core.enums import ArcClosure, FillRule, FontFamily
 from drawcv.core.exceptions import ValidationError
@@ -395,6 +396,34 @@ def arc_transformed_extrema_bounds(
 # Topological Fill Rule Mask Evaluator
 # -----------------------------------------------------------------------------
 
+def resolve_nonzero_contours(contours: list[list[Point]]) -> list[list[Point]]:
+    """Resolve complete winding topology before rasterization or containment.
+
+    Resolve all subpaths together: winding two from repeated traversal is only
+    partially cancelled by an opposing subpath. Inputs are not mutated. Only
+    lines enter PathOps here, so output boundaries remain polygons.
+    """
+    path = pathops.Path()
+    path.fillType = pathops.FillType.WINDING
+    for contour in contours:
+        if len(contour) < 3:
+            continue
+        path.moveTo(contour[0].x, contour[0].y)
+        for point in contour[1:]:
+            path.lineTo(point.x, point.y)
+        path.close()
+
+    result: list[list[Point]] = []
+    for verb, points in pathops.simplify(path, fix_winding=True):
+        if verb == pathops.PathVerb.MOVE:
+            result.append([Point(*points[0])])
+        elif verb == pathops.PathVerb.LINE:
+            result[-1].append(Point(*points[0]))
+        elif verb != pathops.PathVerb.CLOSE:
+            raise ValidationError("Unexpected curved segment in resolved polygon fill")
+    return result
+
+
 def evaluate_fill_rule_mask(
     subpath_contours: list[list[Point]],
     fill_rule: FillRule,
@@ -409,8 +438,8 @@ def evaluate_fill_rule_mask(
          The topological interior is evaluated on an integer grid at `supersample` x
          resolution to prevent XOR grayscale edge-intensity artifacts.
       2. Downsampling via cv2.INTER_AREA derives true geometric sub-pixel edge coverage.
-      3. NON_ZERO fill assumes simple closed contours (using orientation sign: +1 for CW,
-         -1 for CCW). Arbitrary self-intersecting subpaths are currently unsupported/undefined.
+      3. NON_ZERO resolves winding before quantization, including self-intersections
+         and repeated or opposing contour traversal.
     """
     if not subpath_contours or width <= 0 or height <= 0:
         return np.zeros((height, width), dtype=np.uint8)
@@ -418,6 +447,9 @@ def evaluate_fill_rule_mask(
     scale = max(1, supersample)
     sw = width * scale
     sh = height * scale
+
+    if fill_rule == FillRule.NON_ZERO:
+        subpath_contours = resolve_nonzero_contours(subpath_contours)
 
     # Scale Point contours to supersampled coordinate space
     cv_contours: list[np.ndarray] = []
@@ -442,7 +474,7 @@ def evaluate_fill_rule_mask(
             cv2.fillPoly(sub_mask, [c], 255)
             topological_mask = cv2.bitwise_xor(topological_mask, sub_mask)
     else:  # FillRule.NON_ZERO
-        # Signed winding accumulation (+1 for CW, -1 for CCW) across simple closed contours
+        # Resolved contours are simple boundaries with consistently oriented holes.
         winding_accum = np.zeros((sh, sw), dtype=np.int32)
         for c in cv_contours:
             oriented_area = cv2.contourArea(c, oriented=True)
@@ -925,4 +957,3 @@ def elliptical_arc_split(
     sub_large = abs(u_frac * dtheta) >= math.pi
 
     return Point(x_cut, y_cut), eff_rx, eff_ry, phi_deg, sub_large, sweep
-

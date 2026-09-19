@@ -266,8 +266,10 @@ class _Writer:
             for _, child in sorted(enumerate(children), key=lambda pair: (pair[1].z_index, pair[0])):
                 self.entity(child, group)
         elif isinstance(entity, Text):
-            group.set("transform", _matrix(entity.world_matrix))
             text_attrs = {
+                # The enclosing group's clip is already in world coordinates.
+                # Transform only the text, leaving that clip in the same space.
+                "transform": _matrix(entity.world_matrix),
                 "x": _number(entity.position.x),
                 "y": _number(entity.position.y),
                 "font-size": _number(entity.font_size),

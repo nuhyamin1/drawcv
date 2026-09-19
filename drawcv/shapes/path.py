@@ -20,6 +20,7 @@ from drawcv.core.geometry_utils import (
     flatten_elliptical_arc,
     flatten_quadratic_bezier,
     point_in_polygon,
+    resolve_nonzero_contours,
 )
 from drawcv.styles.fill import FillStyle
 from drawcv.styles.stroke import StrokeStyle
@@ -799,7 +800,7 @@ class Path(Drawable):
                         return True
                 else:  # NON_ZERO (orientation winding)
                     winding = 0
-                    for c in closed_contours:
+                    for c in resolve_nonzero_contours(closed_contours):
                         if point_in_polygon(world_point, c, include_boundary=True):
                             # Orientation via Shoelace
                             area = sum(c[i].x * c[(i+1)%len(c)].y - c[(i+1)%len(c)].x * c[i].y for i in range(len(c)))

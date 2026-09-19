@@ -1234,6 +1234,22 @@ class SVGStyleResolver:
                 return inline[name]
             return attrs.get(name)
 
+        # Drawing currently has a fixed fill/stroke order. Do not silently accept
+        # a declaration that changes the picture. Prefixes below expand to SVG's
+        # normal order; inherit/unset are safe because ancestors obey this gate.
+        paint_order = get_prop("paint-order")
+        if paint_order is not None:
+            normalized_order = " ".join(paint_order.lower().split())
+            if normalized_order not in ("normal", "fill", "fill stroke", "fill stroke markers",
+                                         "inherit", "initial", "unset"):
+                raise SVGImportError(
+                    f"Unsupported paint-order '{paint_order}'; DrawCV currently paints fill before stroke",
+                    diagnostic=SVGImportDiagnostic(
+                        code="SVG_UNSUPPORTED_PAINT_ORDER", severity="error",
+                        message=f"Unsupported paint-order '{paint_order}'", attribute="paint-order",
+                    ),
+                )
+
         # 1. Color (for currentColor)
         color_val = get_prop("color")
         if color_val:
@@ -3819,30 +3835,37 @@ class SVGImporter:
 
         # Build all top-level children
         root_style = SVGStyleResolver.resolve(root, limits=self.limits)
+        if root_style.display == "none":
+            return SVGImportResult(scene=scene)
+        root_transform = SVGTransformParser.parse_to_matrix(root.attrib.get("transform", ""), limits=self.limits)
+        root_ctm = root_transform @ M_viewbox
         root_clip = ClipRect(0.0, 0.0, float(scene_w), float(scene_h)) if root_style.overflow in ("hidden", "scroll") else None
 
         for child in root:
-            d = build_element(child, root_style, M_viewbox, root_viewport)
+            d = build_element(child, root_style, root_ctm, root_viewport)
             if d is not None:
                 root_drawables.append(d)
 
-        # Attach to Scene default layer
-        if not np.allclose(M_viewbox, np.eye(3)):
-            # Separate RootViewportGroup (clip in viewport space) from RootViewBoxGroup (transform=M_viewbox)
+        # Authored transform surrounds the viewport; viewBox maps its contents.
+        # Keep root compositing outside both, so overlapping children receive
+        # root opacity once. Explicit clip-path uses the contents' user space.
+        if not np.allclose(M_viewbox, np.eye(3)) or root_style.clip_path:
             viewbox_group = Group(children=root_drawables, transform=Transform.from_matrix(M_viewbox))
             viewbox_group.metadata["svg:root_viewbox"] = True
-            if root_clip is not None:
-                root_viewport_group = Group(children=[viewbox_group], clip=root_clip)
-                root_viewport_group.metadata["svg:root_viewport"] = True
-                scene.add(root_viewport_group)
-            else:
-                scene.add(viewbox_group)
-        elif root_clip is not None:
+            if root_style.clip_path:
+                apply_clip_path(viewbox_group, root_style, root_ctm, root_viewport)
+            root_drawables = [viewbox_group]
+        if root_clip is not None:
             root_viewport_group = Group(children=root_drawables, clip=root_clip)
             root_viewport_group.metadata["svg:root_viewport"] = True
-            scene.add(root_viewport_group)
-        else:
-            for d in root_drawables:
-                scene.add(d)
+            root_drawables = [root_viewport_group]
+        if (not np.allclose(root_transform, np.eye(3)) or root_style.opacity != 1.0
+                or root_style.mix_blend_mode != BlendMode.NORMAL):
+            root_host = Group(children=root_drawables, transform=Transform.from_matrix(root_transform),
+                              opacity=root_style.opacity, blend_mode=root_style.mix_blend_mode)
+            root_host.metadata["svg:root"] = True
+            root_drawables = [root_host]
+        for d in root_drawables:
+            scene.add(d)
 
         return SVGImportResult(scene=scene)

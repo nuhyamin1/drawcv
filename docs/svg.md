@@ -31,18 +31,20 @@ at each rasterized subtree root. A drawable that OpenCV cannot render raises
 | Path, quadratic/cubic BezierCurve | Editable M/L/Q/C/Z commands; compound fill rule retained |
 | Circle, ellipse, rounded rectangle, arc | Editable polygonal path using the raster renderer's sampling |
 | Constant-width freehand | Editable processed polyline; raw processing parameters remain in JSON |
-| Solid, linear, radial fill | Native fill and gradient definitions, including stop alpha |
+| Solid, linear, radial fill/stroke | Native paint definitions, stop alpha, paint transforms, and pad/repeat/reflect spread |
+| ImagePaint tiles | Native embedded image pattern for repeat + linear interpolation; other modes use reported PNG fallback |
 | Caps, joins, miter limit, dashes | Native stroke properties in scene-pixel units |
 | Groups/layers, stacking, opacity | Nested isolated SVG groups in retained draw order |
 | ClipRect, ClipPath | Native world-space clip paths on the owning group |
 | Masks, blur, shadows | Cropped transparent PNG of the affected subtree |
-| Hershey and retained font Text | Cropped transparent PNG, preserving existing shaping/layout |
+| Text | Native text/tspan for the supported font-resolved subset; reported PNG fallback for Hershey, wrapping, and other unsupported layouts |
 | ImageObject | Cropped transparent PNG after DrawCV transforms/interpolation |
 | Arrow and variable-width freehand | Cropped transparent PNG |
 
-Exported text is not selectable or editable as text. No fonts are embedded in SVG.
-Retained font rendering needs the typography extra on the exporting machine;
-viewing the SVG does not. Glyph outlines, native image placement, SVG filter mapping,
+Native exported text remains editable. No fonts are embedded in SVG, so the viewer
+needs matching fonts for matching appearance. Raster fallback text preserves its
+rendered appearance without viewer fonts. Retained font rendering needs the typography
+extra on the exporting machine. Glyph outlines, native image placement, SVG filter mapping,
 and vector pressure ribbons remain possible extensions.
 
 ## Coordinates and compositing
@@ -76,7 +78,7 @@ antialiasing. Use PNG export for exact raster reproduction.
 
 ## Persistence, import and animation
 
-JSON remains the primary editable DrawCV format at schema 1.8 (with migration from 1.7 to 1.8). DrawCV also provides a native,
+JSON remains the primary editable DrawCV format at schema 1.9 (with migration from older schemas). DrawCV also provides a native,
 high-fidelity retained SVG importer (`SVGImporter`) for supported SVG vector documents:
 
 ```python
@@ -114,7 +116,10 @@ Anything accepted by `SVGImporter` in strict mode becomes genuine retained DrawC
 * **Paint servers**: `<linearGradient>` and centered `<radialGradient>` in `objectBoundingBox` and `userSpaceOnUse`; context-aware percentage resolution in `userSpaceOnUse`; stop normalization (monotonicity, clamping, duplicate handling); template `href` inheritance; reference cycle detection; zero-size geometry bounding box handling.
 * **Compositing**: 12 supported `mix-blend-mode` values on shapes and groups. CSS `isolation: isolate` is strictly rejected.
 * **Security & limits**: XML `DOCTYPE` and `ENTITY` declarations are forbidden (`SVG_SECURITY_VIOLATION`), external URLs in `href` are forbidden, reference cycles in `<use>` are detected and rejected (`SVG_REFERENCE_CYCLE`), and configurable limits protect against CPU/memory exhaustion (`max_use_instances`, exact `max_expanded_elements`, `max_reference_depth`, `max_file_bytes`, `max_elements`, etc.).
-* **Deferred constructs**: `<mask>`, `<filter>`, `<text>`, `<image>`, and `<pattern>` are deferred to subsequent milestones.
+* **Text**: Supported `<text>`/`<tspan>` content imports as retained text with explicit font resolution. Advanced text placement and text-on-path remain restricted.
+* **Root properties**: Root opacity is applied once to the composed subtree. Root transforms wrap the viewBox mapping, and root display and clip-path are retained in rendering behavior.
+* **Paint order**: Normal fill-before-stroke order is supported. A different `paint-order` is rejected with `SVG_UNSUPPORTED_PAINT_ORDER`, including inline style declarations, rather than silently changing the picture.
+* **Deferred constructs**: `<mask>`, `<filter>`, `<image>`, and `<pattern>` import remain deferred. Export and import capabilities are not identical.
 
 Groups carry `data-drawcv-id`; generated SVG IDs are unique and deterministic for the
 same scene frame.

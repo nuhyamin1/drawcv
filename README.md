@@ -73,8 +73,8 @@ state. Use `scene.edit` for compound changes and geometry edits, and `scene.batc
 for multiple recorded commands. See [reliable edits](docs/reliability.md) for
 rollback guarantees and the limits of raw attribute/list mutation.
 
-New scenes use schema **1.4**, including embedded font assets, gradient paints and stroke semantics.
-Schemas 1.0 through 1.3 load with compatible defaults. Older readers reject 1.4;
+New scenes use schema **1.9**, including retained text runs, path clips, paints, and effects.
+Schemas 1.0 through 1.8 load with compatible defaults. Older readers reject 1.9;
 update readers before sharing new documents with them.
 
 ## Organize and position objects
@@ -150,7 +150,7 @@ python -m examples.transparent_output
 | --- | --- | --- |
 | Geometry | Lines, polygons, circles/ellipses, arcs, rectangles, arrows, quadratic/cubic curves, compound paths, vector booleans (union, intersection, difference, XOR) | Curves rasterize as approximations during OpenCV rendering |
 | Strokes | Butt/round/square caps, round/bevel/miter joins, miter limits, dashed and variable-width outlines | Screen-space widths; arrowhead outlines stay solid |
-| Paint | Solid, linear and radial fills, gradients, RGBA stops, fill rules; advanced blend modes | Textured pattern fills remain future work |
+| Paint | Solid, linear/radial/conic gradients, gradient strokes, RGBA stops, repeat/reflect spread, image tiles, fill rules, blend modes | Editable vector pattern tiles remain future work |
 | Freehand | Raw editable samples; pressure/velocity widths; simplification, smoothing, interpolation | No textured brush system |
 | Scene | Groups, layers, lookup, selection, relative positioning, affine transforms | Bounds may be conservative; hit testing is geometric and can select dash gaps |
 | Compositing | Opt-in straight BGRA/PNG output; premultiplied images, masks, blur, shadows, isolated opacity, blend modes, raster effects | Alpha export currently PNG only |

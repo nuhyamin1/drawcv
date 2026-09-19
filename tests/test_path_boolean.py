@@ -598,6 +598,37 @@ def test_style_linear_gradient_world_space():
     assert diff.fill.paint.end == Point(100, 0)
 
 
+@pytest.mark.parametrize('kind', ['linear', 'radial'])
+@pytest.mark.parametrize('spread', ['repeat', 'reflect'])
+@pytest.mark.parametrize('transformed', [False, True])
+def test_disjoint_difference_preserves_spread_and_paint_transform(kind, spread, transformed):
+    from drawcv.core.paint_sampling import sample_paint
+    stops = (GradientStop(0, Color(255, 0, 0)), GradientStop(1, Color(0, 0, 255)))
+    paint = (LinearGradient(Point(10, 10), Point(30, 10), stops, spread=spread)
+             if kind == 'linear' else RadialGradient(Point(30, 30), 15, stops, spread=spread))
+    if transformed:
+        paint.transform = Transform(translation_x=20, translation_y=5, rotation=30,
+                                    scale_x=1.2, scale_y=1.2, pivot=Point(0, 0))
+    left = make_rect_path(10, 10, 80, 80)
+    left.fill = FillStyle(paint=paint, opacity=0.7)
+    left.stroke = None
+    parent = Group(children=[left], transform=Transform(translation_x=5, translation_y=8))
+    source_state = parent.to_dict()
+    result = left.difference(make_rect_path(200, 200, 10, 10))
+    assert result.fill.paint.spread == spread
+    assert result.fill.opacity == 0.7
+    np.testing.assert_allclose(
+        # Avoid exact repeat seams: equivalent affine evaluations can land on
+        # opposite sides of a discontinuity by machine epsilon.
+        sample_paint(left.fill.paint, left.world_matrix, 100, 100, origin=(0.37, 0.19)),
+        sample_paint(result.fill.paint, result.world_matrix, 100, 100, origin=(0.37, 0.19)), atol=1e-5,
+    )
+    assert parent.to_dict() == source_state
+    assert result.fill.paint is not left.fill.paint
+    result.fill.paint.spread = 'pad'
+    assert left.fill.paint.spread == spread
+
+
 def test_style_linear_gradient_object_space_exact_conversion():
     """Regression test: object-space horizontal linear gradient (0,0) -> (100,0)
     with unequal X/Y translations (tx=30, ty=70) becomes exactly (30,70) -> (130,70).

@@ -200,10 +200,17 @@ def _resolve_boolean_styles(left: Path) -> tuple[FillStyle | None, StrokeStyle |
             resolved_fill = copy.deepcopy(left.fill)
 
         elif getattr(paint, "space", None) == "object":
-            # Derive the authoritative effective linear 2x2 transform from to_world
-            p_origin = left.to_world(Point(0.0, 0.0))
-            p_ex = left.to_world(Point(1.0, 0.0))
-            p_ey = left.to_world(Point(0.0, 1.0))
+            # Paint has its own coordinate transform inside the object's space.
+            # Bake both transforms when geometry is detached into world space.
+            paint_to_world = left.world_matrix @ paint.transform.get_matrix(Point(0.0, 0.0))
+
+            def map_paint_point(point):
+                mapped = paint_to_world @ np.array([point.x, point.y, 1.0])
+                return Point(float(mapped[0]), float(mapped[1]))
+
+            p_origin = map_paint_point(Point(0.0, 0.0))
+            p_ex = map_paint_point(Point(1.0, 0.0))
+            p_ey = map_paint_point(Point(0.0, 1.0))
             col_x = np.array([p_ex.x - p_origin.x, p_ex.y - p_origin.y], dtype=float)
             col_y = np.array([p_ey.x - p_origin.x, p_ey.y - p_origin.y], dtype=float)
             A = np.column_stack([col_x, col_y])
@@ -215,7 +222,8 @@ def _resolve_boolean_styles(left: Path) -> tuple[FillStyle | None, StrokeStyle |
                     # t(p_obj) = dot(p_obj - start, v) / dot(v, v)
                     # Under world = A * p_obj + b, the world-space gradient vector is:
                     # g = A^(-T) * v / dot(v, v)
-                    # Equivalent world endpoints satisfy w = g / dot(g, g) with start at left.to_world(start).
+                    # Equivalent world endpoints satisfy w = g / dot(g, g), with
+                    # start mapped through both object and paint transforms.
                     v = np.array([paint.end.x - paint.start.x, paint.end.y - paint.start.y], dtype=float)
                     v_dot_v = float(np.dot(v, v))
                     if v_dot_v > 1e-14:
@@ -224,7 +232,7 @@ def _resolve_boolean_styles(left: Path) -> tuple[FillStyle | None, StrokeStyle |
                         g_dot_g = float(np.dot(g, g))
                         if g_dot_g > 1e-14:
                             w = g / g_dot_g
-                            p0_w = left.to_world(paint.start)
+                            p0_w = map_paint_point(paint.start)
                             p1_w = Point(p0_w.x + float(w[0]), p0_w.y + float(w[1]))
                             if (
                                 math.isfinite(p0_w.x)
@@ -237,6 +245,7 @@ def _resolve_boolean_styles(left: Path) -> tuple[FillStyle | None, StrokeStyle |
                                     end=p1_w,
                                     stops=copy.deepcopy(paint.stops),
                                     space="world",
+                                    spread=paint.spread,
                                 )
                                 resolved_fill = FillStyle(
                                     paint=world_grad,
@@ -256,7 +265,7 @@ def _resolve_boolean_styles(left: Path) -> tuple[FillStyle | None, StrokeStyle |
                     )
                     if is_similarity:
                         scale_factor = norm_x
-                        world_center = left.to_world(paint.center)
+                        world_center = map_paint_point(paint.center)
                         world_radius = paint.radius * scale_factor
                         if (
                             math.isfinite(world_center.x)
@@ -269,6 +278,7 @@ def _resolve_boolean_styles(left: Path) -> tuple[FillStyle | None, StrokeStyle |
                                 radius=world_radius,
                                 stops=copy.deepcopy(paint.stops),
                                 space="world",
+                                spread=paint.spread,
                             )
                             resolved_fill = FillStyle(
                                 paint=world_grad,

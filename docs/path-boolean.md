@@ -123,8 +123,11 @@ The result inherits styling from the primary (left) operand `a`:
 * **World-Space Gradients**: Deep copy of `a.fill.paint` with `space="world"` unchanged.
 * **Object-Space Linear Gradient**:
   Transformed into an exact world-space `LinearGradient` using inverse-transpose affine gradient vector projection ($g = A^{-T} v / |v|^2$, $w = g / |g|^2$).
+  The effective mapping includes both the object's ancestor/world transform and
+  the paint-local transform. Pad/repeat/reflect spread and gradient stops are preserved.
 * **Object-Space Radial Gradient**:
   If the effective transform is a Euclidean similarity transform (translation, rotation, uniform scale, or reflection), transformed into an exact world-space `RadialGradient` with scaled radius ($r_{world} = r \cdot s$, where $s$ is the uniform scale factor magnitude).
+  The effective transform includes the paint-local transform; spread is preserved.
   If the transform includes non-uniform scale or shear (which would turn a circle into an ellipse), falls back conservatively to `fill = None` under the geometry-first policy rather than introducing an unrepresentable circular distortion.
 
 ---

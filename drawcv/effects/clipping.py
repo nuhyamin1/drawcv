@@ -12,7 +12,7 @@ from drawcv.core.bounds import BoundingBox
 from drawcv.core.enums import FillRule
 from drawcv.core.exceptions import ValidationError
 from drawcv.core.geometry import Point
-from drawcv.core.geometry_utils import evaluate_fill_rule_mask, point_in_polygon
+from drawcv.core.geometry_utils import evaluate_fill_rule_mask, point_in_polygon, resolve_nonzero_contours
 
 if TYPE_CHECKING:
     from drawcv.shapes.path import Path
@@ -345,7 +345,7 @@ def is_point_in_clip(clip: Any, owner: Any, world_point: Point) -> bool:
             return inside_count % 2 == 1
         else:  # FillRule.NON_ZERO
             winding = 0
-            for c in contours:
+            for c in resolve_nonzero_contours(contours):
                 if len(c) >= 3 and point_in_polygon(world_point, c, include_boundary=True):
                     area = sum(c[i].x * c[(i + 1) % len(c)].y - c[(i + 1) % len(c)].x * c[i].y for i in range(len(c)))
                     winding += 1 if area >= 0 else -1
