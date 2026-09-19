@@ -32,7 +32,7 @@ Version 0.10.0 is a major feature release adding extensive vector-geometry tools
 - **Editable alpha & luminance vector masks**: `VectorMask(artwork, bounds, mode=...)` enables soft fades and vector masks with native SVG `<mask />` export.
 - **Rendering & SVG fidelity fixes**: Nonzero fills, clipping, root SVG attributes, transformed text clipping, and strict paint-order diagnostics.
 
-See the complete [0.10.0 Release Notes](RELEASE_NOTES.md) for full API examples and compatibility contracts.
+See the complete [0.10.0 Release Notes](https://github.com/nuhyamin1/drawcv/blob/master/RELEASE_NOTES.md) for full API examples and compatibility contracts.
 
 ## Draw and export an image
 
@@ -67,7 +67,7 @@ transparent.save("diagram-transparent.png")
 transparent.flatten(Color.white()).save("diagram-white.jpg")
 ```
 
-See [transparent output and alpha semantics](docs/transparency.md).
+See [transparent output and alpha semantics](https://github.com/nuhyamin1/drawcv/blob/master/docs/transparency.md).
 
 ## Edit, undo, and save the scene
 
@@ -87,7 +87,7 @@ renderer.render(loaded).save("diagram-loaded.png")
 
 Style and transform assignments reject invalid values without corrupting existing
 state. Use `scene.edit` for compound changes and geometry edits, and `scene.batch`
-for multiple recorded commands. See [reliable edits](docs/reliability.md) for
+for multiple recorded commands. See [reliable edits](https://github.com/nuhyamin1/drawcv/blob/master/docs/reliability.md) for
 rollback guarantees and the limits of raw attribute/list mutation.
 
 New scenes use schema **1.13**, including vector masks, vector patterns, reusable path markers, retained text runs, path clips, paints, and effects.
@@ -112,7 +112,7 @@ Coordinates start at the top left; x increases rightward, y downward, and positi
 rotation is clockwise. Local geometry maps through object and ancestor transforms.
 Stroke widths and dashes stay in **screen pixels** by default. Set
 `StrokeStyle(space="object")` for widths, dashes, caps, and joins that
-transform with the object. See [stroke spaces](docs/strokes.md).
+transform with the object. See [stroke spaces](https://github.com/nuhyamin1/drawcv/blob/master/docs/strokes.md).
 Colors are authored as **RGB** integers 0–255 with alpha 0–1; OpenCV buffers use BGR.
 Alpha compositing uses source-over with premultiplied internal surfaces for isolation.
 
@@ -130,12 +130,12 @@ scene.render_at_time(0.75).save("frame.png")
 `scene.sample(t)` deliberately updates the live model. `VideoRenderer` provides
 frame iteration, image-sequence export, and video export through OpenCV codecs.
 Line, Polyline, Arrow, BezierCurve, Path, FreehandStroke, and Arc support progressive
-reveal. See [stroke/progress semantics](docs/strokes.md) for closure, transforms,
+reveal. See [stroke/progress semantics](https://github.com/nuhyamin1/drawcv/blob/master/docs/strokes.md) for closure, transforms,
 phase anchoring, and the different progress parameterizations.
 
 ## Examples and reference
 
-![Caps, joins, dashes, and pressure strokes](examples/output/stroke_styles.png)
+![Caps, joins, dashes, and pressure strokes](https://raw.githubusercontent.com/nuhyamin1/drawcv/master/examples/output/stroke_styles.png)
 
 Run examples as modules from the repository root:
 
@@ -145,32 +145,32 @@ python -m examples.progressive_drawing
 python -m examples.transparent_output
 ```
 
-- [Detailed 0.10.0 Release Notes](RELEASE_NOTES.md).
-- [Stroke comparison source](examples/stroke_styles.py) and [editable scene](examples/output/stroke_styles.json).
-- [Vector path boolean operations and coordinate contracts](docs/path-boolean.md); [runnable gallery](examples/path_boolean_operations.py).
-- [Exact shape-to-path conversion and curve-preserving SVG export](docs/path-conversion.md).
-- [Stroke-to-path conversion for editable outlines and boolean operations](docs/stroke-conversion.md).
-- [Path length, positions and tangent directions](docs/path-measurement.md).
-- [Curve-preserving trimming and splitting](docs/path-editing.md).
-- [Filled-region offsets: expansion, contraction, holes and joins](docs/path-offsets.md).
-- [Reusable path markers and custom arrowheads](docs/markers.md).
-- [Editable vector-pattern paints](docs/vector-patterns.md).
-- [Editable alpha and luminance vector masks](docs/vector-masks.md).
-- [Transparent PNG example](examples/transparent_output.py) and [external-composition preview](examples/output/transparent_output_preview.png).
-- [Gradient paints and coordinate contracts](docs/gradients.md); [runnable gallery](examples/gradient_fills.py).
-- [Alpha API and compositing conventions](docs/transparency.md).
-- [StrokeStyle API and conventions](docs/strokes.md).
-- [Public API guide](docs/api.md).
-- [Retained font typography: installation, metrics and layout](docs/typography.md).
-- [SVG export: editable vectors, raster fallbacks and strict mode](docs/svg.md); [gallery](examples/svg_export.py).
-- [Measured rendering performance](docs/performance.md); [reproducible benchmark commands](benchmarks/README.md).
-- [Typography backend evaluation](docs/typography-evaluation.md).
-- [Reliability and history](docs/reliability.md).
-- [Prioritized roadmap and verified findings](docs/roadmap.md).
-- Existing runnable examples: [retained editing](examples/phase1_retained_mode.py),
-  [groups/selection](examples/phase4_demo.py), [freehand](examples/phase5_demo.py),
-  [compositing](examples/phase6_demo.py), [persistence/history](examples/phase7_demo.py),
-  and [animation](examples/phase8_demo.py).
+- [Detailed 0.10.0 Release Notes](https://github.com/nuhyamin1/drawcv/blob/master/RELEASE_NOTES.md).
+- [Stroke comparison source](https://github.com/nuhyamin1/drawcv/blob/master/examples/stroke_styles.py) and [editable scene](https://github.com/nuhyamin1/drawcv/blob/master/examples/output/stroke_styles.json).
+- [Vector path boolean operations and coordinate contracts](https://github.com/nuhyamin1/drawcv/blob/master/docs/path-boolean.md); [runnable gallery](https://github.com/nuhyamin1/drawcv/blob/master/examples/path_boolean_operations.py).
+- [Exact shape-to-path conversion and curve-preserving SVG export](https://github.com/nuhyamin1/drawcv/blob/master/docs/path-conversion.md).
+- [Stroke-to-path conversion for editable outlines and boolean operations](https://github.com/nuhyamin1/drawcv/blob/master/docs/stroke-conversion.md).
+- [Path length, positions and tangent directions](https://github.com/nuhyamin1/drawcv/blob/master/docs/path-measurement.md).
+- [Curve-preserving trimming and splitting](https://github.com/nuhyamin1/drawcv/blob/master/docs/path-editing.md).
+- [Filled-region offsets: expansion, contraction, holes and joins](https://github.com/nuhyamin1/drawcv/blob/master/docs/path-offsets.md).
+- [Reusable path markers and custom arrowheads](https://github.com/nuhyamin1/drawcv/blob/master/docs/markers.md).
+- [Editable vector-pattern paints](https://github.com/nuhyamin1/drawcv/blob/master/docs/vector-patterns.md).
+- [Editable alpha and luminance vector masks](https://github.com/nuhyamin1/drawcv/blob/master/docs/vector-masks.md).
+- [Transparent PNG example](https://github.com/nuhyamin1/drawcv/blob/master/examples/transparent_output.py) and [external-composition preview](https://github.com/nuhyamin1/drawcv/blob/master/examples/output/transparent_output_preview.png).
+- [Gradient paints and coordinate contracts](https://github.com/nuhyamin1/drawcv/blob/master/docs/gradients.md); [runnable gallery](https://github.com/nuhyamin1/drawcv/blob/master/examples/gradient_fills.py).
+- [Alpha API and compositing conventions](https://github.com/nuhyamin1/drawcv/blob/master/docs/transparency.md).
+- [StrokeStyle API and conventions](https://github.com/nuhyamin1/drawcv/blob/master/docs/strokes.md).
+- [Public API guide](https://github.com/nuhyamin1/drawcv/blob/master/docs/api.md).
+- [Retained font typography: installation, metrics and layout](https://github.com/nuhyamin1/drawcv/blob/master/docs/typography.md).
+- [SVG export: editable vectors, raster fallbacks and strict mode](https://github.com/nuhyamin1/drawcv/blob/master/docs/svg.md); [gallery](https://github.com/nuhyamin1/drawcv/blob/master/examples/svg_export.py).
+- [Measured rendering performance](https://github.com/nuhyamin1/drawcv/blob/master/docs/performance.md); [reproducible benchmark commands](https://github.com/nuhyamin1/drawcv/blob/master/benchmarks/README.md).
+- [Typography backend evaluation](https://github.com/nuhyamin1/drawcv/blob/master/docs/typography-evaluation.md).
+- [Reliability and history](https://github.com/nuhyamin1/drawcv/blob/master/docs/reliability.md).
+- [Prioritized roadmap and verified findings](https://github.com/nuhyamin1/drawcv/blob/master/docs/roadmap.md).
+- Existing runnable examples: [retained editing](https://github.com/nuhyamin1/drawcv/blob/master/examples/phase1_retained_mode.py),
+  [groups/selection](https://github.com/nuhyamin1/drawcv/blob/master/examples/phase4_demo.py), [freehand](https://github.com/nuhyamin1/drawcv/blob/master/examples/phase5_demo.py),
+  [compositing](https://github.com/nuhyamin1/drawcv/blob/master/examples/phase6_demo.py), [persistence/history](https://github.com/nuhyamin1/drawcv/blob/master/examples/phase7_demo.py),
+  and [animation](https://github.com/nuhyamin1/drawcv/blob/master/examples/phase8_demo.py).
 
 ## Capabilities and current limits
 

@@ -18,7 +18,7 @@
 - In screen space, stroke widths and dash lengths remain constant in viewport/screen pixels regardless of parent transforms.
 - In object space, stroke widths, dashes, caps, joins, and miter limits transform with the object's affine matrix (scaling and shearing).
 - SVG export outputs `vector-effect="non-scaling-stroke"` for screen-space strokes and native transformed paths for object-space strokes.
-- See [docs/strokes.md](docs/strokes.md) for full coordinate and styling contracts.
+- See [docs/strokes.md](https://github.com/nuhyamin1/drawcv/blob/master/docs/strokes.md) for full coordinate and styling contracts.
 
 ```python
 from drawcv import StrokeStyle, CapStyle, JoinStyle
@@ -36,7 +36,7 @@ object_stroke = StrokeStyle(width=4, space="object", cap_style=CapStyle.ROUND, j
 - Quadratic and cubic Bézier curves retain exact control points.
 - Detached paths receive unique IDs and can optionally preserve full world transforms.
 - SVG export uses exact curved commands for these shapes.
-- See [docs/path-conversion.md](docs/path-conversion.md).
+- See [docs/path-conversion.md](https://github.com/nuhyamin1/drawcv/blob/master/docs/path-conversion.md).
 
 ```python
 # Convert a circle or arc to an editable Path preserving exact curves
@@ -50,7 +50,7 @@ detached_path = child.to_path(preserve_world_transform=True)
 - Fully supports both `screen` and `object` stroke spaces under affine transforms.
 - `FreehandStroke.stroke_to_path()` generates variable-width filled ribbon outlines from raw pressure and velocity sample streams, complete with RDP simplification, Chaikin smoothing, and Catmull-Rom interpolation.
 - Resulting outlines are ready for boolean operations, custom fills, and SVG export.
-- See [docs/stroke-conversion.md](docs/stroke-conversion.md).
+- See [docs/stroke-conversion.md](https://github.com/nuhyamin1/drawcv/blob/master/docs/stroke-conversion.md).
 
 ```python
 # Create an editable filled outline of a stroked path
@@ -65,7 +65,7 @@ combined = outline.union(other_outline)
 - Progress is normalized arc length in `[0, 1]`.
 - Béziers and arcs use adaptive numerical integration of curve speed. Positions invert arc length against semantic curves, and tangents compute unit direction vectors.
 - Supports both local and world coordinate spaces and individual subpath queries.
-- See [docs/path-measurement.md](docs/path-measurement.md).
+- See [docs/path-measurement.md](https://github.com/nuhyamin1/drawcv/blob/master/docs/path-measurement.md).
 
 ```python
 distance = path.length()
@@ -79,7 +79,7 @@ direction = path.tangent_at(0.5)   # Point(dx, dy) unit tangent vector
 - Uses normalized arc length parameters (`0 <= start <= end <= 1`).
 - Preserves semantic curve commands: Béziers use de Casteljau subdivision; elliptical arcs preserve radii, rotation, and sweep.
 - Preserves closure when whole subpaths are selected; cuts cleanly open subpaths.
-- See [docs/path-editing.md](docs/path-editing.md).
+- See [docs/path-editing.md](https://github.com/nuhyamin1/drawcv/blob/master/docs/path-editing.md).
 
 ```python
 middle_segment = path.trim(0.2, 0.8)
@@ -91,7 +91,7 @@ prefix, suffix = path.split_at(0.4)
 - Expands (`distance > 0`) or contracts (`distance < 0`) filled regions while properly shrinking or expanding interior holes.
 - Supports `JoinStyle.ROUND`, `JoinStyle.BEVEL`, and `JoinStyle.MITER`.
 - Resolves self-intersections and overlapping contours using Skia PathOps.
-- See [docs/path-offsets.md](docs/path-offsets.md).
+- See [docs/path-offsets.md](https://github.com/nuhyamin1/drawcv/blob/master/docs/path-offsets.md).
 
 ```python
 from drawcv import JoinStyle
@@ -107,7 +107,7 @@ contracted = path.offset(-5, join_style=JoinStyle.MITER)
 - Units include `"stroke"` (scales with host stroke width) and `"user"` (fixed coordinate size).
 - Markers reference artwork live without mutating host or source objects.
 - JSON schema 1.11+ retains marker attachments; SVG export outputs markers as editable vector groups.
-- See [docs/markers.md](docs/markers.md).
+- See [docs/markers.md](https://github.com/nuhyamin1/drawcv/blob/master/docs/markers.md).
 
 ```python
 from drawcv import Marker, Path, Point, StrokeStyle
@@ -126,7 +126,7 @@ path.marker_end = marker
 - Live editable artwork: changes to the source artwork update all usages on next render.
 - Supports spacing gaps, tile clipping, and pattern affine transforms.
 - Native SVG `<pattern>` export with vector content.
-- See [docs/vector-patterns.md](docs/vector-patterns.md).
+- See [docs/vector-patterns.md](https://github.com/nuhyamin1/drawcv/blob/master/docs/vector-patterns.md).
 
 ```python
 from drawcv import VectorPattern, Circle, Point, Color, FillStyle
@@ -142,7 +142,7 @@ shape.fill = FillStyle(paint=pattern)
 - Explicit `bounds` region; artwork outside bounds is clipped.
 - Operates cleanly on isolated surfaces before final compositing.
 - Native SVG `<mask>` export.
-- See [docs/vector-masks.md](docs/vector-masks.md).
+- See [docs/vector-masks.md](https://github.com/nuhyamin1/drawcv/blob/master/docs/vector-masks.md).
 
 ```python
 from drawcv import VectorMask, BoundingBox, Circle, Point, FillStyle, Color
@@ -174,13 +174,13 @@ shape.mask = VectorMask(mask_art, bounds=BoundingBox(0, 0, 100, 100), mode="alph
 
 ## Documentation Index
 
-- [Stroke Spaces & Styles](docs/strokes.md)
-- [Shape-to-Path Conversion](docs/path-conversion.md)
-- [Stroke-to-Path Outlining](docs/stroke-conversion.md)
-- [Path Measurement](docs/path-measurement.md)
-- [Path Trimming & Splitting](docs/path-editing.md)
-- [Filled-Region Offsets](docs/path-offsets.md)
-- [Reusable Path Markers](docs/markers.md)
-- [Vector Patterns](docs/vector-patterns.md)
-- [Vector Masks](docs/vector-masks.md)
-- [SVG Export & Import](docs/svg.md)
+- [Stroke Spaces & Styles](https://github.com/nuhyamin1/drawcv/blob/master/docs/strokes.md)
+- [Shape-to-Path Conversion](https://github.com/nuhyamin1/drawcv/blob/master/docs/path-conversion.md)
+- [Stroke-to-Path Outlining](https://github.com/nuhyamin1/drawcv/blob/master/docs/stroke-conversion.md)
+- [Path Measurement](https://github.com/nuhyamin1/drawcv/blob/master/docs/path-measurement.md)
+- [Path Trimming & Splitting](https://github.com/nuhyamin1/drawcv/blob/master/docs/path-editing.md)
+- [Filled-Region Offsets](https://github.com/nuhyamin1/drawcv/blob/master/docs/path-offsets.md)
+- [Reusable Path Markers](https://github.com/nuhyamin1/drawcv/blob/master/docs/markers.md)
+- [Vector Patterns](https://github.com/nuhyamin1/drawcv/blob/master/docs/vector-patterns.md)
+- [Vector Masks](https://github.com/nuhyamin1/drawcv/blob/master/docs/vector-masks.md)
+- [SVG Export & Import](https://github.com/nuhyamin1/drawcv/blob/master/docs/svg.md)
