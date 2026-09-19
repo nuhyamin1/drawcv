@@ -449,6 +449,22 @@ class Path(Drawable):
         return split_at(self, progress, tolerance=tolerance, space=space, subpath=subpath,
                         preserve_world_transform=preserve_world_transform)
 
+    def offset(self, distance, *, tolerance=0.25, space="world", join_style=None,
+               miter_limit=4.0) -> Path:
+        """Expand (+) or contract (-) a closed filled region by a distance.
+
+        Round joins are the default; accepts JoinStyle values. Curves and round
+        joins become polygons at the selected-space tolerance. The detached
+        result retains world pose and fill, but no stroke, clips or effects.
+        World offsets return identity transforms; local offsets retain the
+        source world transform. Open contours raise ValidationError.
+        """
+        from drawcv.core.enums import JoinStyle
+        from drawcv.core.path_offset import offset
+        return offset(self, distance, tolerance=tolerance, space=space,
+                      join_style=JoinStyle.ROUND if join_style is None else join_style,
+                      miter_limit=miter_limit)
+
     def boolean(self, other: Path, operation: PathBooleanOp | str) -> Path:
         """Execute a 2D vector path boolean operation against another Path.
         
