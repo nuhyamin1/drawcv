@@ -189,6 +189,24 @@ def pathops_to_drawcv(p_ops: pathops.Path) -> Path:
 def _resolve_boolean_styles(left: Path) -> tuple[FillStyle | None, StrokeStyle | None]:
     """Resolve deterministic fill and stroke styles from the primary (left) operand."""
     resolved_stroke = copy.deepcopy(left.stroke) if left.stroke is not None else None
+    if resolved_stroke is not None and resolved_stroke.space == "object":
+        matrix = left.world_matrix
+        gram = matrix[:2, :2].T @ matrix[:2, :2]
+        scale_squared = float(np.trace(gram) / 2)
+        if scale_squared <= 0 or not np.allclose(gram, np.eye(2) * scale_squared, rtol=1e-8, atol=1e-12):
+            raise PathBooleanError(
+                "Cannot preserve an object-space stroke under nonuniform scale or shear "
+                "on a world-space boolean result; remove the operand stroke and style the result explicitly"
+            )
+        scale = math.sqrt(scale_squared)
+        resolved_stroke.width *= scale
+        resolved_stroke.dash_array = tuple(d * scale for d in resolved_stroke.dash_array)
+        resolved_stroke.dash_offset *= scale
+        resolved_stroke.space = "screen"
+        if not isinstance(resolved_stroke.paint, Color) and resolved_stroke.paint.space == "object":
+            paint = resolved_stroke.paint
+            paint.transform = Transform.from_matrix(matrix @ paint.transform.get_matrix(Point(0, 0)))
+            paint.space = "world"
     resolved_fill: FillStyle | None = None
 
     if left.fill is not None:

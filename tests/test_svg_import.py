@@ -467,7 +467,7 @@ class TestSVGStrokeCompatibility:
         </svg>"""
         scene = SVGImporter().parse(svg).scene
         r = scene.objects[0]
-        assert math.isclose(r.stroke.width, 8.0, abs_tol=1e-5)
+        assert math.isclose(r.stroke.width, 4.0, abs_tol=1e-5)
 
     def test_reflection_is_uniform_similarity(self):
         # Scale(-2, 2) is a reflection with uniform magnitude 2
@@ -476,16 +476,16 @@ class TestSVGStrokeCompatibility:
         </svg>"""
         scene = SVGImporter().parse(svg).scene
         r = scene.objects[0]
-        assert math.isclose(r.stroke.width, 6.0, abs_tol=1e-5)
+        assert math.isclose(r.stroke.width, 3.0, abs_tol=1e-5)
 
-    def test_anisotropic_stroke_strictly_rejected(self):
+    def test_anisotropic_stroke_retains_object_space(self):
         # Non-uniform scaling (2, 4) on ordinary stroke creates anisotropic ellipse stroke
         svg = """<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
           <rect width="20" height="20" stroke="black" stroke-width="2" transform="scale(2, 4)"/>
         </svg>"""
-        with pytest.raises(SVGImportError) as exc_info:
-            SVGImporter().parse(svg)
-        assert exc_info.value.diagnostic.code == "SVG_STROKE_AFFINE_MISMATCH"
+        scene = SVGImporter().parse(svg).scene
+        assert scene.objects[0].stroke.space == "object"
+        assert scene.objects[0].stroke.width == 2.0
 
     def test_non_scaling_stroke_allowed_under_anisotropic_scale(self):
         # vector-effect="non-scaling-stroke" keeps stroke in screen pixels regardless of transform

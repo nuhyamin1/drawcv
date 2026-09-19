@@ -141,7 +141,7 @@ class Arc(Drawable):
         return self.get_geometry_bounds().expand(half_stroke)
 
     def get_bounds(self) -> BoundingBox:
-        """World-space visual AABB under non-scaling stroke rule using transformed parametric extrema."""
+        """World-space visual AABB in the selected stroke space using transformed parametric extrema."""
         x, y, w, h = arc_transformed_extrema_bounds(
             self.center, float(self.radius_x), float(self.radius_y),
             float(self.start_angle), float(self.sweep_angle),
@@ -149,7 +149,7 @@ class Arc(Drawable):
 
         )
         geom_aabb = BoundingBox(x, y, w, h)
-        half_stroke = (self.stroke.bounds_padding) if self.stroke else 0.0
+        half_stroke = (self.stroke.world_padding(self.world_matrix)) if self.stroke else 0.0
         return geom_aabb.expand(half_stroke)
 
     # -------------------------------------------------------------------------
@@ -205,7 +205,7 @@ class Arc(Drawable):
             return point_in_polygon(lp, pts, include_boundary=True)
 
         # ArcClosure.OPEN: world-space curve stroke proximity test
-        half_stroke = (self.stroke.width / 2.0) if self.stroke else 1.0
+        half_stroke = (self.stroke.world_width(self.world_matrix) / 2.0) if self.stroke else 1.0
         tolerance = max(5.0, half_stroke)
 
         local_pts = self.get_contour_points(tolerance=0.5)

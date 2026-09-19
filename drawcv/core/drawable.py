@@ -147,7 +147,7 @@ class Drawable(ABC):
     @abstractmethod
     def get_bounds(self) -> BoundingBox:
         """Calculate the authoritative actual rendered world-space visual AABB after transformation
-        under the non-scaling screen-stroke rule.
+        accounting for the selected stroke coordinate space.
         """
         pass
 

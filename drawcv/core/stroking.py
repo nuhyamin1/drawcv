@@ -1,7 +1,8 @@
-"""Screen-space stroke tessellation shared by all geometric outlines.
+"""Stroke tessellation shared by all geometric outlines.
 
 Contours carry (x, y, width) samples. Dashing interpolates width at cuts;
 the tessellator unions segment ribbons, joins and caps into one coverage mask.
+An optional affine map transforms object-space outlines before rasterization.
 """
 import cv2
 import numpy as np
@@ -74,16 +75,29 @@ def dash_contour(samples, closed, style):
         yield run, False
 
 
-def stroke_mask(width, height, contours, style, line_type):
+def stroke_mask(width, height, contours, style, line_type, transform=None):
     """Rasterize all contours into a single union mask at subpixel precision."""
     mask = np.zeros((height, width), dtype=np.uint8)
+    outline_scale = float(np.linalg.norm(transform[:2, :2], ord=2)) if transform is not None else 1.0
 
     def polygon(points):
-        pts = np.rint(np.asarray(points) * 256).astype(np.int32)
+        points = np.asarray(points)
+        if transform is not None:
+            points = points @ transform[:2, :2].T + transform[:2, 2]
+        pts = np.rint(points * 256).astype(np.int32)
         cv2.fillPoly(mask, [pts], 255, lineType=line_type, shift=8)
 
     def disk(p, radius):
         if radius <= 0:
+            return
+        if transform is not None:
+            # Tessellate in stroke space; transform the outline, never the mask.
+            # Round caps and joins become ellipses under anisotropic transforms.
+            world_radius = radius * outline_scale
+            angle = 2 * np.arccos(np.clip(1 - 0.125 / max(world_radius, 0.125), -1, 1))
+            count = max(12, int(np.ceil(2 * np.pi / max(angle, 1e-6))))
+            angles = np.linspace(0, 2 * np.pi, count, endpoint=False)
+            polygon(p + radius * np.column_stack((np.cos(angles), np.sin(angles))))
             return
         cv2.circle(mask, tuple(np.rint(p * 256).astype(int)),
                    int(round(radius * 256)), 255, -1, line_type, shift=8)

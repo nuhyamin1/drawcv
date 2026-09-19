@@ -357,7 +357,7 @@ class FreehandStroke(Drawable):
         return BoundingBox(min_x, min_y, max_x - min_x, max_y - min_y).expand(max_half_w)
 
     def get_bounds(self) -> BoundingBox:
-        """World-space visual AABB accounting for maximum stroke width under non-scaling stroke rule."""
+        """World-space visual AABB accounting for maximum stroke width in the selected stroke space."""
         pts = self.get_processed_points()
         if not pts:
             return BoundingBox(0.0, 0.0, 0.0, 0.0)
@@ -369,7 +369,7 @@ class FreehandStroke(Drawable):
         min_x, max_x = float(np.min(xs)), float(np.max(xs))
         min_y, max_y = float(np.min(ys)), float(np.max(ys))
         widths = self.get_point_widths(pts)
-        max_half_w = (max(widths) * (self.stroke.bounds_padding / self.stroke.width if self.stroke else 0.5)) if widths else (self.stroke.bounds_padding if self.stroke else 0.0)
+        max_half_w = (max(widths) * (self.stroke.world_padding(self.world_matrix) / self.stroke.width if self.stroke else 0.5)) if widths else (self.stroke.world_padding(self.world_matrix) if self.stroke else 0.0)
         return BoundingBox(min_x, min_y, max_x - min_x, max_y - min_y).expand(max_half_w)
 
     def get_bounds_in_parent(self) -> BoundingBox:
@@ -386,7 +386,7 @@ class FreehandStroke(Drawable):
         min_x, max_x = float(np.min(xs)), float(np.max(xs))
         min_y, max_y = float(np.min(ys)), float(np.max(ys))
         widths = self.get_point_widths(pts)
-        max_half_w = (max(widths) * (self.stroke.bounds_padding / self.stroke.width if self.stroke else 0.5)) if widths else (self.stroke.bounds_padding if self.stroke else 0.0)
+        max_half_w = (max(widths) * (self.stroke.world_padding(local_M) / self.stroke.width if self.stroke else 0.5)) if widths else (self.stroke.world_padding(local_M) if self.stroke else 0.0)
         return BoundingBox(min_x, min_y, max_x - min_x, max_y - min_y).expand(max_half_w)
 
     # -------------------------------------------------------------------------

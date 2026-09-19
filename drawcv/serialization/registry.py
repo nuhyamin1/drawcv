@@ -11,7 +11,7 @@ from drawcv.core.exceptions import (
     UnsupportedVersionError,
 )
 
-CURRENT_SCHEMA_VERSION = "1.9"
+CURRENT_SCHEMA_VERSION = "1.10"
 CURRENT_FORMAT_IDENTIFIER = "drawcv"
 
 _DRAWABLE_REGISTRY: dict[str, type] = {}
@@ -420,3 +420,15 @@ def _migrate_1_8_to_1_9(data: dict[str, Any]) -> dict[str, Any]:
 
 
 SchemaMigrator.register_migration("1.8", _migrate_1_8_to_1_9)
+
+
+def _migrate_1_9_to_1_10(data: dict[str, Any]) -> dict[str, Any]:
+    """Older stroke records default to screen space in StrokeStyle.from_dict."""
+    migrated = copy.deepcopy(data)
+    migrated["version"] = "1.10"
+    if "schema_version" in migrated:
+        migrated["schema_version"] = "1.10"
+    return migrated
+
+
+SchemaMigrator.register_migration("1.9", _migrate_1_9_to_1_10)

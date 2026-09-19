@@ -341,12 +341,16 @@ class _Writer:
             else:
                 text_node.text = entity.text
         else:
-            attrs = {"d": self.geometry(entity), "fill": "none", "stroke": "none"}
+            stroke = getattr(entity, "stroke", None)
+            local = stroke is not None and stroke.space == "object"
+            attrs = {"d": self.geometry(entity, local=local), "fill": "none", "stroke": "none"}
+            if local:
+                attrs["transform"] = _matrix(entity.world_matrix)
             fill = getattr(entity, "fill", None)
             if isinstance(entity, Arc) and entity.closure == ArcClosure.OPEN:
                 fill = None
             if fill is not None and fill.enabled:
-                attrs["fill"] = self.paint(fill.paint, entity)
+                attrs["fill"] = self.paint(fill.paint, entity, local=local)
                 attrs["fill-opacity"] = _number(fill.opacity * (fill.paint.a if isinstance(fill.paint, Color) else 1))
                 attrs["fill-rule"] = "nonzero" if getattr(entity, "fill_rule", None) == FillRule.NON_ZERO else "evenodd"
             stroke = getattr(entity, "stroke", None)
@@ -355,11 +359,13 @@ class _Writer:
                     stroke_color = _color(stroke.paint)
                     stroke_opacity = stroke.opacity * stroke.paint.a
                 else:
-                    stroke_color = self.paint(stroke.paint, entity)
+                    stroke_color = self.paint(stroke.paint, entity, local=local)
                     stroke_opacity = stroke.opacity
                 attrs.update({"stroke": stroke_color, "stroke-opacity": _number(stroke_opacity),
                     "stroke-width": _number(stroke.width), "stroke-linecap": stroke.cap_style.value,
                     "stroke-linejoin": stroke.join_style.value, "stroke-miterlimit": _number(stroke.miter_limit)})
+                if stroke.space == "screen":
+                    attrs["vector-effect"] = "non-scaling-stroke"
                 if stroke.dash_array:
                     attrs["stroke-dasharray"] = " ".join(map(_number, stroke.dash_array))
                     attrs["stroke-dashoffset"] = _number(stroke.dash_offset)
@@ -429,12 +435,18 @@ class _Writer:
             "height": str(bottom-y), "preserveAspectRatio": "none",
             "{http://www.w3.org/1999/xlink}href": "data:image/png;base64," + base64.b64encode(encoded).decode("ascii")})
 
-    def paint(self, paint, entity):
+    def paint(self, paint, entity, *, local=False):
         if isinstance(paint, Color):
             return _color(paint)
         ident = self.identifier()
         paint_mat = paint.transform.get_matrix(Point(0.0, 0.0))
-        if paint.space == "object":
+        if local and paint.space == "object":
+            M = paint_mat
+        elif local:
+            # World-space paint must cancel the transform on the local path.
+            # Singular paths have no painted area; pseudoinverse keeps export finite.
+            M = np.linalg.pinv(entity.world_matrix) @ paint_mat
+        elif paint.space == "object":
             M = entity.world_matrix @ paint_mat
         else:
             M = paint_mat
@@ -487,9 +499,9 @@ class _Writer:
             raise RenderError(f"Unsupported paint type for SVG export: {type(paint).__name__}")
 
     @staticmethod
-    def geometry(obj):
+    def geometry(obj, *, local=False):
         def coords(p):
-            p = obj.to_world(p)
+            p = p if local else obj.to_world(p)
             return f"{_number(p.x)} {_number(p.y)}"
         if isinstance(obj, Path):
             commands = []
@@ -508,7 +520,7 @@ class _Writer:
                     elif isinstance(cmd, EllipticalArcTo):
                         try:
                             _, p2_w, rx_w, ry_w, phi_w, large_w, sweep_w = transform_elliptical_arc(
-                                cur_loc, cmd.end, cmd.radius_x, cmd.radius_y, cmd.x_axis_rotation, cmd.large_arc, cmd.sweep, obj.world_matrix
+                                cur_loc, cmd.end, cmd.radius_x, cmd.radius_y, cmd.x_axis_rotation, cmd.large_arc, cmd.sweep, np.eye(3) if local else obj.world_matrix
                             )
                         except ValidationError as e:
                             raise RenderError(f"Cannot export EllipticalArcTo under singular or near-singular transform: {e}") from e
@@ -552,4 +564,4 @@ class _Writer:
                 points = obj.get_contour_points(tolerance=tolerance)
                 if isinstance(obj, Arc):
                     closed = obj.closure != ArcClosure.OPEN
-        return _points((obj.to_world(p) for p in points), closed)
+        return _points((p if local else obj.to_world(p) for p in points), closed)

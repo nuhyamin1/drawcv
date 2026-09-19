@@ -29,7 +29,10 @@ from drawcv.core.alpha import premultiply, unpremultiply, clamp_premultiplied
 from drawcv.compositing import composite_blend
 from drawcv.core.transform import Transform
 from drawcv.core.stroking import stroke_mask
-from drawcv.core.geometry_utils import _FONT_FAMILY_TO_CV, evaluate_fill_rule_mask, flatten_arc
+from drawcv.core.geometry_utils import (
+    _FONT_FAMILY_TO_CV, evaluate_fill_rule_mask, flatten_arc,
+    flatten_cubic_bezier, flatten_quadratic_bezier,
+)
 from drawcv.effects.clipping import ClipPath, ClipRect, evaluate_clip_coverage
 from drawcv.effects.executor import execute_effects_pipeline
 from drawcv.effects.mask import Mask
@@ -875,7 +878,9 @@ class OpenCVRenderer:
 
     def _curve_tolerance(self, drawable):
         scale = float(np.linalg.norm(drawable.world_matrix[:2, :2], ord=2))
-        return 0.25 / max(scale, 1e-12)
+        tolerance = 0.25 / max(scale, 1e-12)
+        stroke = getattr(drawable, "stroke", None)
+        return min(0.25, tolerance) if stroke is not None and stroke.space == "object" else tolerance
 
     def _stroke_contours(self, drawable, canvas, contours, widths=None, style=None):
         stroke = style if style is not None else getattr(drawable, "stroke", None)
@@ -886,8 +891,34 @@ class OpenCVRenderer:
             return
         samples = [([(p.x, p.y, widths[i] if widths is not None else stroke.width)
                      for i, p in enumerate(points)], closed) for points, closed in contours]
+        transform = None
+        if stroke.space == "object":
+            transform = drawable.world_matrix
+            try:
+                inverse = np.linalg.inv(transform)
+            except np.linalg.LinAlgError:
+                # A singular affine map collapses the stroke's filled outline.
+                return
+            # Retain local curve detail for dash lengths even when the CTM
+            # compresses a curved centerline into an almost straight world line.
+            tolerance = self._curve_tolerance(drawable)
+            if isinstance(drawable, Path):
+                local_contours = drawable.flatten_with_mapper(lambda p: p, tolerance=tolerance, include_closed=True)
+                samples = [([(p.x, p.y, stroke.width) for p in points], closed)
+                           for points, closed in local_contours]
+            elif isinstance(drawable, BezierCurve):
+                if drawable.p3 is None:
+                    points = flatten_quadratic_bezier(drawable.p0, drawable.p1, drawable.p2, tolerance=tolerance)
+                else:
+                    points = flatten_cubic_bezier(drawable.p0, drawable.p1, drawable.p2, drawable.p3, tolerance=tolerance)
+                samples = [([(p.x, p.y, stroke.width) for p in points], False)]
+            else:
+                samples = [([(float(q[0]), float(q[1]), width)
+                             for x, y, width in points
+                             for q in [inverse @ np.array([x, y, 1.0])]], closed)
+                           for points, closed in samples]
         mask = stroke_mask(canvas.width, canvas.height, samples, stroke,
-                           self._get_cv_line_type(stroke.line_type))
+                           self._get_cv_line_type(stroke.line_type), transform=transform)
         self._composite_paint(canvas, mask, stroke.paint, opacity, drawable.world_matrix, drawable.get_bounds())
 
     def _get_cv_line_type(self, line_type: LineType) -> int:

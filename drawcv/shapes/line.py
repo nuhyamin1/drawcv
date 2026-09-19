@@ -100,7 +100,7 @@ class Line(Drawable):
         return self.get_geometry_bounds().expand(half_stroke)
 
     def get_bounds(self) -> BoundingBox:
-        """World-space visual AABB under non-scaling stroke rule."""
+        """World-space visual AABB in the selected stroke space."""
         w_start = self.to_world(self.start)
         w_end = self.to_world(self.end)
         min_x = min(w_start.x, w_end.x)
@@ -108,7 +108,7 @@ class Line(Drawable):
         max_x = max(w_start.x, w_end.x)
         max_y = max(w_start.y, w_end.y)
         geom_aabb = BoundingBox(min_x, min_y, max_x - min_x, max_y - min_y)
-        half_stroke = (self.stroke.bounds_padding) if self.stroke else 0.0
+        half_stroke = (self.stroke.world_padding(self.world_matrix)) if self.stroke else 0.0
         return geom_aabb.expand(half_stroke)
 
     # -------------------------------------------------------------------------
@@ -138,7 +138,7 @@ class Line(Drawable):
 
         world_start = self.to_world(self.start)
         world_end = self.to_world(self.end)
-        tol = max((self.stroke.width / 2.0) if self.stroke else 0.0, 2.0)
+        tol = max((self.stroke.world_width(self.world_matrix) / 2.0) if self.stroke else 0.0, 2.0)
         dist = distance_point_to_segment(world_point, world_start, world_end)
         return dist <= tol
 

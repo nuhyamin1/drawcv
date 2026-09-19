@@ -73,8 +73,8 @@ state. Use `scene.edit` for compound changes and geometry edits, and `scene.batc
 for multiple recorded commands. See [reliable edits](docs/reliability.md) for
 rollback guarantees and the limits of raw attribute/list mutation.
 
-New scenes use schema **1.9**, including retained text runs, path clips, paints, and effects.
-Schemas 1.0 through 1.8 load with compatible defaults. Older readers reject 1.9;
+New scenes use schema **1.10**, including retained text runs, path clips, paints, and effects.
+Schemas 1.0 through 1.9 load with compatible defaults. Older readers reject 1.10;
 update readers before sharing new documents with them.
 
 ## Organize and position objects
@@ -93,7 +93,9 @@ with scene.edit(connection):
 
 Coordinates start at the top left; x increases rightward, y downward, and positive
 rotation is clockwise. Local geometry maps through object and ancestor transforms.
-Stroke widths and dashes remain in **screen pixels** under scaling and shear.
+Stroke widths and dashes stay in **screen pixels** by default. Set
+`StrokeStyle(space="object")` for widths, dashes, caps, and joins that
+transform with the object. See [stroke spaces](docs/strokes.md).
 Colors are authored as **RGB** integers 0–255 with alpha 0–1; OpenCV buffers use BGR.
 Alpha compositing uses source-over with premultiplied internal surfaces for isolation.
 
@@ -149,13 +151,13 @@ python -m examples.transparent_output
 | Area | Available | Limits / next work |
 | --- | --- | --- |
 | Geometry | Lines, polygons, circles/ellipses, arcs, rectangles, arrows, quadratic/cubic curves, compound paths, vector booleans (union, intersection, difference, XOR) | Curves rasterize as approximations during OpenCV rendering |
-| Strokes | Butt/round/square caps, round/bevel/miter joins, miter limits, dashed and variable-width outlines | Screen-space widths; arrowhead outlines stay solid |
+| Strokes | Butt/round/square caps, round/bevel/miter joins, miter limits, dashed and variable-width outlines | Screen/object stroke spaces; arrowhead outlines stay solid |
 | Paint | Solid, linear/radial/conic gradients, gradient strokes, RGBA stops, repeat/reflect spread, image tiles, fill rules, blend modes | Editable vector pattern tiles remain future work |
 | Freehand | Raw editable samples; pressure/velocity widths; simplification, smoothing, interpolation | No textured brush system |
 | Scene | Groups, layers, lookup, selection, relative positioning, affine transforms | Bounds may be conservative; hit testing is geometric and can select dash gaps |
 | Compositing | Opt-in straight BGRA/PNG output; premultiplied images, masks, blur, shadows, isolated opacity, blend modes, raster effects | Alpha export currently PNG only |
 | Typography | Hershey compatibility; optional TTF/OTF, Latin/Thai/Arabic shaping, ICU bidi, explicit fallback, wrapping and metrics | Other scripts, emoji, advanced format controls and glyph strokes remain unsupported |
-| Persistence | JSON 1.4; forward migration; cloning; undo/redo | Direct edits require transaction discipline; older readers need updating |
+| Persistence | JSON 1.10; forward migration; cloning; undo/redo | Direct edits require transaction discipline; older readers need updating |
 | Animation | Timing, easing, numeric/value tracks, progressive drawing, video | No built-in enum/dash-array interpolation; codec availability varies |
 | Interchange | Native retained SVG import & export with text interchange and reported PNG fallbacks; raster images, editable JSON, video | PDF export remains future work |
 | Performance | Profiled benchmarks; coverage-region blending/gradients; cheaper transform resolution | Full-canvas masks/effect surfaces remain; no dirty-region redraw |

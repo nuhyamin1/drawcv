@@ -33,7 +33,7 @@ at each rasterized subtree root. A drawable that OpenCV cannot render raises
 | Constant-width freehand | Editable processed polyline; raw processing parameters remain in JSON |
 | Solid, linear, radial fill/stroke | Native paint definitions, stop alpha, paint transforms, and pad/repeat/reflect spread |
 | ImagePaint tiles | Native embedded image pattern for repeat + linear interpolation; other modes use reported PNG fallback |
-| Caps, joins, miter limit, dashes | Native stroke properties in scene-pixel units |
+| Caps, joins, miter limit, dashes | Native stroke properties in the selected screen/object space |
 | Groups/layers, stacking, opacity | Nested isolated SVG groups in retained draw order |
 | ClipRect, ClipPath | Native world-space clip paths on the owning group |
 | Masks, blur, shadows | Cropped transparent PNG of the affected subtree |
@@ -49,11 +49,12 @@ and vector pressure ribbons remain possible extensions.
 
 ## Coordinates and compositing
 
-Transforms are baked into path coordinates, including parent transforms and pivots.
-Group structure remains, but authored transform decomposition does not. Stroke widths,
-dashes, offsets and miter limits keep their screen-space meaning without depending
-on `vector-effect`. Resizing the outer SVG scales the entire document; these units
-apply at the original scene dimensions. Bezier commands remain curves, so SVG dash
+Screen-space strokes export with world-space path coordinates and
+`vector-effect="non-scaling-stroke"`. Object-space strokes export local path
+coordinates with the complete world transform on the path element. Widths and
+dashes stay in their authored space, and fill/stroke paint mappings are adjusted
+independently. Outer clipping remains in world coordinates. Group structure remains,
+but authored transform decomposition does not. Bezier commands remain curves, so SVG dash
 lengths can differ slightly from DrawCV's flattened curve lengths.
 Arc sampling targets 0.25 scene-pixel chord error, with the existing renderer's
 two-degree minimum angular step. The target is not guaranteed for very large curves.
@@ -78,7 +79,7 @@ antialiasing. Use PNG export for exact raster reproduction.
 
 ## Persistence, import and animation
 
-JSON remains the primary editable DrawCV format at schema 1.9 (with migration from older schemas). DrawCV also provides a native,
+JSON remains the primary editable DrawCV format at schema 1.10 (with migration from older schemas). DrawCV also provides a native,
 high-fidelity retained SVG importer (`SVGImporter`) for supported SVG vector documents:
 
 ```python
@@ -112,7 +113,7 @@ Anything accepted by `SVGImporter` in strict mode becomes genuine retained DrawC
 * **Clipping**: Retained path clipping via `<clipPath>` (`userSpaceOnUse` and `objectBoundingBox`), clip transforms, and `clip-rule`. Supports exact geometry children from `<path>`, `<rect>`, rounded `<rect>`, `<circle>`, `<ellipse>`, `<polygon>`, and `<polyline>` with transform composition ($M_{\text{clipPath}} \cdot M_{\text{child}}$). For `objectBoundingBox`, percentage geometry resolves in normalized `[0, 1]` viewport space before bounding-box mapping. Singular transforms on drawables with elliptical clips are strictly rejected.
 * **Transforms**: `matrix`, `translate`, `scale`, `rotate` (with pivot), `skewX`, `skewY`, and transform lists multiplied in SVG left-to-right composition order.
 * **Style and cascade**: Presentation attributes and inline `style=""` declarations with full inheritance cascade; colors (`#hex`, `rgb()`, `rgba()`, 147 named CSS colors, `currentColor`, `none`, `transparent`); `display: none` subtree pruning; `visibility: hidden` with child `visibility: visible` override.
-* **Stroke compatibility**: Ordinary strokes under uniform scale or reflection are normalized; strokes under anisotropic scaling or shear are strictly rejected (`SVG_STROKE_AFFINE_MISMATCH`) unless `vector-effect="non-scaling-stroke"` is declared.
+* **Stroke compatibility**: Ordinary strokes retain `space="object"`, their authored width/dashes, and affine behavior including anisotropic scaling, shear, and reflection. `vector-effect="non-scaling-stroke"` retains `space="screen"`.
 * **Paint servers**: `<linearGradient>` and centered `<radialGradient>` in `objectBoundingBox` and `userSpaceOnUse`; context-aware percentage resolution in `userSpaceOnUse`; stop normalization (monotonicity, clamping, duplicate handling); template `href` inheritance; reference cycle detection; zero-size geometry bounding box handling.
 * **Compositing**: 12 supported `mix-blend-mode` values on shapes and groups. CSS `isolation: isolate` is strictly rejected.
 * **Security & limits**: XML `DOCTYPE` and `ENTITY` declarations are forbidden (`SVG_SECURITY_VIOLATION`), external URLs in `href` are forbidden, reference cycles in `<use>` are detected and rejected (`SVG_REFERENCE_CYCLE`), and configurable limits protect against CPU/memory exhaustion (`max_use_instances`, exact `max_expanded_elements`, `max_reference_depth`, `max_file_bytes`, `max_elements`, etc.).

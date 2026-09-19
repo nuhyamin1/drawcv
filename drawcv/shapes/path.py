@@ -750,7 +750,7 @@ class Path(Drawable):
         for b in all_boxes[1:]:
             result = result.union(b)
 
-        half_stroke = (self.stroke.bounds_padding) if self.stroke else 0.0
+        half_stroke = (self.stroke.world_padding(self.world_matrix)) if self.stroke else 0.0
         return result.expand(half_stroke)
 
     # -------------------------------------------------------------------------
@@ -777,7 +777,7 @@ class Path(Drawable):
         if not isinstance(world_point, Point):
             raise ValidationError(f"Expected Point, got {type(world_point).__name__}")
 
-        half_stroke = (self.stroke.width / 2.0) if self.stroke else 1.0
+        half_stroke = (self.stroke.world_width(self.world_matrix) / 2.0) if self.stroke else 1.0
         tolerance = max(5.0, half_stroke)
 
         world_contours = self.flatten_world(tolerance=0.5)

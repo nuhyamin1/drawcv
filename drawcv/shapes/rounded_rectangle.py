@@ -102,7 +102,7 @@ class RoundedRectangle(Drawable):
         return self.get_geometry_bounds().expand(half_stroke)
 
     def get_bounds(self) -> BoundingBox:
-        """World-space visual AABB under non-scaling stroke rule."""
+        """World-space visual AABB in the selected stroke space."""
         corners = [
             Point(self.x, self.y),
             Point(self.x + self.width, self.y),
@@ -113,7 +113,7 @@ class RoundedRectangle(Drawable):
         xs = [c.x for c in w_corners]
         ys = [c.y for c in w_corners]
         geom_aabb = BoundingBox(min(xs), min(ys), max(xs) - min(xs), max(ys) - min(ys))
-        half_stroke = (self.stroke.bounds_padding) if self.stroke else 0.0
+        half_stroke = (self.stroke.world_padding(self.world_matrix)) if self.stroke else 0.0
         return geom_aabb.expand(half_stroke)
 
     # -------------------------------------------------------------------------

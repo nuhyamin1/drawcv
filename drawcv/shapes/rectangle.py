@@ -83,14 +83,14 @@ class Rectangle(Drawable):
         return self.get_geometry_bounds().expand(half_stroke)
 
     def get_bounds(self) -> BoundingBox:
-        """World-space visual AABB under non-scaling stroke rule."""
+        """World-space visual AABB in the selected stroke space."""
         world_corners = [self.to_world(c) for c in self.corners]
         min_x = min(c.x for c in world_corners)
         max_x = max(c.x for c in world_corners)
         min_y = min(c.y for c in world_corners)
         max_y = max(c.y for c in world_corners)
         geom_aabb = BoundingBox(min_x, min_y, max_x - min_x, max_y - min_y)
-        half_stroke = (self.stroke.bounds_padding) if self.stroke else 0.0
+        half_stroke = (self.stroke.world_padding(self.world_matrix)) if self.stroke else 0.0
         return geom_aabb.expand(half_stroke)
 
     # -------------------------------------------------------------------------

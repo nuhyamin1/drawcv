@@ -79,7 +79,7 @@ class Ellipse(Drawable):
         return self.get_geometry_bounds().expand(half_stroke)
 
     def get_bounds(self) -> BoundingBox:
-        """World-space visual AABB under non-scaling stroke rule using analytical ellipse extrema."""
+        """World-space visual AABB in the selected stroke space using analytical ellipse extrema."""
         w_center = self.to_world(self.center)
         M = self.world_matrix
         a = float(M[0, 0])
@@ -93,7 +93,7 @@ class Ellipse(Drawable):
         y_ext = math.sqrt((b * rx) ** 2 + (d * ry) ** 2)
 
         geom_aabb = BoundingBox(w_center.x - x_ext, w_center.y - y_ext, 2.0 * x_ext, 2.0 * y_ext)
-        half_stroke = (self.stroke.bounds_padding) if self.stroke else 0.0
+        half_stroke = (self.stroke.world_padding(self.world_matrix)) if self.stroke else 0.0
         return geom_aabb.expand(half_stroke)
 
     # -------------------------------------------------------------------------

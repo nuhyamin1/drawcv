@@ -139,14 +139,14 @@ class BezierCurve(Drawable):
         return self.get_geometry_bounds().expand(half_stroke)
 
     def get_bounds(self) -> BoundingBox:
-        """World-space visual AABB under non-scaling stroke rule using analytical extrema of transformed curve."""
+        """World-space visual AABB in the selected stroke space using analytical extrema of transformed curve."""
         w0 = self.to_world(self.p0)
         w1 = self.to_world(self.p1)
         w2 = self.to_world(self.p2)
         w3 = self.to_world(self.p3) if self.p3 is not None else None
         x, y, w, h = bezier_extrema_bounds(w0, w1, w2, w3)
         geom_aabb = BoundingBox(x, y, w, h)
-        half_stroke = (self.stroke.bounds_padding) if self.stroke else 0.0
+        half_stroke = (self.stroke.world_padding(self.world_matrix)) if self.stroke else 0.0
         return geom_aabb.expand(half_stroke)
 
     # -------------------------------------------------------------------------
@@ -184,7 +184,7 @@ class BezierCurve(Drawable):
         if not isinstance(world_point, Point):
             raise ValidationError(f"Expected Point, got {type(world_point).__name__}")
 
-        half_stroke = (self.stroke.width / 2.0) if self.stroke else 1.0
+        half_stroke = (self.stroke.world_width(self.world_matrix) / 2.0) if self.stroke else 1.0
         tolerance = max(5.0, half_stroke)
 
         w_pts = self.flatten_world(tolerance=0.5)

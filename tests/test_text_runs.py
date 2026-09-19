@@ -163,7 +163,7 @@ def test_text_with_runs_serialization_roundtrip():
 
 
 def test_legacy_text_deserialization_defaults():
-    assert CURRENT_SCHEMA_VERSION == "1.9"
+    assert CURRENT_SCHEMA_VERSION == "1.10"
     legacy_doc = {
         "format": "drawcv",
         "version": "1.8",
@@ -198,14 +198,14 @@ def test_legacy_text_deserialization_defaults():
     }
     # 1. 1.8 -> 1.9 schema forward migration
     migrated = SchemaMigrator.migrate(legacy_doc)
-    assert migrated["version"] == "1.9"
+    assert migrated["version"] == CURRENT_SCHEMA_VERSION
     patch_obj = migrated["scene"]["layers"][0]["objects"][0]
     assert patch_obj["text_origin"] == "top_left"
     assert patch_obj["fill_none"] is False
 
     # 2. Verify 1.8 legacy text deserializes in current reader
     scene_loaded = Scene.from_dict(legacy_doc)
-    assert scene_loaded.to_dict()["version"] == "1.9"
+    assert scene_loaded.to_dict()["version"] == CURRENT_SCHEMA_VERSION
     t = scene_loaded.layers[0].objects[0]
     assert t.text == "Legacy simple text"
     assert t.runs is None
@@ -223,10 +223,10 @@ def test_legacy_text_deserialization_defaults():
     rich_scene = Scene(300, 100)
     rich_scene.add(rich_t)
     doc_1_9 = rich_scene.to_dict()
-    assert doc_1_9["version"] == "1.9"
+    assert doc_1_9["version"] == CURRENT_SCHEMA_VERSION
     json_str = json.dumps(doc_1_9)
     restored = Scene.from_dict(json.loads(json_str))
-    assert restored.to_dict()["version"] == "1.9"
+    assert restored.to_dict()["version"] == CURRENT_SCHEMA_VERSION
     r_text = restored.layers[0].objects[0]
     assert r_text.runs is not None
     assert len(r_text.runs) == 2

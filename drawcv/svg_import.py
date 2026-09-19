@@ -1540,56 +1540,6 @@ class SVGStyleResolver:
 
 
 # -----------------------------------------------------------------------------
-# Stroke Similarity Normalization
-# -----------------------------------------------------------------------------
-
-def evaluate_stroke_compatibility(
-    stroke_width: float,
-    dash_array: tuple[float, ...],
-    dash_offset: float,
-    ctm: np.ndarray,
-    vector_effect: str,
-    element_tag: str = "",
-) -> tuple[float, tuple[float, ...], float]:
-    """Evaluates stroke transform compatibility.
-
-    Returns: (scaled_width, scaled_dash_array, scaled_dash_offset).
-    Raises: SVGImportError if ordinary stroke is under non-uniform scaling or shear.
-    """
-    if vector_effect == "non-scaling-stroke":
-        return stroke_width, dash_array, dash_offset
-
-    A = ctm[:2, :2]
-    G = A.T @ A
-    g00, g01, g11 = G[0, 0], G[0, 1], G[1, 1]
-
-    s2 = (g00 + g11) / 2.0
-    if s2 < 1e-12:
-        return 0.0, (), 0.0
-
-    err_scale = abs(g00 - g11) / s2
-    err_shear = 2.0 * abs(g01) / s2
-
-    if err_scale < 1e-5 and err_shear < 1e-5:
-        # Uniform similarity transform
-        s = math.sqrt(s2)
-        scaled_w = stroke_width * s
-        scaled_dashes = tuple(d * s for d in dash_array)
-        scaled_offset = dash_offset * s
-        return scaled_w, scaled_dashes, scaled_offset
-
-    raise SVGImportError(
-        f"Element '<{element_tag}>' has ordinary visible stroke under anisotropic scale or shear. "
-        "Specify vector-effect='non-scaling-stroke' or apply uniform scaling.",
-        diagnostic=SVGImportDiagnostic(
-            code="SVG_STROKE_AFFINE_MISMATCH", severity="error",
-            message="Ordinary stroke under anisotropic scaling or shear is unsupported",
-            element_tag=element_tag,
-        ),
-    )
-
-
-# -----------------------------------------------------------------------------
 # Defs, Resource Templates, and Paint-Server Binding
 # -----------------------------------------------------------------------------
 
@@ -3776,15 +3726,9 @@ class SVGImporter:
                 eff_offset = current_viewport.resolve_diagonal(style.raw_stroke_dashoffset, context_name="stroke-dashoffset", limits=self.limits)
 
             if hasattr(drawable, "stroke") and style.stroke and style.stroke.lower() != "none" and eff_sw > 0:
-                # Check stroke transform compatibility
-                scaled_w, scaled_dashes, scaled_offset = evaluate_stroke_compatibility(
-                    eff_sw,
-                    eff_dashes,
-                    eff_offset,
-                    element_ctm,
-                    style.vector_effect,
-                    element_tag=tag,
-                )
+                # Ordinary SVG strokes are measured before the element CTM.
+                scaled_w, scaled_dashes, scaled_offset = eff_sw, eff_dashes, eff_offset
+                stroke_space = "screen" if style.vector_effect == "non-scaling-stroke" else "object"
 
                 if style.stroke.startswith("url("):
                     m_url = RE_URL_REF.match(style.stroke)
@@ -3798,6 +3742,7 @@ class SVGImporter:
                     if paint_res is not None:
                         st_kw = {
                             "width": scaled_w,
+                            "space": stroke_space,
                             "opacity": style.stroke_opacity,
                             "cap_style": style.stroke_linecap,
                             "join_style": style.stroke_linejoin,
@@ -3817,6 +3762,7 @@ class SVGImporter:
                         drawable.stroke = StrokeStyle(
                             color=col,
                             width=scaled_w,
+                            space=stroke_space,
                             opacity=style.stroke_opacity,
                             cap_style=style.stroke_linecap,
                             join_style=style.stroke_linejoin,

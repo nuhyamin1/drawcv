@@ -83,14 +83,14 @@ class Polygon(Drawable):
         return self.get_geometry_bounds().expand(half_stroke)
 
     def get_bounds(self) -> BoundingBox:
-        """World-space visual AABB under non-scaling stroke rule."""
+        """World-space visual AABB in the selected stroke space."""
         w_pts = [self.to_world(p) for p in self.vertices]
         xs = [p.x for p in w_pts]
         ys = [p.y for p in w_pts]
         min_x, max_x = min(xs), max(xs)
         min_y, max_y = min(ys), max(ys)
         geom_aabb = BoundingBox(min_x, min_y, max_x - min_x, max_y - min_y)
-        half_stroke = (self.stroke.bounds_padding) if self.stroke else 0.0
+        half_stroke = (self.stroke.world_padding(self.world_matrix)) if self.stroke else 0.0
         return geom_aabb.expand(half_stroke)
 
     # -------------------------------------------------------------------------

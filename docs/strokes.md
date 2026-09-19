@@ -14,7 +14,8 @@ stroke = StrokeStyle(
 | Property | Default | Contract |
 | --- | --- | --- |
 | `color` | black | `Color` with RGB channels 0–255 and alpha 0–1 |
-| `width` | `1.0` | Positive finite screen-pixel width; fractional values accepted |
+| `width` | `1.0` | Positive finite width in the selected stroke space; fractional values accepted |
+| `space` | `"screen"` | `"screen"` for fixed pixel widths/dashes; `"object"` for transformed outlines |
 | `opacity` | `1.0` | Numeric multiplier in [0, 1] |
 | `line_type` | `LineType.AA` | AA, LINE_8, or LINE_4 rasterization |
 | `cap_style` | `CapStyle.ROUND` | BUTT, ROUND, or SQUARE |
@@ -55,15 +56,28 @@ are composited once. Fills retain their existing even-odd/non-zero rules.
 
 ## Coordinates and shape coverage
 
-Geometry is transformed to world coordinates **before** stroke expansion and dash
-measurement. Widths, dash lengths/offset, and miter distance are in screen pixels;
-they do not scale with objects or parent groups. Rotations and affine matrices
-change the centerline. This preserves the library's non-scaling stroke convention.
+With `space="screen"` (the default), geometry is transformed before stroke expansion
+and dash measurement. Widths and dash lengths/offset stay in screen pixels.
+With `space="object"`, dash measurement and stroke expansion happen in local
+geometry coordinates, then the outline is transformed through the object and its
+ancestors. Nonuniform scale and shear affect caps, joins, and widths; a round cap
+can become an ellipse. Paint coordinates remain controlled separately by `paint.space`.
+
+```python
+stroke = StrokeStyle(width=8, dash_array=(16, 10), space="object")
+```
+
+SVG ordinary strokes import as object space with their authored widths and dashes.
+`vector-effect="non-scaling-stroke"` imports as screen space. Both export natively.
+Resizing an SVG keeps exported screen strokes fixed, unlike earlier exports which
+scaled with the document. Run `python -m examples.stroke_spaces` for a
+[side-by-side comparison](../examples/output/stroke_spaces.png).
 
 The shared renderer covers Line, Polyline, Polygon, Rectangle, RoundedRectangle,
 Circle, Ellipse, Arc, BezierCurve, Path, and FreehandStroke. Arrow shafts use the
 dash pattern; arrowhead outlines use the same cap/join style but stay solid so
-markers remain legible. Text glyph thickness is a separate Hershey setting and
+markers remain legible. Arrowhead dimensions retain their existing screen-space
+contract; their outlines use the chosen stroke space. Text glyph thickness is a separate Hershey setting and
 does not use StrokeStyle.
 
 Variable-width freehand retains all raw samples. Widths are evaluated on processed
@@ -100,15 +114,21 @@ for those discrete changes. Numeric easing must stay inside property constraints
 
 ## Compatibility and limitations
 
-- Scene files now write schema **1.2**. Schemas 1.0 and 1.1 migrate forward; omitted
-  stroke fields default to solid dashes, zero offset, and miter limit 4. Older
-  readers reject 1.2 rather than silently discarding new styling. Keep old readers
+- Scene files now write schema **1.10**. Schemas 1.0 through 1.9 migrate forward;
+  omitted stroke space defaults to `"screen"`. Older
+  readers reject 1.10 rather than silently discarding new styling. Keep old readers
   updated when sharing scenes. Package release/version publication is separate.
 - Existing round styles may have different boundary pixels because outlines now
   use tessellated coverage instead of OpenCV thick-line defaults. Stroke opacity
   no longer accumulates at crossings within one compound Path.
 - Bounds for miter/square styles are conservative rather than tight. Bounds-based
   anchors, mask fitting, and selection boxes may therefore be larger.
+- Object stroke bounds use the maximum affine stretch as a conservative allowance.
+  Singular transforms collapse the outline and produce no stroke coverage.
+- Boolean results have world-space geometry. Object strokes under similarity
+  transforms convert to equivalent screen strokes. Nonuniform/sheared object
+  strokes raise `PathBooleanError`; remove the operand stroke and style the result
+  explicitly. Stroke-to-path conversion remains future work.
 - Hit testing retains its existing geometric/tolerance behavior: it may select a
   dashed gap and is not exact cap/join pixel coverage. It is intended for selecting
   editable paths, not querying rendered alpha.
@@ -120,3 +140,10 @@ for those discrete changes. Numeric easing must stay inside property constraints
 
 Run `python -m examples.stroke_styles` from the repository to regenerate
 [the comparison image](../examples/output/stroke_styles.png) and its editable JSON.
+
+Object-space milestone verification: **1,224 tests pass** on Windows/Python 3.12,
+including 35 new cases covering affine SVG parity, round/square/butt caps, joins,
+dashes, reflections, paint coordinates, pressure strokes, effects, animation,
+undo/redo, schema migration, and compressed-curve dash measurement. The stroke-space
+comparison example was rendered and visually inspected. Other platforms and
+lower-bound dependency versions were not rerun for this milestone.

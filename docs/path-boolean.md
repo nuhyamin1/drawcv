@@ -162,3 +162,12 @@ Empty operations always return fresh detached `Path` objects; source operands ar
   ```
 * **SVG Export**: Strict SVG export (`SVGExporter(strict=True)`) exports boolean results natively as `<path d="...">` elements with zero raster fallback.
 * **OpenCV Rendering**: Evaluated by the existing renderer via `evaluate_fill_rule_mask`. No boolean-specific rendering state is introduced.
+
+## Object-space strokes
+
+Boolean results retain identity transforms and world-space geometry. A left operand
+with an object-space stroke under a similarity transform converts to an equivalent
+screen-space stroke (including dash lengths, offset, and object-space stroke paint).
+Under nonuniform scale or shear it raises `PathBooleanError`: a single world-space
+width cannot represent that transformed outline. Remove the operand stroke and
+style the result explicitly until stroke-to-path conversion is available.

@@ -3,6 +3,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 import math
+import numpy as np
 from typing import Any
 
 from drawcv.core.color import Color
@@ -21,12 +22,13 @@ class StrokeStyle:
     Attributes:
         paint: Stroke paint (Color, LinearGradient, RadialGradient, ConicGradient, ImagePaint).
         color: Solid color shorthand (raises ValidationError if paint is non-solid).
-        width: Stroke thickness in pixels (width > 0).
+        width: Stroke thickness in the selected space (width > 0).
+        space: "screen" (default) or "object"; controls width and dash geometry.
         opacity: Stroke opacity multiplier in range [0.0, 1.0].
         line_type: Anti-aliasing / pixel connectivity type (default: LineType.AA).
         cap_style: End cap style for open contours and each dash.
         join_style: Segment join style.
-        dash_array: Alternating positive on/off lengths in screen pixels; empty is solid.
+        dash_array: Alternating positive on/off lengths in the selected space; empty is solid.
         dash_offset: Signed distance into the repeating dash pattern.
         miter_limit: Maximum miter length divided by half-width; bevel beyond this.
     """
@@ -38,6 +40,7 @@ class StrokeStyle:
     dash_array: tuple[float, ...]
     dash_offset: float
     miter_limit: float
+    space: str
     _paint: PaintLike
 
     def __init__(
@@ -53,6 +56,7 @@ class StrokeStyle:
         miter_limit: float = 4.0,
         *,
         paint: Any = _UNSET,
+        space: str = "screen",
     ):
         if color is not _UNSET and paint is not _UNSET:
             raise ValidationError("Specify color or paint, not both")
@@ -69,6 +73,7 @@ class StrokeStyle:
         self.dash_array = tuple(dash_array)
         self.dash_offset = dash_offset
         self.miter_limit = miter_limit
+        self.space = space
 
         chosen_paint = paint if paint is not _UNSET else (color if color is not _UNSET else Color.black())
         self.paint = chosen_paint
@@ -101,6 +106,8 @@ class StrokeStyle:
         object.__setattr__(self, "_paint", value)
 
     def _validate(self):
+        if not isinstance(self.space, str) or self.space not in ("screen", "object"):
+            raise ValidationError("Stroke space must be 'screen' or 'object'")
         if not isinstance(self.paint, (Color, Paint)):
             raise ValidationError(f"StrokeStyle 'paint' must be a Color or Paint, got {type(self.paint).__name__}")
         if not isinstance(self.width, (int, float)) or isinstance(self.width, bool):
@@ -134,7 +141,7 @@ class StrokeStyle:
 
     @property
     def bounds_padding(self) -> float:
-        """Conservative screen-space extent, including square caps and miter tips."""
+        """Conservative stroke-space extent, including square caps and miter tips."""
         factor = self.miter_limit if self.join_style == JoinStyle.MITER else 1.0
         if self.cap_style == CapStyle.SQUARE:
             factor = max(factor, math.sqrt(2))
@@ -151,6 +158,16 @@ class StrokeStyle:
             if name == "dash_array" and isinstance(value, (tuple, list)):
                 object.__setattr__(self, name, tuple(value))
 
+    def world_padding(self, matrix) -> float:
+        """Conservative stroke extent after an affine transform."""
+        scale = float(np.linalg.norm(matrix[:2, :2], ord=2)) if self.space == "object" else 1.0
+        return self.bounds_padding * scale
+
+    def world_width(self, matrix) -> float:
+        """Maximum world-space width, for conservative geometric hit testing."""
+        scale = float(np.linalg.norm(matrix[:2, :2], ord=2)) if self.space == "object" else 1.0
+        return self.width * scale
+
     def copy(self) -> StrokeStyle:
         """Return an independent copy of this StrokeStyle."""
         return StrokeStyle(
@@ -163,6 +180,7 @@ class StrokeStyle:
             dash_array=self.dash_array,
             dash_offset=self.dash_offset,
             miter_limit=self.miter_limit,
+            space=self.space,
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -176,6 +194,7 @@ class StrokeStyle:
             "dash_array": list(self.dash_array),
             "dash_offset": self.dash_offset,
             "miter_limit": self.miter_limit,
+            "space": self.space,
         }
         result["color" if isinstance(self.paint, Color) else "paint"] = self.paint.to_dict()
         return result
@@ -207,6 +226,7 @@ class StrokeStyle:
                 dash_array=data.get("dash_array", ()),
                 dash_offset=data.get("dash_offset", 0.0),
                 miter_limit=data.get("miter_limit", 4.0),
+                space=data.get("space", "screen"),
             )
         else:
             color_val = Color.from_dict(data["color"]) if "color" in data else Color.black()
@@ -220,4 +240,5 @@ class StrokeStyle:
                 dash_array=data.get("dash_array", ()),
                 dash_offset=data.get("dash_offset", 0.0),
                 miter_limit=data.get("miter_limit", 4.0),
+                space=data.get("space", "screen"),
             )
