@@ -533,6 +533,10 @@ class OpenCVRenderer:
             self._fill_mask(path, canvas, mask)
 
         self._stroke_contours(path, canvas, contours)
+        from drawcv.markers import marker_instances
+        for instance in marker_instances(path):
+            instance.opacity *= self._get_render_opacity(path)
+            self._render_single(instance, canvas)
 
     def _render_freehand(self, freehand, canvas):
         points = freehand.get_processed_points()
@@ -820,6 +824,9 @@ class OpenCVRenderer:
     # -------------------------------------------------------------------------
 
     def _requires_alpha_pipeline(self, entity):
+        if isinstance(entity, Path) and any(getattr(entity, name) is not None for name in ('marker_start', 'marker_mid', 'marker_end')):
+            # Path and marker artwork form one compositing unit even in BGR output.
+            return True
         # Font text, like gradient paint, uses the corrected pipeline in BGR too.
         if isinstance(entity, Text) and entity.fonts is not None:
             return True

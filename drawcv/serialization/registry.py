@@ -11,7 +11,7 @@ from drawcv.core.exceptions import (
     UnsupportedVersionError,
 )
 
-CURRENT_SCHEMA_VERSION = "1.10"
+CURRENT_SCHEMA_VERSION = "1.11"
 CURRENT_FORMAT_IDENTIFIER = "drawcv"
 
 _DRAWABLE_REGISTRY: dict[str, type] = {}
@@ -432,3 +432,15 @@ def _migrate_1_9_to_1_10(data: dict[str, Any]) -> dict[str, Any]:
 
 
 SchemaMigrator.register_migration("1.9", _migrate_1_9_to_1_10)
+
+
+def _migrate_1_10_to_1_11(data: dict[str, Any]) -> dict[str, Any]:
+    """Absent path markers deserialize as None."""
+    migrated = copy.deepcopy(data)
+    migrated["version"] = "1.11"
+    if "schema_version" in migrated:
+        migrated["schema_version"] = "1.11"
+    return migrated
+
+
+SchemaMigrator.register_migration("1.10", _migrate_1_10_to_1_11)

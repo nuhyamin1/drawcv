@@ -9,6 +9,7 @@ from drawcv.typography import (
     TextMetrics,
 )
 from drawcv.canvas import Canvas
+from drawcv.markers import Marker
 from drawcv.styles.paint import (
     GradientStop,
     LinearGradient,
@@ -273,6 +274,7 @@ __all__ = [
     "LineTo",
     "LineType",
     "Mask",
+    "Marker",
     "MaskMapping",
     "MoveTo",
     "NoiseEffect",

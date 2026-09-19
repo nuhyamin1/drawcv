@@ -1,0 +1,833 @@
+{
+  "format": "drawcv",
+  "scene": {
+    "background": {
+      "a": 1.0,
+      "b": 252,
+      "g": 250,
+      "r": 248
+    },
+    "height": 480,
+    "layers": [
+      {
+        "blend_mode": "normal",
+        "clip": null,
+        "effects": [],
+        "locked": false,
+        "mask": null,
+        "name": "default",
+        "objects": [
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "blend_mode": "normal",
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 70,
+              "g": 45,
+              "r": 24
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.8,
+            "id": "96609a3d-e765-4d87-a97e-ccea1ce06e2f",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 30.0,
+              "y": 20.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "Reusable vector markers follow paths",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "blend_mode": "normal",
+            "clip": null,
+            "effects": [],
+            "fill": null,
+            "fill_rule": "even_odd",
+            "id": "d9590591-9cc3-4899-90a3-a9004fdacd22",
+            "locked": false,
+            "marker_end": {
+              "orient": "auto-start-reverse",
+              "path": {
+                "blend_mode": "normal",
+                "clip": null,
+                "effects": [],
+                "fill": {
+                  "color": {
+                    "a": 1.0,
+                    "b": 145,
+                    "g": 130,
+                    "r": 5
+                  },
+                  "enabled": true,
+                  "opacity": 1.0
+                },
+                "fill_rule": "even_odd",
+                "id": "c6f04a5d-f64f-4c92-9cac-eb131b070588",
+                "locked": false,
+                "marker_end": null,
+                "marker_mid": null,
+                "marker_start": null,
+                "mask": null,
+                "metadata": {},
+                "name": null,
+                "opacity": 1.0,
+                "render_progress": 1.0,
+                "stroke": null,
+                "subpaths": [
+                  {
+                    "closed": true,
+                    "commands": [
+                      {
+                        "point": {
+                          "x": 0.0,
+                          "y": 0.0
+                        },
+                        "type": "move_to"
+                      },
+                      {
+                        "point": {
+                          "x": -5.0,
+                          "y": -2.5
+                        },
+                        "type": "line_to"
+                      },
+                      {
+                        "point": {
+                          "x": -3.5,
+                          "y": 0.0
+                        },
+                        "type": "line_to"
+                      },
+                      {
+                        "point": {
+                          "x": -5.0,
+                          "y": 2.5
+                        },
+                        "type": "line_to"
+                      },
+                      {
+                        "type": "close"
+                      }
+                    ]
+                  }
+                ],
+                "tags": [],
+                "timing": null,
+                "transform": {
+                  "pivot": null,
+                  "rotation": 0.0,
+                  "scale_x": 1.0,
+                  "scale_y": 1.0,
+                  "translation_x": 0.0,
+                  "translation_y": 0.0
+                },
+                "type": "path",
+                "visible": true,
+                "z_index": 0
+              },
+              "ref": {
+                "x": 0.0,
+                "y": 0.0
+              },
+              "size": 1.0,
+              "units": "stroke"
+            },
+            "marker_mid": {
+              "orient": "auto",
+              "path": {
+                "blend_mode": "normal",
+                "clip": null,
+                "effects": [],
+                "fill": {
+                  "color": {
+                    "a": 1.0,
+                    "b": 180,
+                    "g": 80,
+                    "r": 100
+                  },
+                  "enabled": true,
+                  "opacity": 1.0
+                },
+                "fill_rule": "even_odd",
+                "id": "1edfadfc-aa96-4f9c-a853-da5716d32b6d",
+                "locked": false,
+                "marker_end": null,
+                "marker_mid": null,
+                "marker_start": null,
+                "mask": null,
+                "metadata": {},
+                "name": null,
+                "opacity": 1.0,
+                "render_progress": 1.0,
+                "stroke": null,
+                "subpaths": [
+                  {
+                    "closed": true,
+                    "commands": [
+                      {
+                        "point": {
+                          "x": 1.4,
+                          "y": 0.0
+                        },
+                        "type": "move_to"
+                      },
+                      {
+                        "end": {
+                          "x": -1.4,
+                          "y": 1.7145055188062944e-16
+                        },
+                        "large_arc": false,
+                        "radius_x": 1.4,
+                        "radius_y": 1.4,
+                        "sweep": true,
+                        "type": "elliptical_arc_to",
+                        "x_axis_rotation": 0.0
+                      },
+                      {
+                        "end": {
+                          "x": 1.4,
+                          "y": 0.0
+                        },
+                        "large_arc": false,
+                        "radius_x": 1.4,
+                        "radius_y": 1.4,
+                        "sweep": true,
+                        "type": "elliptical_arc_to",
+                        "x_axis_rotation": 0.0
+                      },
+                      {
+                        "type": "close"
+                      }
+                    ]
+                  }
+                ],
+                "tags": [],
+                "timing": null,
+                "transform": {
+                  "matrix": [
+                    [
+                      1.0,
+                      0.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      1.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      0.0,
+                      1.0
+                    ]
+                  ],
+                  "pivot": null,
+                  "rotation": 0.0,
+                  "scale_x": 1.0,
+                  "scale_y": 1.0,
+                  "translation_x": 0.0,
+                  "translation_y": 0.0
+                },
+                "type": "path",
+                "visible": true,
+                "z_index": 0
+              },
+              "ref": {
+                "x": 0.0,
+                "y": 0.0
+              },
+              "size": 1.0,
+              "units": "stroke"
+            },
+            "marker_start": {
+              "orient": "auto-start-reverse",
+              "path": {
+                "blend_mode": "normal",
+                "clip": null,
+                "effects": [],
+                "fill": {
+                  "color": {
+                    "a": 1.0,
+                    "b": 145,
+                    "g": 130,
+                    "r": 5
+                  },
+                  "enabled": true,
+                  "opacity": 1.0
+                },
+                "fill_rule": "even_odd",
+                "id": "c6f04a5d-f64f-4c92-9cac-eb131b070588",
+                "locked": false,
+                "marker_end": null,
+                "marker_mid": null,
+                "marker_start": null,
+                "mask": null,
+                "metadata": {},
+                "name": null,
+                "opacity": 1.0,
+                "render_progress": 1.0,
+                "stroke": null,
+                "subpaths": [
+                  {
+                    "closed": true,
+                    "commands": [
+                      {
+                        "point": {
+                          "x": 0.0,
+                          "y": 0.0
+                        },
+                        "type": "move_to"
+                      },
+                      {
+                        "point": {
+                          "x": -5.0,
+                          "y": -2.5
+                        },
+                        "type": "line_to"
+                      },
+                      {
+                        "point": {
+                          "x": -3.5,
+                          "y": 0.0
+                        },
+                        "type": "line_to"
+                      },
+                      {
+                        "point": {
+                          "x": -5.0,
+                          "y": 2.5
+                        },
+                        "type": "line_to"
+                      },
+                      {
+                        "type": "close"
+                      }
+                    ]
+                  }
+                ],
+                "tags": [],
+                "timing": null,
+                "transform": {
+                  "pivot": null,
+                  "rotation": 0.0,
+                  "scale_x": 1.0,
+                  "scale_y": 1.0,
+                  "translation_x": 0.0,
+                  "translation_y": 0.0
+                },
+                "type": "path",
+                "visible": true,
+                "z_index": 0
+              },
+              "ref": {
+                "x": 0.0,
+                "y": 0.0
+              },
+              "size": 1.0,
+              "units": "stroke"
+            },
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "render_progress": 1.0,
+            "stroke": {
+              "cap_style": "round",
+              "color": {
+                "a": 1.0,
+                "b": 70,
+                "g": 45,
+                "r": 24
+              },
+              "dash_array": [],
+              "dash_offset": 0.0,
+              "join_style": "round",
+              "line_type": "AA",
+              "miter_limit": 4.0,
+              "opacity": 1.0,
+              "space": "screen",
+              "width": 5.0
+            },
+            "subpaths": [
+              {
+                "closed": false,
+                "commands": [
+                  {
+                    "point": {
+                      "x": 90.0,
+                      "y": 130.0
+                    },
+                    "type": "move_to"
+                  },
+                  {
+                    "point": {
+                      "x": 390.0,
+                      "y": 130.0
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 500.0,
+                      "y": 190.0
+                    },
+                    "type": "line_to"
+                  },
+                  {
+                    "point": {
+                      "x": 800.0,
+                      "y": 190.0
+                    },
+                    "type": "line_to"
+                  }
+                ]
+              }
+            ],
+            "tags": [],
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "path",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "blend_mode": "normal",
+            "clip": null,
+            "effects": [],
+            "fill": null,
+            "fill_rule": "even_odd",
+            "id": "838471a2-9320-43ec-96cb-fdc25ae1a2ca",
+            "locked": false,
+            "marker_end": {
+              "orient": "auto-start-reverse",
+              "path": {
+                "blend_mode": "normal",
+                "clip": null,
+                "effects": [],
+                "fill": {
+                  "color": {
+                    "a": 1.0,
+                    "b": 145,
+                    "g": 130,
+                    "r": 5
+                  },
+                  "enabled": true,
+                  "opacity": 1.0
+                },
+                "fill_rule": "even_odd",
+                "id": "c6f04a5d-f64f-4c92-9cac-eb131b070588",
+                "locked": false,
+                "marker_end": null,
+                "marker_mid": null,
+                "marker_start": null,
+                "mask": null,
+                "metadata": {},
+                "name": null,
+                "opacity": 1.0,
+                "render_progress": 1.0,
+                "stroke": null,
+                "subpaths": [
+                  {
+                    "closed": true,
+                    "commands": [
+                      {
+                        "point": {
+                          "x": 0.0,
+                          "y": 0.0
+                        },
+                        "type": "move_to"
+                      },
+                      {
+                        "point": {
+                          "x": -5.0,
+                          "y": -2.5
+                        },
+                        "type": "line_to"
+                      },
+                      {
+                        "point": {
+                          "x": -3.5,
+                          "y": 0.0
+                        },
+                        "type": "line_to"
+                      },
+                      {
+                        "point": {
+                          "x": -5.0,
+                          "y": 2.5
+                        },
+                        "type": "line_to"
+                      },
+                      {
+                        "type": "close"
+                      }
+                    ]
+                  }
+                ],
+                "tags": [],
+                "timing": null,
+                "transform": {
+                  "pivot": null,
+                  "rotation": 0.0,
+                  "scale_x": 1.0,
+                  "scale_y": 1.0,
+                  "translation_x": 0.0,
+                  "translation_y": 0.0
+                },
+                "type": "path",
+                "visible": true,
+                "z_index": 0
+              },
+              "ref": {
+                "x": 0.0,
+                "y": 0.0
+              },
+              "size": 1.0,
+              "units": "stroke"
+            },
+            "marker_mid": {
+              "orient": "auto",
+              "path": {
+                "blend_mode": "normal",
+                "clip": null,
+                "effects": [],
+                "fill": {
+                  "color": {
+                    "a": 1.0,
+                    "b": 180,
+                    "g": 80,
+                    "r": 100
+                  },
+                  "enabled": true,
+                  "opacity": 1.0
+                },
+                "fill_rule": "even_odd",
+                "id": "1edfadfc-aa96-4f9c-a853-da5716d32b6d",
+                "locked": false,
+                "marker_end": null,
+                "marker_mid": null,
+                "marker_start": null,
+                "mask": null,
+                "metadata": {},
+                "name": null,
+                "opacity": 1.0,
+                "render_progress": 1.0,
+                "stroke": null,
+                "subpaths": [
+                  {
+                    "closed": true,
+                    "commands": [
+                      {
+                        "point": {
+                          "x": 1.4,
+                          "y": 0.0
+                        },
+                        "type": "move_to"
+                      },
+                      {
+                        "end": {
+                          "x": -1.4,
+                          "y": 1.7145055188062944e-16
+                        },
+                        "large_arc": false,
+                        "radius_x": 1.4,
+                        "radius_y": 1.4,
+                        "sweep": true,
+                        "type": "elliptical_arc_to",
+                        "x_axis_rotation": 0.0
+                      },
+                      {
+                        "end": {
+                          "x": 1.4,
+                          "y": 0.0
+                        },
+                        "large_arc": false,
+                        "radius_x": 1.4,
+                        "radius_y": 1.4,
+                        "sweep": true,
+                        "type": "elliptical_arc_to",
+                        "x_axis_rotation": 0.0
+                      },
+                      {
+                        "type": "close"
+                      }
+                    ]
+                  }
+                ],
+                "tags": [],
+                "timing": null,
+                "transform": {
+                  "matrix": [
+                    [
+                      1.0,
+                      0.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      1.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      0.0,
+                      1.0
+                    ]
+                  ],
+                  "pivot": null,
+                  "rotation": 0.0,
+                  "scale_x": 1.0,
+                  "scale_y": 1.0,
+                  "translation_x": 0.0,
+                  "translation_y": 0.0
+                },
+                "type": "path",
+                "visible": true,
+                "z_index": 0
+              },
+              "ref": {
+                "x": 0.0,
+                "y": 0.0
+              },
+              "size": 1.0,
+              "units": "stroke"
+            },
+            "marker_start": {
+              "orient": "auto-start-reverse",
+              "path": {
+                "blend_mode": "normal",
+                "clip": null,
+                "effects": [],
+                "fill": {
+                  "color": {
+                    "a": 1.0,
+                    "b": 145,
+                    "g": 130,
+                    "r": 5
+                  },
+                  "enabled": true,
+                  "opacity": 1.0
+                },
+                "fill_rule": "even_odd",
+                "id": "c6f04a5d-f64f-4c92-9cac-eb131b070588",
+                "locked": false,
+                "marker_end": null,
+                "marker_mid": null,
+                "marker_start": null,
+                "mask": null,
+                "metadata": {},
+                "name": null,
+                "opacity": 1.0,
+                "render_progress": 1.0,
+                "stroke": null,
+                "subpaths": [
+                  {
+                    "closed": true,
+                    "commands": [
+                      {
+                        "point": {
+                          "x": 0.0,
+                          "y": 0.0
+                        },
+                        "type": "move_to"
+                      },
+                      {
+                        "point": {
+                          "x": -5.0,
+                          "y": -2.5
+                        },
+                        "type": "line_to"
+                      },
+                      {
+                        "point": {
+                          "x": -3.5,
+                          "y": 0.0
+                        },
+                        "type": "line_to"
+                      },
+                      {
+                        "point": {
+                          "x": -5.0,
+                          "y": 2.5
+                        },
+                        "type": "line_to"
+                      },
+                      {
+                        "type": "close"
+                      }
+                    ]
+                  }
+                ],
+                "tags": [],
+                "timing": null,
+                "transform": {
+                  "pivot": null,
+                  "rotation": 0.0,
+                  "scale_x": 1.0,
+                  "scale_y": 1.0,
+                  "translation_x": 0.0,
+                  "translation_y": 0.0
+                },
+                "type": "path",
+                "visible": true,
+                "z_index": 0
+              },
+              "ref": {
+                "x": 0.0,
+                "y": 0.0
+              },
+              "size": 1.0,
+              "units": "stroke"
+            },
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "render_progress": 1.0,
+            "stroke": {
+              "cap_style": "round",
+              "color": {
+                "a": 1.0,
+                "b": 70,
+                "g": 45,
+                "r": 24
+              },
+              "dash_array": [],
+              "dash_offset": 0.0,
+              "join_style": "round",
+              "line_type": "AA",
+              "miter_limit": 4.0,
+              "opacity": 1.0,
+              "space": "screen",
+              "width": 5.0
+            },
+            "subpaths": [
+              {
+                "closed": false,
+                "commands": [
+                  {
+                    "point": {
+                      "x": 90.0,
+                      "y": 330.0
+                    },
+                    "type": "move_to"
+                  },
+                  {
+                    "control1": {
+                      "x": 250.0,
+                      "y": 240.0
+                    },
+                    "control2": {
+                      "x": 610.0,
+                      "y": 440.0
+                    },
+                    "end": {
+                      "x": 800.0,
+                      "y": 330.0
+                    },
+                    "type": "cubic_to"
+                  }
+                ]
+              }
+            ],
+            "tags": [],
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "path",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "blend_mode": "normal",
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 70,
+              "g": 45,
+              "r": 24
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.6,
+            "id": "9f28c711-eec8-46cf-9683-a2fbbef585d2",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 30.0,
+              "y": 430.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "Shared arrowheads / vertex dots / curve tangents",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          }
+        ],
+        "opacity": 1.0,
+        "visible": true,
+        "z_order": 0
+      }
+    ],
+    "timeline": {
+      "tracks": []
+    },
+    "width": 900
+  },
+  "schema_version": "1.11",
+  "version": "1.11"
+}

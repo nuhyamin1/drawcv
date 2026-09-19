@@ -73,8 +73,8 @@ state. Use `scene.edit` for compound changes and geometry edits, and `scene.batc
 for multiple recorded commands. See [reliable edits](docs/reliability.md) for
 rollback guarantees and the limits of raw attribute/list mutation.
 
-New scenes use schema **1.10**, including retained text runs, path clips, paints, and effects.
-Schemas 1.0 through 1.9 load with compatible defaults. Older readers reject 1.10;
+New scenes use schema **1.11**, including reusable path markers, retained text runs, path clips, paints, and effects.
+Schemas 1.0 through 1.10 load with compatible defaults. Older readers reject 1.11;
 update readers before sharing new documents with them.
 
 ## Organize and position objects
@@ -135,6 +135,7 @@ python -m examples.transparent_output
 - [Path length, positions and tangent directions](docs/path-measurement.md).
 - [Curve-preserving trimming and splitting](docs/path-editing.md).
 - [Filled-region offsets: expansion, contraction, holes and joins](docs/path-offsets.md).
+- [Reusable path markers and custom arrowheads](docs/markers.md).
 - [Transparent PNG example](examples/transparent_output.py) and [external-composition preview](examples/output/transparent_output_preview.png).
 - [Gradient paints and coordinate contracts](docs/gradients.md); [runnable gallery](examples/gradient_fills.py).
 - [Alpha API and compositing conventions](docs/transparency.md).
@@ -162,7 +163,7 @@ python -m examples.transparent_output
 | Scene | Groups, layers, lookup, selection, relative positioning, affine transforms | Bounds may be conservative; hit testing is geometric and can select dash gaps |
 | Compositing | Opt-in straight BGRA/PNG output; premultiplied images, masks, blur, shadows, isolated opacity, blend modes, raster effects | Alpha export currently PNG only |
 | Typography | Hershey compatibility; optional TTF/OTF, Latin/Thai/Arabic shaping, ICU bidi, explicit fallback, wrapping and metrics | Other scripts, emoji, advanced format controls and glyph strokes remain unsupported |
-| Persistence | JSON 1.10; forward migration; cloning; undo/redo | Direct edits require transaction discipline; older readers need updating |
+| Persistence | JSON 1.11; forward migration; cloning; undo/redo | Direct edits require transaction discipline; older readers need updating |
 | Animation | Timing, easing, numeric/value tracks, progressive drawing, video | No built-in enum/dash-array interpolation; codec availability varies |
 | Interchange | Native retained SVG import & export with text interchange and reported PNG fallbacks; raster images, editable JSON, video | PDF export remains future work |
 | Performance | Profiled benchmarks; coverage-region blending/gradients; cheaper transform resolution | Full-canvas masks/effect surfaces remain; no dirty-region redraw |

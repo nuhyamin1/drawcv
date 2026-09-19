@@ -370,6 +370,10 @@ class _Writer:
                     attrs["stroke-dasharray"] = " ".join(map(_number, stroke.dash_array))
                     attrs["stroke-dashoffset"] = _number(stroke.dash_offset)
             ET.SubElement(group, "path", attrs)
+            if isinstance(entity, Path):
+                from drawcv.markers import marker_instances
+                for instance in marker_instances(entity):
+                    self.entity(instance, group)
 
     @classmethod
     def _paint_fallback_reason(cls, paint):

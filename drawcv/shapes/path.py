@@ -254,6 +254,9 @@ class Path(Drawable):
     fill_rule: FillRule = FillRule.EVEN_ODD
     stroke: StrokeStyle | None = None
     fill: FillStyle | None = None
+    marker_start: Any | None = field(default=None, kw_only=True)
+    marker_mid: Any | None = field(default=None, kw_only=True)
+    marker_end: Any | None = field(default=None, kw_only=True)
 
     def slice_at_progress(self, progress: float) -> Path:
         """Return a transient partial Path sliced along arc length."""
@@ -272,6 +275,8 @@ class Path(Drawable):
         sliced_path.mask = copy.deepcopy(self.mask)
         sliced_path.effects = [copy.deepcopy(e) for e in self.effects]
         sliced_path.render_progress = 1.0
+        for name in ('marker_start', 'marker_mid', 'marker_end'):
+            setattr(sliced_path, name, copy.deepcopy(getattr(self, name)))
         return sliced_path
 
     def __post_init__(self):
@@ -283,6 +288,13 @@ class Path(Drawable):
         self._validate_path()
 
     def _validate_path(self):
+        from drawcv.markers import Marker
+        for name in ('marker_start', 'marker_mid', 'marker_end'):
+            marker = getattr(self, name)
+            if marker is not None:
+                if not isinstance(marker, Marker):
+                    raise ValidationError(f'{name} must be a Marker or None')
+                marker._validate()
         if not isinstance(self.subpaths, list):
             raise ValidationError("Path 'subpaths' must be a list")
         if not isinstance(self.fill_rule, FillRule):
@@ -771,7 +783,12 @@ class Path(Drawable):
     def get_local_bounds(self) -> BoundingBox:
         """Visual bounds in local space."""
         half_stroke = (self.stroke.bounds_padding) if self.stroke else 0.0
-        return self.get_geometry_bounds().expand(half_stroke)
+        result = self.get_geometry_bounds().expand(half_stroke)
+        from drawcv.markers import marker_instances
+        import numpy as np
+        for instance in marker_instances(self, np.eye(3)):
+            result = result.union(instance.get_effect_bounds())
+        return result
 
     def get_bounds(self) -> BoundingBox:
         """World-space visual AABB using analytical extrema of transformed segments."""
@@ -824,7 +841,11 @@ class Path(Drawable):
             result = result.union(b)
 
         half_stroke = (self.stroke.world_padding(self.world_matrix)) if self.stroke else 0.0
-        return result.expand(half_stroke)
+        result = result.expand(half_stroke)
+        from drawcv.markers import marker_instances
+        for instance in marker_instances(self):
+            result = result.union(instance.get_effect_bounds())
+        return result
 
     # -------------------------------------------------------------------------
     # Anchors & Hit Testing
@@ -849,6 +870,10 @@ class Path(Drawable):
         """Test if a world-space point lies within stroke distance or interior fill of the Path."""
         if not isinstance(world_point, Point):
             raise ValidationError(f"Expected Point, got {type(world_point).__name__}")
+        from drawcv.markers import marker_instances
+        for instance in marker_instances(self):
+            if instance.visible and instance.opacity > 0 and instance.contains_point(world_point):
+                return True
 
         half_stroke = (self.stroke.world_width(self.world_matrix) / 2.0) if self.stroke else 1.0
         tolerance = max(5.0, half_stroke)
@@ -885,6 +910,7 @@ class Path(Drawable):
 
     def _get_shape_state(self) -> dict[str, Any]:
         return {
+            **{name: copy.deepcopy(getattr(self, name)) for name in ('marker_start', 'marker_mid', 'marker_end')},
             "subpaths": [copy.deepcopy(sp) for sp in self.subpaths],
             "fill_rule": self.fill_rule.value if hasattr(self.fill_rule, "value") else str(self.fill_rule),
             "stroke": self.stroke.copy() if self.stroke else None,
@@ -892,6 +918,11 @@ class Path(Drawable):
         }
 
     def _apply_shape_state(self, state: dict[str, Any]) -> None:
+        from drawcv.markers import Marker
+        for name in ('marker_start', 'marker_mid', 'marker_end'):
+            if name in state:
+                value = state[name]
+                setattr(self, name, Marker.from_dict(value) if isinstance(value, dict) else copy.deepcopy(value))
         if "subpaths" in state:
             self.subpaths = [copy.deepcopy(sp) for sp in state["subpaths"]]
         if "fill_rule" in state:
@@ -907,6 +938,9 @@ class Path(Drawable):
     def to_dict(self) -> dict[str, Any]:
         """Return a plain JSON-compatible dictionary representation."""
         res = self._base_to_dict()
+        for name in ('marker_start', 'marker_mid', 'marker_end'):
+            marker = getattr(self, name)
+            res[name] = marker.to_dict() if marker else None
         res.update({
             "type": "path",
             "subpaths": serialize_subpaths(self.subpaths),
@@ -920,6 +954,9 @@ class Path(Drawable):
     def from_dict(cls, data: dict[str, Any]) -> Path:
         """Construct a Path from dictionary representation."""
         base_kwargs = cls._base_from_dict(data)
+        from drawcv.markers import Marker
+        for name in ('marker_start', 'marker_mid', 'marker_end'):
+            base_kwargs[name] = Marker.from_dict(data[name]) if data.get(name) is not None else None
         subpaths = deserialize_subpaths(data.get("subpaths", []))
         fill_rule_val = FillRule(data["fill_rule"]) if "fill_rule" in data else FillRule.NON_ZERO
         stroke = StrokeStyle.from_dict(data["stroke"]) if data.get("stroke") is not None else None

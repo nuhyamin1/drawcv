@@ -79,7 +79,7 @@ antialiasing. Use PNG export for exact raster reproduction.
 
 ## Persistence, import and animation
 
-JSON remains the primary editable DrawCV format at schema 1.10 (with migration from older schemas). DrawCV also provides a native,
+JSON remains the primary editable DrawCV format at schema 1.11 (with migration from older schemas). DrawCV also provides a native,
 high-fidelity retained SVG importer (`SVGImporter`) for supported SVG vector documents:
 
 ```python

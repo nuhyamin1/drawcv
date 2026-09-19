@@ -93,7 +93,7 @@ def to_path(obj, *, preserve_world_transform=False):
     result = Path(subpaths=path_subpaths(obj))
     for name in ("name", "visible", "locked", "opacity", "blend_mode", "z_index",
                  "tags", "metadata", "clip", "mask", "effects", "timing", "render_progress",
-                 "stroke", "fill", "fill_rule"):
+                 "stroke", "fill", "fill_rule", "marker_start", "marker_mid", "marker_end"):
         if hasattr(obj, name):
             setattr(result, name, copy.deepcopy(getattr(obj, name)))
     if isinstance(obj, Arc) and obj.closure == ArcClosure.OPEN:
