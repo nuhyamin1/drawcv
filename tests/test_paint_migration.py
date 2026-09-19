@@ -24,8 +24,8 @@ from drawcv import (
 from drawcv.serialization.registry import CURRENT_SCHEMA_VERSION, SchemaMigrator
 
 
-def test_schema_version_is_1_11():
-    assert CURRENT_SCHEMA_VERSION == "1.11"
+def test_schema_version_is_1_12():
+    assert CURRENT_SCHEMA_VERSION == "1.12"
 
 
 def test_migrate_1_5_to_1_6_legacy_document():

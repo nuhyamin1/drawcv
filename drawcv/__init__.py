@@ -10,6 +10,7 @@ from drawcv.typography import (
 )
 from drawcv.canvas import Canvas
 from drawcv.markers import Marker
+from drawcv.styles.pattern import VectorPattern
 from drawcv.styles.paint import (
     GradientStop,
     LinearGradient,
@@ -275,6 +276,7 @@ __all__ = [
     "LineType",
     "Mask",
     "Marker",
+    "VectorPattern",
     "MaskMapping",
     "MoveTo",
     "NoiseEffect",

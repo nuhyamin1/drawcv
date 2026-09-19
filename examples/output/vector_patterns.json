@@ -1,0 +1,829 @@
+{
+  "format": "drawcv",
+  "scene": {
+    "background": {
+      "a": 1.0,
+      "b": 252,
+      "g": 250,
+      "r": 248
+    },
+    "height": 430,
+    "layers": [
+      {
+        "blend_mode": "normal",
+        "clip": null,
+        "effects": [],
+        "locked": false,
+        "mask": null,
+        "name": "default",
+        "objects": [
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "blend_mode": "normal",
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 70,
+              "g": 45,
+              "r": 24
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.8,
+            "id": "8bafaa80-a49d-4350-8180-237e9a484c47",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 25.0,
+              "y": 20.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "Editable vector patterns / paths and groups",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "blend_mode": "normal",
+            "clip": null,
+            "effects": [],
+            "fill": {
+              "enabled": true,
+              "opacity": 1.0,
+              "paint": {
+                "artwork": {
+                  "blend_mode": "normal",
+                  "clip": null,
+                  "effects": [],
+                  "fill": {
+                    "color": {
+                      "a": 1.0,
+                      "b": 145,
+                      "g": 130,
+                      "r": 5
+                    },
+                    "enabled": true,
+                    "opacity": 1.0
+                  },
+                  "fill_rule": "even_odd",
+                  "id": "45a19be6-9019-4fa8-8ba7-6317c3847fde",
+                  "locked": false,
+                  "marker_end": null,
+                  "marker_mid": null,
+                  "marker_start": null,
+                  "mask": null,
+                  "metadata": {},
+                  "name": null,
+                  "opacity": 1.0,
+                  "render_progress": 1.0,
+                  "stroke": null,
+                  "subpaths": [
+                    {
+                      "closed": true,
+                      "commands": [
+                        {
+                          "point": {
+                            "x": 10.0,
+                            "y": 7.0
+                          },
+                          "type": "move_to"
+                        },
+                        {
+                          "end": {
+                            "x": 4.0,
+                            "y": 7.0
+                          },
+                          "large_arc": false,
+                          "radius_x": 3.0,
+                          "radius_y": 3.0,
+                          "sweep": true,
+                          "type": "elliptical_arc_to",
+                          "x_axis_rotation": 0.0
+                        },
+                        {
+                          "end": {
+                            "x": 10.0,
+                            "y": 7.0
+                          },
+                          "large_arc": false,
+                          "radius_x": 3.0,
+                          "radius_y": 3.0,
+                          "sweep": true,
+                          "type": "elliptical_arc_to",
+                          "x_axis_rotation": 0.0
+                        },
+                        {
+                          "type": "close"
+                        }
+                      ]
+                    }
+                  ],
+                  "tags": [],
+                  "timing": null,
+                  "transform": {
+                    "matrix": [
+                      [
+                        1.0,
+                        0.0,
+                        0.0
+                      ],
+                      [
+                        0.0,
+                        1.0,
+                        0.0
+                      ],
+                      [
+                        0.0,
+                        0.0,
+                        1.0
+                      ]
+                    ],
+                    "pivot": null,
+                    "rotation": 0.0,
+                    "scale_x": 1.0,
+                    "scale_y": 1.0,
+                    "translation_x": 0.0,
+                    "translation_y": 0.0
+                  },
+                  "type": "path",
+                  "visible": true,
+                  "z_index": 0
+                },
+                "height": 14,
+                "opacity": 1.0,
+                "origin": {
+                  "x": 0.0,
+                  "y": 0.0
+                },
+                "space": "object",
+                "spacing": [
+                  3,
+                  3
+                ],
+                "transform": {
+                  "pivot": null,
+                  "rotation": 0.0,
+                  "scale_x": 1.0,
+                  "scale_y": 1.0,
+                  "translation_x": 0.0,
+                  "translation_y": 0.0
+                },
+                "type": "vector_pattern",
+                "width": 14
+              }
+            },
+            "height": 235.0,
+            "id": "05474f5e-2d07-4802-9507-1ddb3aec1434",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "position": {
+              "x": 30.0,
+              "y": 100.0
+            },
+            "render_progress": 1.0,
+            "stroke": {
+              "cap_style": "round",
+              "color": {
+                "a": 1.0,
+                "b": 70,
+                "g": 45,
+                "r": 24
+              },
+              "dash_array": [],
+              "dash_offset": 0.0,
+              "join_style": "round",
+              "line_type": "AA",
+              "miter_limit": 4.0,
+              "opacity": 1.0,
+              "space": "screen",
+              "width": 2.0
+            },
+            "tags": [],
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "rectangle",
+            "visible": true,
+            "width": 270.0,
+            "z_index": 0
+          },
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "blend_mode": "normal",
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 70,
+              "g": 45,
+              "r": 24
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.55,
+            "id": "a460c22c-f0d3-41c6-8c96-9b8c2d11bf3c",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 30.0,
+              "y": 365.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "Dots / adjustable spacing",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "blend_mode": "normal",
+            "clip": null,
+            "effects": [],
+            "fill": {
+              "enabled": true,
+              "opacity": 1.0,
+              "paint": {
+                "artwork": {
+                  "blend_mode": "normal",
+                  "clip": null,
+                  "effects": [],
+                  "fill": {
+                    "color": {
+                      "a": 1.0,
+                      "b": 180,
+                      "g": 80,
+                      "r": 100
+                    },
+                    "enabled": true,
+                    "opacity": 1.0
+                  },
+                  "fill_rule": "even_odd",
+                  "id": "9bd17b0c-bb1d-43e8-9cf9-625fba907cf8",
+                  "locked": false,
+                  "marker_end": null,
+                  "marker_mid": null,
+                  "marker_start": null,
+                  "mask": null,
+                  "metadata": {},
+                  "name": null,
+                  "opacity": 1.0,
+                  "render_progress": 1.0,
+                  "stroke": null,
+                  "subpaths": [
+                    {
+                      "closed": true,
+                      "commands": [
+                        {
+                          "point": {
+                            "x": 0.0,
+                            "y": 0.0
+                          },
+                          "type": "move_to"
+                        },
+                        {
+                          "point": {
+                            "x": 5.0,
+                            "y": 0.0
+                          },
+                          "type": "line_to"
+                        },
+                        {
+                          "point": {
+                            "x": 5.0,
+                            "y": 18.0
+                          },
+                          "type": "line_to"
+                        },
+                        {
+                          "point": {
+                            "x": 0.0,
+                            "y": 18.0
+                          },
+                          "type": "line_to"
+                        },
+                        {
+                          "type": "close"
+                        }
+                      ]
+                    }
+                  ],
+                  "tags": [],
+                  "timing": null,
+                  "transform": {
+                    "matrix": [
+                      [
+                        1.0,
+                        0.0,
+                        0.0
+                      ],
+                      [
+                        0.0,
+                        1.0,
+                        0.0
+                      ],
+                      [
+                        0.0,
+                        0.0,
+                        1.0
+                      ]
+                    ],
+                    "pivot": null,
+                    "rotation": 0.0,
+                    "scale_x": 1.0,
+                    "scale_y": 1.0,
+                    "translation_x": 0.0,
+                    "translation_y": 0.0
+                  },
+                  "type": "path",
+                  "visible": true,
+                  "z_index": 0
+                },
+                "height": 18,
+                "opacity": 1.0,
+                "origin": {
+                  "x": 0.0,
+                  "y": 0.0
+                },
+                "space": "object",
+                "spacing": [
+                  0.0,
+                  0.0
+                ],
+                "transform": {
+                  "pivot": {
+                    "x": 0.0,
+                    "y": 0.0
+                  },
+                  "rotation": 30.0,
+                  "scale_x": 1.0,
+                  "scale_y": 1.0,
+                  "translation_x": 0.0,
+                  "translation_y": 0.0
+                },
+                "type": "vector_pattern",
+                "width": 14
+              }
+            },
+            "height": 235.0,
+            "id": "ecc88cd5-f356-4ac3-a39b-cf93945a5b8e",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "position": {
+              "x": 345.0,
+              "y": 100.0
+            },
+            "render_progress": 1.0,
+            "stroke": {
+              "cap_style": "round",
+              "color": {
+                "a": 1.0,
+                "b": 70,
+                "g": 45,
+                "r": 24
+              },
+              "dash_array": [],
+              "dash_offset": 0.0,
+              "join_style": "round",
+              "line_type": "AA",
+              "miter_limit": 4.0,
+              "opacity": 1.0,
+              "space": "screen",
+              "width": 2.0
+            },
+            "tags": [],
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "rectangle",
+            "visible": true,
+            "width": 270.0,
+            "z_index": 0
+          },
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "blend_mode": "normal",
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 70,
+              "g": 45,
+              "r": 24
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.55,
+            "id": "24411791-b61b-41a0-ad28-7d290e2d2aad",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 345.0,
+              "y": 365.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "Stripes / rotated grid",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          },
+          {
+            "blend_mode": "normal",
+            "clip": null,
+            "effects": [],
+            "fill": {
+              "enabled": true,
+              "opacity": 1.0,
+              "paint": {
+                "artwork": {
+                  "blend_mode": "normal",
+                  "children": [
+                    {
+                      "blend_mode": "normal",
+                      "clip": null,
+                      "effects": [],
+                      "fill": {
+                        "color": {
+                          "a": 1.0,
+                          "b": 30,
+                          "g": 130,
+                          "r": 225
+                        },
+                        "enabled": true,
+                        "opacity": 1.0
+                      },
+                      "fill_rule": "even_odd",
+                      "id": "a5f85d67-7732-4124-b968-9015ea9cbc9b",
+                      "locked": false,
+                      "marker_end": null,
+                      "marker_mid": null,
+                      "marker_start": null,
+                      "mask": null,
+                      "metadata": {},
+                      "name": null,
+                      "opacity": 1.0,
+                      "render_progress": 1.0,
+                      "stroke": null,
+                      "subpaths": [
+                        {
+                          "closed": true,
+                          "commands": [
+                            {
+                              "point": {
+                                "x": 12.0,
+                                "y": 2.0
+                              },
+                              "type": "move_to"
+                            },
+                            {
+                              "point": {
+                                "x": 22.0,
+                                "y": 12.0
+                              },
+                              "type": "line_to"
+                            },
+                            {
+                              "point": {
+                                "x": 12.0,
+                                "y": 22.0
+                              },
+                              "type": "line_to"
+                            },
+                            {
+                              "point": {
+                                "x": 2.0,
+                                "y": 12.0
+                              },
+                              "type": "line_to"
+                            },
+                            {
+                              "type": "close"
+                            }
+                          ]
+                        }
+                      ],
+                      "tags": [],
+                      "timing": null,
+                      "transform": {
+                        "pivot": null,
+                        "rotation": 0.0,
+                        "scale_x": 1.0,
+                        "scale_y": 1.0,
+                        "translation_x": 0.0,
+                        "translation_y": 0.0
+                      },
+                      "type": "path",
+                      "visible": true,
+                      "z_index": 0
+                    },
+                    {
+                      "blend_mode": "normal",
+                      "clip": null,
+                      "effects": [],
+                      "fill": {
+                        "color": {
+                          "a": 1.0,
+                          "b": 70,
+                          "g": 45,
+                          "r": 24
+                        },
+                        "enabled": true,
+                        "opacity": 1.0
+                      },
+                      "fill_rule": "even_odd",
+                      "id": "29440841-9764-47b7-9b9d-bea0cc2ceec2",
+                      "locked": false,
+                      "marker_end": null,
+                      "marker_mid": null,
+                      "marker_start": null,
+                      "mask": null,
+                      "metadata": {},
+                      "name": null,
+                      "opacity": 1.0,
+                      "render_progress": 1.0,
+                      "stroke": null,
+                      "subpaths": [
+                        {
+                          "closed": true,
+                          "commands": [
+                            {
+                              "point": {
+                                "x": 15.0,
+                                "y": 12.0
+                              },
+                              "type": "move_to"
+                            },
+                            {
+                              "end": {
+                                "x": 9.0,
+                                "y": 12.0
+                              },
+                              "large_arc": false,
+                              "radius_x": 3.0,
+                              "radius_y": 3.0,
+                              "sweep": true,
+                              "type": "elliptical_arc_to",
+                              "x_axis_rotation": 0.0
+                            },
+                            {
+                              "end": {
+                                "x": 15.0,
+                                "y": 12.0
+                              },
+                              "large_arc": false,
+                              "radius_x": 3.0,
+                              "radius_y": 3.0,
+                              "sweep": true,
+                              "type": "elliptical_arc_to",
+                              "x_axis_rotation": 0.0
+                            },
+                            {
+                              "type": "close"
+                            }
+                          ]
+                        }
+                      ],
+                      "tags": [],
+                      "timing": null,
+                      "transform": {
+                        "matrix": [
+                          [
+                            1.0,
+                            0.0,
+                            0.0
+                          ],
+                          [
+                            0.0,
+                            1.0,
+                            0.0
+                          ],
+                          [
+                            0.0,
+                            0.0,
+                            1.0
+                          ]
+                        ],
+                        "pivot": null,
+                        "rotation": 0.0,
+                        "scale_x": 1.0,
+                        "scale_y": 1.0,
+                        "translation_x": 0.0,
+                        "translation_y": 0.0
+                      },
+                      "type": "path",
+                      "visible": true,
+                      "z_index": 0
+                    }
+                  ],
+                  "clip": null,
+                  "effects": [],
+                  "id": "e10bfbb7-d421-4315-955a-1cd91cd93fdc",
+                  "locked": false,
+                  "mask": null,
+                  "metadata": {},
+                  "name": null,
+                  "opacity": 1.0,
+                  "render_progress": 1.0,
+                  "tags": [],
+                  "timing": null,
+                  "transform": {
+                    "pivot": null,
+                    "rotation": 0.0,
+                    "scale_x": 1.0,
+                    "scale_y": 1.0,
+                    "translation_x": 0.0,
+                    "translation_y": 0.0
+                  },
+                  "type": "group",
+                  "visible": true,
+                  "z_index": 0
+                },
+                "height": 24,
+                "opacity": 1.0,
+                "origin": {
+                  "x": 0.0,
+                  "y": 0.0
+                },
+                "space": "object",
+                "spacing": [
+                  6,
+                  6
+                ],
+                "transform": {
+                  "pivot": null,
+                  "rotation": 0.0,
+                  "scale_x": 1.0,
+                  "scale_y": 1.0,
+                  "translation_x": 0.0,
+                  "translation_y": 0.0
+                },
+                "type": "vector_pattern",
+                "width": 24
+              }
+            },
+            "height": 235.0,
+            "id": "519fb838-900a-46c4-a33d-d59321979904",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "position": {
+              "x": 660.0,
+              "y": 100.0
+            },
+            "render_progress": 1.0,
+            "stroke": {
+              "cap_style": "round",
+              "color": {
+                "a": 1.0,
+                "b": 70,
+                "g": 45,
+                "r": 24
+              },
+              "dash_array": [],
+              "dash_offset": 0.0,
+              "join_style": "round",
+              "line_type": "AA",
+              "miter_limit": 4.0,
+              "opacity": 1.0,
+              "space": "screen",
+              "width": 2.0
+            },
+            "tags": [],
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "rectangle",
+            "visible": true,
+            "width": 270.0,
+            "z_index": 0
+          },
+          {
+            "alignment": "left",
+            "background_fill": null,
+            "background_radius": 0.0,
+            "blend_mode": "normal",
+            "clip": null,
+            "color": {
+              "a": 1.0,
+              "b": 70,
+              "g": 45,
+              "r": 24
+            },
+            "effects": [],
+            "font_family": "simplex",
+            "font_scale": 0.55,
+            "id": "799baa63-9de6-4ede-bd12-2acd82bf1bb0",
+            "locked": false,
+            "mask": null,
+            "metadata": {},
+            "name": null,
+            "opacity": 1.0,
+            "padding": 0.0,
+            "position": {
+              "x": 660.0,
+              "y": 365.0
+            },
+            "render_progress": 1.0,
+            "tags": [],
+            "text": "Grouped vector motif",
+            "thickness": 1,
+            "timing": null,
+            "transform": {
+              "pivot": null,
+              "rotation": 0.0,
+              "scale_x": 1.0,
+              "scale_y": 1.0,
+              "translation_x": 0.0,
+              "translation_y": 0.0
+            },
+            "type": "text",
+            "visible": true,
+            "z_index": 0
+          }
+        ],
+        "opacity": 1.0,
+        "visible": true,
+        "z_order": 0
+      }
+    ],
+    "timeline": {
+      "tracks": []
+    },
+    "width": 960
+  },
+  "schema_version": "1.12",
+  "version": "1.12"
+}

@@ -250,6 +250,9 @@ def sample_image(paint: ImagePaint, matrix: np.ndarray, width: int, height: int,
 
 def sample_paint(paint: Paint, matrix: np.ndarray, width: int, height: int, *, origin: tuple[int, int] = (0, 0)) -> np.ndarray:
     """Sample any retained spatial paint at integer pixel centers."""
+    from drawcv.styles.pattern import VectorPattern, sample_vector_pattern
+    if isinstance(paint, VectorPattern):
+        return sample_vector_pattern(paint, matrix, width, height, origin)
     if isinstance(paint, LinearGradient):
         return sample_linear(paint, matrix, width, height, origin)
     elif isinstance(paint, RadialGradient):

@@ -108,7 +108,7 @@ def test_space_validation_copy_history_json_and_old_documents():
     legacy = scene.to_dict(); legacy['version'] = legacy['schema_version'] = '1.9'
     del legacy['scene']['layers'][0]['objects'][0]['stroke']['space']
     assert Scene.from_dict(legacy).objects[0].stroke.space == 'screen'
-    assert CURRENT_SCHEMA_VERSION == '1.11'
+    assert CURRENT_SCHEMA_VERSION == '1.12'
     from drawcv import UnsupportedVersionError
     with pytest.raises(UnsupportedVersionError):
         SchemaMigrator.migrate(scene.to_dict(), target_version='1.9')

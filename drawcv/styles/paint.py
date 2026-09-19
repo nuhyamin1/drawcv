@@ -399,6 +399,9 @@ def paint_from_dict(data: dict[str, Any]) -> Paint:
         return ConicGradient.from_dict(data)
     elif ptype == "image":
         return ImagePaint.from_dict(data)
+    elif ptype == "vector_pattern":
+        from drawcv.styles.pattern import VectorPattern
+        return VectorPattern.from_dict(data)
     else:
         raise ValidationError(f"Unknown paint type: '{ptype}'")
 

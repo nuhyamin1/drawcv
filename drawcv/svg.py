@@ -377,6 +377,19 @@ class _Writer:
 
     @classmethod
     def _paint_fallback_reason(cls, paint):
+        from drawcv.styles.pattern import VectorPattern
+        if isinstance(paint, VectorPattern):
+            paint._validate()
+            def reason(node):
+                found = cls.fallback_reason(node)
+                if found:
+                    return found
+                for child in getattr(node, 'children', []):
+                    found = reason(child)
+                    if found:
+                        return found
+                return None
+            return reason(paint.artwork)
         if isinstance(paint, Color):
             return None
         if isinstance(paint, ConicGradient):
@@ -440,6 +453,7 @@ class _Writer:
             "{http://www.w3.org/1999/xlink}href": "data:image/png;base64," + base64.b64encode(encoded).decode("ascii")})
 
     def paint(self, paint, entity, *, local=False):
+        from drawcv.styles.pattern import VectorPattern
         if isinstance(paint, Color):
             return _color(paint)
         ident = self.identifier()
@@ -455,6 +469,17 @@ class _Writer:
         else:
             M = paint_mat
 
+        if isinstance(paint, VectorPattern):
+            paint._validate()
+            pw, ph = paint.width+paint.spacing[0], paint.height+paint.spacing[1]
+            pattern = ET.SubElement(self.defs, 'pattern', {
+                'id': ident, 'patternUnits': 'userSpaceOnUse',
+                'x': _number(paint.origin.x), 'y': _number(paint.origin.y),
+                'width': _number(pw), 'height': _number(ph),
+                'viewBox': f'0 0 {_number(pw)} {_number(ph)}', 'preserveAspectRatio': 'none',
+                'patternTransform': _matrix(M), 'overflow': 'hidden'})
+            self.entity(paint.tile(), pattern)
+            return f'url(#{ident})'
         if isinstance(paint, (LinearGradient, RadialGradient)):
             attrs = {"id": ident, "gradientUnits": "userSpaceOnUse", "spreadMethod": paint.spread,
                      "color-interpolation": "sRGB"}

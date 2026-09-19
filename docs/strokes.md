@@ -114,9 +114,9 @@ for those discrete changes. Numeric easing must stay inside property constraints
 
 ## Compatibility and limitations
 
-- Scene files now write schema **1.11**. Schemas 1.0 through 1.10 migrate forward;
+- Scene files now write schema **1.12**. Schemas 1.0 through 1.11 migrate forward;
   omitted stroke space defaults to `"screen"`. Older
-  readers reject 1.11 rather than silently discarding new styling. Keep old readers
+  readers reject 1.12 rather than silently discarding new styling. Keep old readers
   updated when sharing scenes. Package release/version publication is separate.
 - Existing round styles may have different boundary pixels because outlines now
   use tessellated coverage instead of OpenCV thick-line defaults. Stroke opacity

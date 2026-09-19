@@ -13,7 +13,10 @@ from drawcv.styles.paint import (
     paint_from_dict,
 )
 
+from drawcv.styles.pattern import VectorPattern
+
 __all__ = [
+    "VectorPattern",
     "FillStyle",
     "StrokeStyle",
     "GradientStop",
