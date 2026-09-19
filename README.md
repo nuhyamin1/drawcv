@@ -10,12 +10,29 @@ as scene objects; render pixels whenever you need them.
 pip install pydrawcv
 ```
 
-For this checkout, including the milestone 1 stroke improvements:
+For local development:
 
 ```bash
-pip install -e ".[dev]"
+pip install -e ".[dev,typography]"
 python -m pytest -q
 ```
+
+## What's new in 0.10.0
+
+Version 0.10.0 is a major feature release adding extensive vector-geometry tools, stroke spaces, and vector styling:
+
+- **Screen-space and object-space strokes**: `StrokeStyle(space="screen")` keeps line widths and dashes constant in screen pixels, while `StrokeStyle(space="object")` scales and shears with affine transforms.
+- **Curve-preserving shape-to-path conversion**: `shape.to_path()` converts circles, ellipses, rounded rectangles, and arcs into editable `Path` objects preserving exact elliptical curves.
+- **Stroke-to-path outlining**: `shape.stroke_to_path(tolerance=0.25)` turns solid and dashed strokes—including pressure/velocity freehand ribbons—into filled vector outlines ready for editing, boolean operations, and SVG export.
+- **Path measurement & curve queries**: `path.length()`, `path.point_at(progress)`, and `path.tangent_at(progress)` query arc-length positions and tangent unit vectors.
+- **Curve-preserving trimming & splitting**: `path.trim(start, end)` and `path.split_at(progress)` extract segments along semantic curves without polygon flattening.
+- **Filled-region offsets**: `path.offset(distance, join_style=...)` expands or contracts closed regions with round, bevel, or miter joins, correctly handling holes.
+- **Reusable path markers**: `Marker(artwork, ...)` attaches reusable vector artwork to `path.marker_start`, `marker_mid`, and `marker_end` with auto-tangent orientation.
+- **Editable vector patterns**: `VectorPattern(artwork, width, height, ...)` provides live tileable vector pattern fills and strokes with native SVG `<pattern>` export.
+- **Editable alpha & luminance vector masks**: `VectorMask(artwork, bounds, mode=...)` enables soft fades and vector masks with native SVG `<mask />` export.
+- **Rendering & SVG fidelity fixes**: Nonzero fills, clipping, root SVG attributes, transformed text clipping, and strict paint-order diagnostics.
+
+See the complete [0.10.0 Release Notes](RELEASE_NOTES.md) for full API examples and compatibility contracts.
 
 ## Draw and export an image
 
@@ -128,6 +145,7 @@ python -m examples.progressive_drawing
 python -m examples.transparent_output
 ```
 
+- [Detailed 0.10.0 Release Notes](RELEASE_NOTES.md).
 - [Stroke comparison source](examples/stroke_styles.py) and [editable scene](examples/output/stroke_styles.json).
 - [Vector path boolean operations and coordinate contracts](docs/path-boolean.md); [runnable gallery](examples/path_boolean_operations.py).
 - [Exact shape-to-path conversion and curve-preserving SVG export](docs/path-conversion.md).
@@ -160,10 +178,10 @@ python -m examples.transparent_output
 | --- | --- | --- |
 | Geometry | Lines, polygons, circles/ellipses, arcs, rectangles, arrows, quadratic/cubic curves, compound paths, vector booleans (union, intersection, difference, XOR) | Curves rasterize as approximations during OpenCV rendering |
 | Strokes | Butt/round/square caps, round/bevel/miter joins, miter limits, dashed and variable-width outlines | Screen/object stroke spaces; arrowhead outlines stay solid |
-| Paint | Solid, linear/radial/conic gradients, gradient strokes, RGBA stops, repeat/reflect spread, image tiles, fill rules, blend modes | Editable vector pattern tiles remain future work |
+| Paint | Solid, linear/radial/conic gradients, gradient strokes, RGBA stops, repeat/reflect spread, image tiles, editable vector patterns, fill rules, blend modes | Nested vector patterns inside pattern artwork remain unsupported |
 | Freehand | Raw editable samples; pressure/velocity widths; simplification, smoothing, interpolation | No textured brush system |
 | Scene | Groups, layers, lookup, selection, relative positioning, affine transforms | Bounds may be conservative; hit testing is geometric and can select dash gaps |
-| Compositing | Opt-in straight BGRA/PNG output; premultiplied images, masks, blur, shadows, isolated opacity, blend modes, raster effects | Alpha export currently PNG only |
+| Compositing | Opt-in straight BGRA/PNG output; premultiplied images, raster masks, editable alpha/luminance vector masks, blur, shadows, isolated opacity, blend modes, raster effects | Alpha export currently PNG only |
 | Typography | Hershey compatibility; optional TTF/OTF, Latin/Thai/Arabic shaping, ICU bidi, explicit fallback, wrapping and metrics | Other scripts, emoji, advanced format controls and glyph strokes remain unsupported |
 | Persistence | JSON 1.13; forward migration; cloning; undo/redo | Direct edits require transaction discipline; older readers need updating |
 | Animation | Timing, easing, numeric/value tracks, progressive drawing, video | No built-in enum/dash-array interpolation; codec availability varies |

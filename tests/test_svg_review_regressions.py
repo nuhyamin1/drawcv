@@ -56,6 +56,10 @@ def test_root_viewbox_transform_order():
 @pytest.mark.parametrize('clip_geometry', ['<rect width="45" height="100"/>',
                                          '<path d="M0 0H45V100H0Z"/>'])
 def test_transformed_text_clip_export(transform, clip_geometry):
+    pytest.importorskip("uharfbuzz")
+    pytest.importorskip("freetype")
+    pytest.importorskip("icu")
+    pytest.importorskip("regex")
     from pathlib import Path
     from drawcv import DictFontResolver, FontAsset
     fonts = Path(__file__).parent / 'assets' / 'fonts'
