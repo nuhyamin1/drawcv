@@ -131,6 +131,7 @@ python -m examples.transparent_output
 - [Stroke comparison source](examples/stroke_styles.py) and [editable scene](examples/output/stroke_styles.json).
 - [Vector path boolean operations and coordinate contracts](docs/path-boolean.md); [runnable gallery](examples/path_boolean_operations.py).
 - [Exact shape-to-path conversion and curve-preserving SVG export](docs/path-conversion.md).
+- [Stroke-to-path conversion for editable outlines and boolean operations](docs/stroke-conversion.md).
 - [Transparent PNG example](examples/transparent_output.py) and [external-composition preview](examples/output/transparent_output_preview.png).
 - [Gradient paints and coordinate contracts](docs/gradients.md); [runnable gallery](examples/gradient_fills.py).
 - [Alpha API and compositing conventions](docs/transparency.md).

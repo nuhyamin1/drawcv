@@ -406,6 +406,19 @@ class Drawable(ABC):
         from drawcv.core.path_conversion import to_path
         return to_path(self, preserve_world_transform=preserve_world_transform)
 
+    def stroke_to_path(self, *, tolerance: float = 0.25):
+        """Return a detached world-space filled outline of the full standard stroke.
+
+        Curves and round caps/joins are approximated using a world-unit tolerance.
+        The stroke paint and opacity are retained; source fill, clips, masks,
+        effects, timing and ancestor appearance are excluded. Geometry is frozen
+        at the current transform, with a new ID and identity result transform.
+        Supported shapes are the same as to_path(); variable-width freehand
+        and text outlining are not supported. Missing/zero-width strokes are empty.
+        """
+        from drawcv.core.stroke_conversion import stroke_to_path
+        return stroke_to_path(self, tolerance=tolerance)
+
     def clone(self, new_id: bool = True) -> Drawable:
         """Create a deep copy of this drawable entity."""
         cloned = copy.deepcopy(self)

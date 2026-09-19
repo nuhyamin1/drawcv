@@ -102,6 +102,12 @@ def stroke_mask(width, height, contours, style, line_type, transform=None):
         cv2.circle(mask, tuple(np.rint(p * 256).astype(int)),
                    int(round(radius * 256)), 255, -1, line_type, shift=8)
 
+    _stroke_geometry(contours, style, polygon, disk)
+    return mask
+
+
+def _stroke_geometry(contours, style, polygon, disk):
+    """Emit shared ribbons, caps and joins through geometry callbacks."""
     for samples, closed in contours:
         for run, loop in dash_contour(samples, closed, style):
             points = np.asarray(run)
@@ -154,4 +160,3 @@ def stroke_mask(width, height, contours, style, line_type, transform=None):
                         n = np.array([-direction[1], direction[0]])*radius
                         extension = direction*radius
                         polygon([p+n, p+extension+n, p+extension-n, p-n])
-    return mask
