@@ -16,7 +16,7 @@ from drawcv.core.color import Color
 from drawcv.core.enums import ArcClosure, BlendMode, FillRule, ImageInterpolation
 from drawcv.core.exceptions import RenderError, ValidationError
 from drawcv.core.geometry import Point
-from drawcv.core.geometry_utils import flatten_arc, transform_elliptical_arc
+from drawcv.core.geometry_utils import transform_elliptical_arc
 from drawcv.effects.clipping import ClipPath, ClipRect, get_clip_point_mapper
 from drawcv.group import Group
 from drawcv.layer import Layer
@@ -503,9 +503,10 @@ class _Writer:
         def coords(p):
             p = p if local else obj.to_world(p)
             return f"{_number(p.x)} {_number(p.y)}"
-        if isinstance(obj, Path):
+        if isinstance(obj, (Path, Circle, Ellipse, RoundedRectangle, Arc)):
+            from drawcv.core.path_conversion import path_subpaths
             commands = []
-            for subpath in obj.subpaths:
+            for subpath in path_subpaths(obj):
                 cur_loc = Point(0.0, 0.0)
                 for cmd in subpath.commands:
                     if isinstance(cmd, (MoveTo, LineTo)):
@@ -554,14 +555,5 @@ class _Writer:
         elif isinstance(obj, FreehandStroke):
             points, closed = obj.get_processed_points(), False
         else:
-            tolerance = 0.25 / max(float(np.linalg.norm(obj.world_matrix[:2, :2], ord=2)), 1e-12)
-            if isinstance(obj, (Circle, Ellipse)):
-                rx, ry = (obj.radius, obj.radius) if isinstance(obj, Circle) else (obj.radius_x, obj.radius_y)
-                if rx <= 0 or ry <= 0:
-                    return ""
-                points = flatten_arc(obj.center, rx, ry, 0, 360, tolerance=tolerance)
-            else:
-                points = obj.get_contour_points(tolerance=tolerance)
-                if isinstance(obj, Arc):
-                    closed = obj.closure != ArcClosure.OPEN
+            raise RenderError(f"Unsupported SVG path geometry: {type(obj).__name__}")
         return _points((p if local else obj.to_world(p) for p in points), closed)

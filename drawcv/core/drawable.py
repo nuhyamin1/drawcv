@@ -394,6 +394,18 @@ class Drawable(ABC):
         """Test whether a world-space Point intersects this object."""
         pass
 
+    def to_path(self, *, preserve_world_transform: bool = False):
+        """Convert supported vector geometry to an independent, exact Path.
+
+        Local geometry, own appearance and resolved local transform are retained.
+        The result has a new ID and no parent, layer or scene. Set
+        preserve_world_transform=True to include ancestor transforms; ancestor
+        opacity, clips and effects are not copied. Unsupported types raise
+        ValidationError. Curves remain semantic curves, not sampled polygons.
+        """
+        from drawcv.core.path_conversion import to_path
+        return to_path(self, preserve_world_transform=preserve_world_transform)
+
     def clone(self, new_id: bool = True) -> Drawable:
         """Create a deep copy of this drawable entity."""
         cloned = copy.deepcopy(self)
