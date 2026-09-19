@@ -102,6 +102,9 @@ class Mask:
             return None
         if not isinstance(data, dict):
             raise ValidationError(f"Mask data must be a dict, got {type(data).__name__}")
+        if data.get('type') == 'vector_mask':
+            from drawcv.effects.vector_mask import VectorMask
+            return VectorMask.from_dict(data)
 
         buf_data = data.get("buffer")
         if not isinstance(buf_data, dict):
@@ -125,4 +128,3 @@ class Mask:
         mapping_val = MaskMapping(mapping_str) if isinstance(mapping_str, str) else MaskMapping.FIT_BOUNDS
         inverted_val = bool(data.get("inverted", False))
         return cls(buffer=decoded, mapping=mapping_val, inverted=inverted_val)
-

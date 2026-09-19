@@ -90,7 +90,7 @@ def test_json_copy_live_edits_and_old_schema():
     restored=Scene.from_json(scene.to_json()).objects[0]
     assert restored.fill.paint.to_dict()==paint.to_dict()
     from drawcv import CURRENT_SCHEMA_VERSION, SchemaMigrator
-    assert CURRENT_SCHEMA_VERSION=='1.12'
+    assert CURRENT_SCHEMA_VERSION=='1.13'
     old=Scene(10,10).to_dict();old['version']='1.11'
     assert Scene.from_dict(SchemaMigrator.migrate(old)).width==10
 

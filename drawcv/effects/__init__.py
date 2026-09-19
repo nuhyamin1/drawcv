@@ -30,6 +30,7 @@ from drawcv.effects.effect import Effect
 from drawcv.effects.emboss import EmbossEffect
 from drawcv.effects.glow import GlowEffect
 from drawcv.effects.mask import Mask
+from drawcv.effects.vector_mask import VectorMask
 from drawcv.effects.noise import NoiseEffect
 from drawcv.effects.shadow import ShadowEffect
 from drawcv.effects.sharpen import SharpenEffect
@@ -64,6 +65,7 @@ __all__ = [
     "GrayscaleEffect",
     "HueShiftEffect",
     "Mask",
+    "VectorMask",
     "NoiseEffect",
     "SaturationEffect",
     "SepiaEffect",

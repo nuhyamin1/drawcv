@@ -179,7 +179,7 @@ def test_schema_migration_and_geometry_only_operations_exclude_markers():
     if 'schema_version' in data:
         data['schema_version'] = '1.10'
     migrated = SchemaMigrator.migrate(data)
-    assert CURRENT_SCHEMA_VERSION == '1.12'
+    assert CURRENT_SCHEMA_VERSION == '1.13'
     assert Scene.from_dict(migrated).find_by_type(Path)[0].marker_end is not None
     assert p.stroke_to_path().marker_end is None
     assert p.length() == 120

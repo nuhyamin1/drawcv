@@ -163,7 +163,7 @@ def test_text_with_runs_serialization_roundtrip():
 
 
 def test_legacy_text_deserialization_defaults():
-    assert CURRENT_SCHEMA_VERSION == "1.12"
+    assert CURRENT_SCHEMA_VERSION == "1.13"
     legacy_doc = {
         "format": "drawcv",
         "version": "1.8",

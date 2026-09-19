@@ -202,6 +202,19 @@ class _Writer:
             self.raster(entity, group)
             return
         group.set("opacity", _number(entity.opacity))
+        from drawcv.effects.vector_mask import VectorMask
+        if isinstance(entity.mask, VectorMask):
+            mask = entity.mask
+            mask._validate()
+            ident = self.identifier()
+            bounds = mask.world_bounds(entity)
+            node = ET.SubElement(self.defs, 'mask', {
+                'id': ident, 'maskUnits': 'userSpaceOnUse', 'maskContentUnits': 'userSpaceOnUse',
+                'x': _number(bounds.x), 'y': _number(bounds.y),
+                'width': _number(bounds.width), 'height': _number(bounds.height),
+                'mask-type': mask.mode, 'style': f'mask-type: {mask.mode}', 'color-interpolation': 'sRGB'})
+            self.entity(mask.content(entity), node)
+            group.set('mask', f'url(#{ident})')
         if entity.clip is not None:
             clip = entity.clip
             ident = self.identifier()
@@ -409,7 +422,22 @@ class _Writer:
         if entity.effects:
             return "effects"
         if entity.mask is not None:
-            return "mask"
+            from drawcv.effects.vector_mask import VectorMask
+            if not isinstance(entity.mask, VectorMask):
+                return "mask"
+            entity.mask._validate()
+            def mask_reason(node):
+                reason = cls.fallback_reason(node)
+                if reason:
+                    return reason
+                for child in getattr(node, 'children', []):
+                    reason = mask_reason(child)
+                    if reason:
+                        return reason
+                return None
+            reason = mask_reason(entity.mask.artwork)
+            if reason:
+                return f'vector mask artwork: {reason}'
         if entity.clip is not None and not isinstance(entity.clip, (ClipRect, ClipPath, Path)):
             return "unsupported clip"
         if isinstance(entity, FreehandStroke) and entity.variable_width:

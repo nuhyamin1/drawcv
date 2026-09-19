@@ -11,7 +11,7 @@ from drawcv.core.exceptions import (
     UnsupportedVersionError,
 )
 
-CURRENT_SCHEMA_VERSION = "1.12"
+CURRENT_SCHEMA_VERSION = "1.13"
 CURRENT_FORMAT_IDENTIFIER = "drawcv"
 
 _DRAWABLE_REGISTRY: dict[str, type] = {}
@@ -456,3 +456,15 @@ def _migrate_1_11_to_1_12(data: dict[str, Any]) -> dict[str, Any]:
 
 
 SchemaMigrator.register_migration('1.11', _migrate_1_11_to_1_12)
+
+
+def _migrate_1_12_to_1_13(data: dict[str, Any]) -> dict[str, Any]:
+    """Keep legacy raster masks unchanged while enabling typed vector masks."""
+    migrated = copy.deepcopy(data)
+    migrated['version'] = '1.13'
+    if 'schema_version' in migrated:
+        migrated['schema_version'] = '1.13'
+    return migrated
+
+
+SchemaMigrator.register_migration('1.12', _migrate_1_12_to_1_13)

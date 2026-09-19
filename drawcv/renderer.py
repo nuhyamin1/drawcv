@@ -334,8 +334,11 @@ class OpenCVRenderer:
         # d. Mask Modulation (4-channel scale, mapped to pre-effect visual bounds)
         if getattr(entity, "mask", None) is not None:
             mask_obj = entity.mask
+            from drawcv.effects.vector_mask import VectorMask
             full_mask = np.zeros((destination.height, destination.width), dtype=np.float32)
-            if mask_obj.mapping == MaskMapping.FIT_BOUNDS:
+            if isinstance(mask_obj, VectorMask):
+                full_mask = mask_obj.coverage(entity, destination.width, destination.height)
+            elif mask_obj.mapping == MaskMapping.FIT_BOUNDS:
                 pb = pre_effect_bounds
                 px1 = max(0, int(math.floor(pb.left)))
                 py1 = max(0, int(math.floor(pb.top)))
@@ -824,6 +827,9 @@ class OpenCVRenderer:
     # -------------------------------------------------------------------------
 
     def _requires_alpha_pipeline(self, entity):
+        from drawcv.effects.vector_mask import VectorMask
+        if isinstance(getattr(entity, 'mask', None), VectorMask):
+            return True
         if isinstance(entity, Path) and any(getattr(entity, name) is not None for name in ('marker_start', 'marker_mid', 'marker_end')):
             # Path and marker artwork form one compositing unit even in BGR output.
             return True
