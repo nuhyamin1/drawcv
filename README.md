@@ -90,7 +90,7 @@ state. Use `scene.edit` for compound changes and geometry edits, and `scene.batc
 for multiple recorded commands. See [reliable edits](https://github.com/nuhyamin1/drawcv/blob/master/docs/reliability.md) for
 rollback guarantees and the limits of raw attribute/list mutation.
 
-New scenes use schema **1.14**, including shape labels, vector masks, vector patterns, reusable path markers, retained text runs, path clips, paints, and effects.
+New scenes use schema **1.14**, including shape labels, paint order, vector masks, vector patterns, reusable path markers, retained text runs, path clips, paints, and effects.
 Schemas 1.0 through 1.13 load with compatible defaults. Older readers reject 1.14;
 update readers before sharing new documents with them.
 
@@ -133,6 +133,10 @@ Labels follow their shape through moves, resizes, rotation and animation, and
 export to SVG as native text when they use a retained font. See
 [shape labels](https://github.com/nuhyamin1/drawcv/blob/master/docs/labels.md).
 
+Set `paint_order="stroke"` to draw a shape's stroke behind its fill, like SVG
+`paint-order`, which keeps outlines from eating into thin shapes and text-like
+artwork. See [paint order](https://github.com/nuhyamin1/drawcv/blob/master/docs/paint-order.md).
+
 ## Animate a drawing
 
 ```python
@@ -170,6 +174,7 @@ python -m examples.transparent_output
 - [Path length, positions and tangent directions](https://github.com/nuhyamin1/drawcv/blob/master/docs/path-measurement.md).
 - [Curve-preserving trimming and splitting](https://github.com/nuhyamin1/drawcv/blob/master/docs/path-editing.md).
 - [Filled-region offsets: expansion, contraction, holes and joins](https://github.com/nuhyamin1/drawcv/blob/master/docs/path-offsets.md).
+- [Paint order: stroke behind fill, markers first](https://github.com/nuhyamin1/drawcv/blob/master/docs/paint-order.md).
 - [Shape labels: text aligned inside or around any shape](https://github.com/nuhyamin1/drawcv/blob/master/docs/labels.md); [runnable gallery](https://github.com/nuhyamin1/drawcv/blob/master/examples/shape_labels.py).
 - [Reusable path markers and custom arrowheads](https://github.com/nuhyamin1/drawcv/blob/master/docs/markers.md).
 - [Editable vector-pattern paints](https://github.com/nuhyamin1/drawcv/blob/master/docs/vector-patterns.md).
@@ -203,6 +208,6 @@ python -m examples.transparent_output
 | Typography | Hershey compatibility; optional TTF/OTF, Latin/Thai/Arabic shaping, ICU bidi, explicit fallback, wrapping and metrics | Other scripts, emoji, advanced format controls and glyph strokes remain unsupported |
 | Persistence | JSON 1.14; forward migration; cloning; undo/redo | Direct edits require transaction discipline; older readers need updating |
 | Animation | Timing, easing, numeric/value tracks, progressive drawing, video | No built-in enum/dash-array interpolation; codec availability varies |
-| Interchange | Native retained SVG import & export with text interchange and reported PNG fallbacks; raster images, editable JSON, video | PDF export remains future work |
+| Interchange | Native retained SVG import & export with text interchange, paint order, SVG filters for blur/shadow/glow/color/convolution effects, vector arrows and pressure strokes, and reported PNG fallbacks; raster images, editable JSON, video | PDF export remains future work |
 | Performance | Profiled benchmarks; coverage-region blending/gradients; cheaper transform resolution | Full-canvas masks/effect surfaces remain; no dirty-region redraw |
 

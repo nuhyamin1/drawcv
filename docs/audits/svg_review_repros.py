@@ -1,4 +1,4 @@
-"""Review probes for 0.9.1, updated with the strict paint-order rejection contract.
+"""Review probes for 0.9.1, updated now that paint order is retained.
 
 Run explicitly: python -m pytest -q docs/audits/svg_review_repros.py
 Requires the project's dev/typography dependencies and resvg-py.
@@ -39,13 +39,15 @@ def test_import_preserves_interior_pixels(root_attrs, body, point):
     assert actual[y, x].tolist() == expected[y, x].tolist()
 
 
-def test_unsupported_paint_order_is_rejected():
-    from drawcv import SVGImportError
-    svg = ('<svg width="100" height="100"><rect x="20" y="20" width="60" height="60" '
+def test_paint_order_matches_reference_renderer():
+    svg = ('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">'
+           '<rect x="20" y="20" width="60" height="60" '
            'fill="red" stroke="blue" stroke-width="20" paint-order="stroke fill"/></svg>')
-    with pytest.raises(SVGImportError) as error:
-        SVGImporter().parse(svg)
-    assert error.value.diagnostic.code == 'SVG_UNSUPPORTED_PAINT_ORDER'
+    scene = SVGImporter().parse(svg).scene
+    expected = reference(svg)
+    for candidate in (scene, SVGImporter().parse(scene.to_svg(strict=True)).scene):
+        actual = OpenCVRenderer().render(candidate, alpha=True).buffer
+        assert actual[25, 50].tolist() == expected[25, 50].tolist()  # stroke's inner half
 
 
 def test_transformed_text_keeps_clip_position_on_export():

@@ -34,19 +34,48 @@ at each rasterized subtree root. A drawable that OpenCV cannot render raises
 | Solid, linear, radial fill/stroke | Native paint definitions, stop alpha, paint transforms, and pad/repeat/reflect spread |
 | ImagePaint tiles | Native embedded image pattern for repeat + linear interpolation; other modes use reported PNG fallback |
 | Caps, joins, miter limit, dashes | Native stroke properties in the selected screen/object space |
+| Paint order | `paint-order` attribute; paths whose markers are not painted last split into fill, marker and stroke elements |
 | Groups/layers, stacking, opacity | Nested isolated SVG groups in retained draw order |
 | ClipRect, ClipPath | Native world-space clip paths on the owning group |
-| Masks, blur, shadows | Cropped transparent PNG of the affected subtree |
+| Vector masks | Native `<mask>` |
+| Raster masks | Cropped transparent PNG of the affected subtree |
+| Blur, shadow, glow, color effects, convolution | Native `<filter>` in effect order; see [effects as filters](#effects-as-svg-filters) |
+| Sharpen, emboss, edge detection, noise, displacement, biased convolution | Cropped transparent PNG of the affected subtree |
 | Text | Native text/tspan for the supported font-resolved subset; reported PNG fallback for Hershey, wrapping, and other unsupported layouts |
 | ImageObject | Cropped transparent PNG after DrawCV transforms/interpolation |
 | Shape labels | Native text inside the host group for single-line font labels; reported `<host id>-label` PNG fallback otherwise |
-| Arrow and variable-width freehand | Cropped transparent PNG |
+| Arrow | Native shaft and head shapes in the arrow's coordinates; circle heads under a non-uniform transform use a PNG |
+| Variable-width (pressure/velocity) freehand | Native filled outline from `stroke_to_path()` |
 
 Native exported text remains editable. No fonts are embedded in SVG, so the viewer
 needs matching fonts for matching appearance. Raster fallback text preserves its
 rendered appearance without viewer fonts. Retained font rendering needs the typography
-extra on the exporting machine. Glyph outlines, native image placement, SVG filter mapping,
-and vector pressure ribbons remain possible extensions.
+extra on the exporting machine. Glyph outlines and native image placement remain
+possible extensions.
+
+## Effects as SVG filters
+
+Each supported effect becomes filter primitives that compute the same operation as
+its raster processor, chained in list order inside one `<filter>` with
+`color-interpolation-filters="sRGB"`. SVG applies a filter before clipping, masking
+and opacity, the same order DrawCV uses.
+
+| Effect | Primitives |
+| --- | --- |
+| Brightness/contrast, saturation, grayscale, sepia, hue shift, color matrix | `feColorMatrix` with DrawCV's Rec.709 coefficients, not SVG's `saturate` shorthand |
+| Gaussian blur | `feGaussianBlur` when the kernel covers ±3σ; otherwise two 1-D `feConvolveMatrix` passes with OpenCV's truncated weights |
+| Box blur | Two 1-D `feConvolveMatrix` passes |
+| Shadow | Offset and blur of the alpha, flood color, merged under the source |
+| Glow | Blurred alpha minus source alpha (`feComposite` arithmetic), flood color, merged under |
+| Convolution | `feConvolveMatrix` with `preserveAlpha`, kernel rotated 180° (SVG convolves, OpenCV correlates) |
+
+The filter region is the effect bounds clipped to the canvas, because DrawCV runs
+effects on a canvas-sized surface. Applied by resvg to DrawCV's own unfiltered
+pixels, the filters match DrawCV within about 3/255 per channel. Fractional shadow
+offsets differ by up to about 11/255 because renderers interpolate `feOffset`
+differently, and sharpening kernels differ slightly at faint antialiased edges.
+Convolution with a non-zero bias falls back to PNG: DrawCV adds the bias before
+clamping, while SVG clamps first.
 
 ## Coordinates and compositing
 
@@ -120,7 +149,7 @@ Anything accepted by `SVGImporter` in strict mode becomes genuine retained DrawC
 * **Security & limits**: XML `DOCTYPE` and `ENTITY` declarations are forbidden (`SVG_SECURITY_VIOLATION`), external URLs in `href` are forbidden, reference cycles in `<use>` are detected and rejected (`SVG_REFERENCE_CYCLE`), and configurable limits protect against CPU/memory exhaustion (`max_use_instances`, exact `max_expanded_elements`, `max_reference_depth`, `max_file_bytes`, `max_elements`, etc.).
 * **Text**: Supported `<text>`/`<tspan>` content imports as retained text with explicit font resolution. Advanced text placement and text-on-path remain restricted.
 * **Root properties**: Root opacity is applied once to the composed subtree. Root transforms wrap the viewBox mapping, and root display and clip-path are retained in rendering behavior.
-* **Paint order**: Normal fill-before-stroke order is supported. A different `paint-order` is rejected with `SVG_UNSUPPORTED_PAINT_ORDER`, including inline style declarations, rather than silently changing the picture.
+* **Paint order**: `paint-order` is retained on imported shapes, including inline style declarations and inheritance; `initial` resets it to normal. Malformed values are rejected with `SVG_INVALID_PAINT_ORDER`.
 * **Deferred constructs**: `<mask>`, `<filter>`, `<image>`, and `<pattern>` import remain deferred. Export and import capabilities are not identical.
 
 Groups carry `data-drawcv-id`; generated SVG IDs are unique and deterministic for the

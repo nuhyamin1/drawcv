@@ -546,6 +546,7 @@ class Path(Drawable):
         Evaluates de Casteljau adaptive subdivision on transformed control points
         so the tolerance (in screen pixels) remains scale-invariant.
         """
+        to_world = self._world_mapper()
         world_contours: list[list[Point]] = []
         closed_flags: list[bool] = []
 
@@ -561,7 +562,7 @@ class Path(Drawable):
 
             for cmd in sp.commands:
                 if isinstance(cmd, MoveTo):
-                    pt_w = self.to_world(cmd.point)
+                    pt_w = to_world(cmd.point)
                     if contour:
                         world_contours.append(contour)
                         closed_flags.append(False)
@@ -574,25 +575,25 @@ class Path(Drawable):
 
                 elif isinstance(cmd, LineTo):
                     if current_w is None:
-                        current_w = self.to_world(Point(0.0, 0.0))
+                        current_w = to_world(Point(0.0, 0.0))
                         current_loc = Point(0.0, 0.0)
                         start_w = current_w
                         start_loc = current_loc
                         contour.append(current_w)
-                    pt_w = self.to_world(cmd.point)
+                    pt_w = to_world(cmd.point)
                     contour.append(pt_w)
                     current_w = pt_w
                     current_loc = cmd.point
 
                 elif isinstance(cmd, QuadraticTo):
                     if current_w is None:
-                        current_w = self.to_world(Point(0.0, 0.0))
+                        current_w = to_world(Point(0.0, 0.0))
                         current_loc = Point(0.0, 0.0)
                         start_w = current_w
                         start_loc = current_loc
                         contour.append(current_w)
-                    ctrl_w = self.to_world(cmd.control)
-                    end_w = self.to_world(cmd.end)
+                    ctrl_w = to_world(cmd.control)
+                    end_w = to_world(cmd.end)
                     subdiv = flatten_quadratic_bezier(current_w, ctrl_w, end_w, tolerance=tolerance)
                     # Skip the first point since it matches current_w
                     contour.extend(subdiv[1:])
@@ -601,14 +602,14 @@ class Path(Drawable):
 
                 elif isinstance(cmd, CubicTo):
                     if current_w is None:
-                        current_w = self.to_world(Point(0.0, 0.0))
+                        current_w = to_world(Point(0.0, 0.0))
                         current_loc = Point(0.0, 0.0)
                         start_w = current_w
                         start_loc = current_loc
                         contour.append(current_w)
-                    c1_w = self.to_world(cmd.control1)
-                    c2_w = self.to_world(cmd.control2)
-                    end_w = self.to_world(cmd.end)
+                    c1_w = to_world(cmd.control1)
+                    c2_w = to_world(cmd.control2)
+                    end_w = to_world(cmd.end)
                     subdiv = flatten_cubic_bezier(current_w, c1_w, c2_w, end_w, tolerance=tolerance)
                     contour.extend(subdiv[1:])
                     current_w = end_w
@@ -616,7 +617,7 @@ class Path(Drawable):
 
                 elif isinstance(cmd, EllipticalArcTo):
                     if current_w is None:
-                        current_w = self.to_world(Point(0.0, 0.0))
+                        current_w = to_world(Point(0.0, 0.0))
                         current_loc = Point(0.0, 0.0)
                         start_w = current_w
                         start_loc = current_loc
@@ -822,34 +823,35 @@ class Path(Drawable):
 
     def get_bounds(self) -> BoundingBox:
         """World-space visual AABB using analytical extrema of transformed segments."""
+        to_world = self._world_mapper()
         all_boxes: list[BoundingBox] = []
 
         for sp in self.subpaths:
             cur_loc: Point = Point(0.0, 0.0)
-            cur_w: Point = self.to_world(Point(0.0, 0.0))
+            cur_w: Point = to_world(Point(0.0, 0.0))
             for cmd in sp.commands:
                 if isinstance(cmd, MoveTo):
                     cur_loc = cmd.point
-                    cur_w = self.to_world(cmd.point)
+                    cur_w = to_world(cmd.point)
                     all_boxes.append(BoundingBox(cur_w.x, cur_w.y, 0.0, 0.0))
                 elif isinstance(cmd, LineTo):
-                    p_w = self.to_world(cmd.point)
+                    p_w = to_world(cmd.point)
                     min_x, max_x = min(cur_w.x, p_w.x), max(cur_w.x, p_w.x)
                     min_y, max_y = min(cur_w.y, p_w.y), max(cur_w.y, p_w.y)
                     all_boxes.append(BoundingBox(min_x, min_y, max_x - min_x, max_y - min_y))
                     cur_loc = cmd.point
                     cur_w = p_w
                 elif isinstance(cmd, QuadraticTo):
-                    c_w = self.to_world(cmd.control)
-                    e_w = self.to_world(cmd.end)
+                    c_w = to_world(cmd.control)
+                    e_w = to_world(cmd.end)
                     x, y, w, h = bezier_extrema_bounds(cur_w, c_w, e_w)
                     all_boxes.append(BoundingBox(x, y, w, h))
                     cur_loc = cmd.end
                     cur_w = e_w
                 elif isinstance(cmd, CubicTo):
-                    c1_w = self.to_world(cmd.control1)
-                    c2_w = self.to_world(cmd.control2)
-                    e_w = self.to_world(cmd.end)
+                    c1_w = to_world(cmd.control1)
+                    c2_w = to_world(cmd.control2)
+                    e_w = to_world(cmd.end)
                     x, y, w, h = bezier_extrema_bounds(cur_w, c1_w, c2_w, e_w)
                     all_boxes.append(BoundingBox(x, y, w, h))
                     cur_loc = cmd.end
@@ -861,7 +863,7 @@ class Path(Drawable):
                     )
                     all_boxes.append(BoundingBox(x, y, w, h))
                     cur_loc = cmd.end
-                    cur_w = self.to_world(cmd.end)
+                    cur_w = to_world(cmd.end)
 
         if not all_boxes:
             return BoundingBox(0.0, 0.0, 0.0, 0.0)

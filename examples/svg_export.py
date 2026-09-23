@@ -41,13 +41,13 @@ def build_scene():
     scene.add(Circle(center=Point(750, 375), radius=65,
         fill=FillStyle(paint=RadialGradient(Point(725, 350), 115, stops)),
         effects=[BlurEffect(kernel_size=9), ShadowEffect(offset_x=12, offset_y=14, blur_radius=8)],
-        opacity=.8, name='Raster fallback: effects'))
+        opacity=.8, name='SVG filter: effects'))
     labels = ['VECTOR / LINEAR PAINT', 'VECTOR / CURVES + HOLE', 'VECTOR / CLIP + WORLD PAINT',
-              'VECTOR / DASHES + CAPS', 'VECTOR / GROUP OPACITY', 'PNG FALLBACK / BLUR + SHADOW']
+              'VECTOR / DASHES + CAPS', 'VECTOR / GROUP OPACITY', 'SVG FILTER / BLUR + SHADOW']
     for index, label in enumerate(labels):
         scene.add(Text(label, position=Point(25+(index%3)*300, 16+(index//3)*260),
             font_scale=.42, color=Color(235, 238, 245), name=label))
-    scene.add(Text('Editable paths and paints. Embedded PNGs preserve unsupported rendering.',
+    scene.add(Text('Editable paths, paints and filters. Hershey labels use embedded PNGs.',
         position=Point(25, 520), font_scale=.5, color=Color(220, 225, 235)))
     return scene
 

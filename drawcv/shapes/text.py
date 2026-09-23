@@ -14,6 +14,7 @@ from drawcv.core.color import Color
 from drawcv.core.drawable import Drawable
 from drawcv.core.enums import FontFamily, TextAlignment
 from drawcv.core.exceptions import ValidationError
+from drawcv.core.paint_order import normalize_paint_order
 from drawcv.core.geometry import Point
 from drawcv.core.geometry_utils import measure_text_size
 from drawcv.core.transform import Transform
@@ -193,6 +194,7 @@ class Text(Drawable):
         effects: list[Any] | None = None,
         timing: Any | None = None,
         render_progress: float = 1.0,
+        paint_order: str = "normal",
         **kwargs: Any,
     ):
         super_kwargs: dict[str, Any] = {
@@ -205,6 +207,7 @@ class Text(Drawable):
             "mask": mask,
             "timing": timing,
             "render_progress": float(render_progress),
+            "paint_order": paint_order,
         }
         if id is not None:
             super_kwargs["id"] = id
@@ -307,6 +310,8 @@ class Text(Drawable):
             value = tuple(value)
         if name == "label":
             self._check_label(value)
+        if name == "paint_order":
+            value = normalize_paint_order(value)
         if getattr(self, "_font_initialized", False) and name in (
             "fonts", "font_size", "font_family_name", "font_weight", "font_style",
             "runs", "text_origin", "text_anchor", "fill_opacity", "fill_none", "is_font_substituted",
@@ -596,6 +601,7 @@ class Text(Drawable):
             clip=copy.deepcopy(self.clip),
             mask=copy.deepcopy(self.mask),
             effects=copy.deepcopy(self.effects),
+            paint_order=self.paint_order,
         )
 
     def _get_shape_state(self) -> dict[str, Any]:

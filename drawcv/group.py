@@ -42,6 +42,7 @@ class Group(Drawable):
         render_progress: float = 1.0,
         blend_mode: BlendMode | str = BlendMode.NORMAL,
         label: Any | None = None,
+        paint_order: str = "normal",
         **kwargs: Any,
     ):
         super_kwargs: dict[str, Any] = {
@@ -56,6 +57,7 @@ class Group(Drawable):
             "timing": timing,
             "render_progress": float(render_progress),
             "label": label,
+            "paint_order": paint_order,
         }
         if id is not None:
             super_kwargs["id"] = id
@@ -335,6 +337,7 @@ class Group(Drawable):
             mask=copy.deepcopy(self.mask),
             effects=copy.deepcopy(self.effects),
             label=copy.deepcopy(self.label),
+            paint_order=self.paint_order,
         )
 
         for child in self._children:

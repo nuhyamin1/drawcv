@@ -26,6 +26,7 @@ from drawcv.core.enums import (
 )
 from drawcv.core.exceptions import RenderError, ValidationError
 from drawcv.core.geometry import Point
+from drawcv.core.paint_order import paint_steps
 from drawcv.core.alpha import (
     clamp_premultiplied, premultiply, source_over, spread_channels, tint, unpremultiply,
 )
@@ -424,10 +425,8 @@ class OpenCVRenderer:
         ).reshape((-1, 1, 2))
         bounds = rect.get_bounds()
 
-        # 1. Render Fill if enabled
-        self._fill_polygon(rect, canvas, pts)
-
-        self._stroke_contours(rect, canvas, [(world_corners, True)])
+        self._paint(rect, lambda: self._fill_polygon(rect, canvas, pts),
+                    lambda: self._stroke_contours(rect, canvas, [(world_corners, True)]))
 
     def _render_circle(self, circle: Circle, canvas: Canvas | _IsolatedSurface) -> None:
         if circle.radius <= 0:
@@ -438,10 +437,8 @@ class OpenCVRenderer:
         pts = np.rint([[p.x, p.y] for p in world_pts]).astype(np.int32)
         bounds = circle.get_bounds()
 
-        # 1. Render Fill if enabled
-        self._fill_polygon(circle, canvas, pts)
-
-        self._stroke_contours(circle, canvas, [(world_pts, True)])
+        self._paint(circle, lambda: self._fill_polygon(circle, canvas, pts),
+                    lambda: self._stroke_contours(circle, canvas, [(world_pts, True)]))
 
     def _render_ellipse(self, ellipse: Ellipse, canvas: Canvas | _IsolatedSurface) -> None:
         if ellipse.radius_x <= 0 or ellipse.radius_y <= 0:
@@ -453,10 +450,8 @@ class OpenCVRenderer:
         pts = np.array([[int(round(p.x)), int(round(p.y))] for p in world_pts], dtype=np.int32).reshape((-1, 1, 2))
         bounds = ellipse.get_bounds()
 
-        # 1. Fill
-        self._fill_polygon(ellipse, canvas, pts)
-
-        self._stroke_contours(ellipse, canvas, [(world_pts, True)])
+        self._paint(ellipse, lambda: self._fill_polygon(ellipse, canvas, pts),
+                    lambda: self._stroke_contours(ellipse, canvas, [(world_pts, True)]))
 
     def _render_polygon(self, polygon: Polygon, canvas: Canvas | _IsolatedSurface) -> None:
         if len(polygon.vertices) < 3:
@@ -466,10 +461,8 @@ class OpenCVRenderer:
         pts = np.array([[int(round(p.x)), int(round(p.y))] for p in world_pts], dtype=np.int32).reshape((-1, 1, 2))
         bounds = polygon.get_bounds()
 
-        # 1. Fill
-        self._fill_polygon(polygon, canvas, pts)
-
-        self._stroke_contours(polygon, canvas, [(world_pts, True)])
+        self._paint(polygon, lambda: self._fill_polygon(polygon, canvas, pts),
+                    lambda: self._stroke_contours(polygon, canvas, [(world_pts, True)]))
 
     def _render_polyline(self, polyline, canvas):
         self._stroke_contours(polyline, canvas, [([polyline.to_world(p) for p in polyline.points], polyline.closed)])
@@ -480,10 +473,8 @@ class OpenCVRenderer:
         pts = np.array([[int(round(p.x)), int(round(p.y))] for p in world_pts], dtype=np.int32).reshape((-1, 1, 2))
         bounds = rect.get_bounds()
 
-        # 1. Fill
-        self._fill_polygon(rect, canvas, pts)
-
-        self._stroke_contours(rect, canvas, [(world_pts, True)])
+        self._paint(rect, lambda: self._fill_polygon(rect, canvas, pts),
+                    lambda: self._stroke_contours(rect, canvas, [(world_pts, True)]))
 
     def _render_arc(self, arc: Arc, canvas: Canvas | _IsolatedSurface) -> None:
         local_pts = arc.get_contour_points(tolerance=self._curve_tolerance(arc))
@@ -492,11 +483,9 @@ class OpenCVRenderer:
         bounds = arc.get_bounds()
         is_closed = (arc.closure != ArcClosure.OPEN)
 
-        # 1. Fill (only for CHORD or PIE)
-        if is_closed:
-            self._fill_polygon(arc, canvas, pts)
-
-        self._stroke_contours(arc, canvas, [(world_pts, is_closed)])
+        # Only CHORD and PIE closures are filled.
+        self._paint(arc, (lambda: self._fill_polygon(arc, canvas, pts)) if is_closed else None,
+                    lambda: self._stroke_contours(arc, canvas, [(world_pts, is_closed)]))
 
     def _render_arrow(self, arrow: Arrow, canvas: Canvas | _IsolatedSurface) -> None:
         """Render an Arrow with shaft stroke and marker terminals."""
@@ -511,33 +500,49 @@ class OpenCVRenderer:
         w_end, head_pts = arrow.get_world_head_geometry()
         bounds = arrow.get_bounds()
 
-        self._stroke_contours(arrow, canvas, [([w_start, w_end], False)])
         marker_stroke = stroke.copy()
         marker_stroke.dash_array = ()
-
-        # 2. Arrowhead
         fill = arrow.fill
+
+        def draw_shaft():
+            self._stroke_contours(arrow, canvas, [([w_start, w_end], False)])
+
+        head_fill = head_stroke = None
         if arrow.head_style in (ArrowHeadStyle.TRIANGLE, ArrowHeadStyle.DIAMOND):
             pts_head = np.array([[int(round(p.x)), int(round(p.y))] for p in head_pts], dtype=np.int32).reshape((-1, 1, 2))
-            self._fill_polygon(arrow, canvas, pts_head)
-            self._stroke_contours(arrow, canvas, [(head_pts, True)], style=marker_stroke)
+            head_fill = lambda: self._fill_polygon(arrow, canvas, pts_head)
+            head_stroke = lambda: self._stroke_contours(arrow, canvas, [(head_pts, True)], style=marker_stroke)
 
         elif arrow.head_style == ArrowHeadStyle.OPEN:
-            self._stroke_contours(arrow, canvas, [(head_pts, False)], style=marker_stroke)
+            head_stroke = lambda: self._stroke_contours(arrow, canvas, [(head_pts, False)], style=marker_stroke)
 
         elif arrow.head_style == ArrowHeadStyle.CIRCLE:
             c = head_pts[0]
             r = max(1, int(round(head_pts[1].x)))
             c_int = (int(round(c.x)), int(round(c.y)))
-            if fill is not None and fill.enabled and fill.opacity > 0:
-                if isinstance(fill.paint, Color) and self._is_direct_draw(canvas, fill.color.a * fill.opacity * self._get_render_opacity(arrow)):
-                    cv2.circle(canvas.buffer, c_int, r, fill.color.to_bgr(), -1, cv2.LINE_AA)
-                else:
-                    mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-                    cv2.circle(mask, c_int, r, 255, -1, cv2.LINE_AA)
-                    self._fill_mask(arrow, canvas, mask)
+
+            def head_fill():
+                if fill is not None and fill.enabled and fill.opacity > 0:
+                    if isinstance(fill.paint, Color) and self._is_direct_draw(canvas, fill.color.a * fill.opacity * self._get_render_opacity(arrow)):
+                        cv2.circle(canvas.buffer, c_int, r, fill.color.to_bgr(), -1, cv2.LINE_AA)
+                    else:
+                        mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
+                        cv2.circle(mask, c_int, r, 255, -1, cv2.LINE_AA)
+                        self._fill_mask(arrow, canvas, mask)
             ring = flatten_arc(c, r, r, 0, 360, tolerance=0.25)
-            self._stroke_contours(arrow, canvas, [(ring, True)], style=marker_stroke)
+            head_stroke = lambda: self._stroke_contours(arrow, canvas, [(ring, True)], style=marker_stroke)
+
+        if arrow.paint_order == "normal":
+            # Legacy sequence: the shaft is drawn before the head fill.
+            for step in (draw_shaft, head_fill, head_stroke):
+                if step is not None:
+                    step()
+        else:
+            def draw_strokes():
+                draw_shaft()
+                if head_stroke is not None:
+                    head_stroke()
+            self._paint(arrow, head_fill, draw_strokes)
 
     def _render_bezier(self, bezier, canvas):
         self._stroke_contours(bezier, canvas, [(bezier.flatten_world(tolerance=0.25), False)])
@@ -550,17 +555,20 @@ class OpenCVRenderer:
 
         bounds = path.get_bounds()
 
-        # 1. Fill using topological fill rule evaluator
-        fill = path.fill
-        if fill is not None and fill.enabled and fill.opacity > 0:
-            mask = evaluate_fill_rule_mask(world_contours, path.fill_rule, canvas.width, canvas.height, supersample=2)
-            self._fill_mask(path, canvas, mask)
+        def fill_path():
+            # Fill using topological fill rule evaluator
+            fill = path.fill
+            if fill is not None and fill.enabled and fill.opacity > 0:
+                mask = evaluate_fill_rule_mask(world_contours, path.fill_rule, canvas.width, canvas.height, supersample=2)
+                self._fill_mask(path, canvas, mask)
 
-        self._stroke_contours(path, canvas, contours)
-        from drawcv.markers import marker_instances
-        for instance in marker_instances(path):
-            instance.opacity *= self._get_render_opacity(path)
-            self._render_single(instance, canvas)
+        def draw_markers():
+            from drawcv.markers import marker_instances
+            for instance in marker_instances(path):
+                instance.opacity *= self._get_render_opacity(path)
+                self._render_single(instance, canvas)
+
+        self._paint(path, fill_path, lambda: self._stroke_contours(path, canvas, contours), draw_markers)
 
     def _render_freehand(self, freehand, canvas):
         points = freehand.get_processed_points()
@@ -569,6 +577,14 @@ class OpenCVRenderer:
         world = self._world_points(freehand, points)
         widths = freehand.get_point_widths(points) if freehand.variable_width else None
         self._stroke_contours(freehand, canvas, [(world, False)], widths=widths)
+
+    @staticmethod
+    def _paint(drawable, fill=None, stroke=None, markers=None):
+        """Run a drawable's fill, stroke and marker steps in its paint order."""
+        steps = {"fill": fill, "stroke": stroke, "markers": markers}
+        for name in paint_steps(drawable.paint_order):
+            if steps[name] is not None:
+                steps[name]()
 
     @staticmethod
     def _world_points(drawable, points):

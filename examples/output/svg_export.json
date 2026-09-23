@@ -10,6 +10,7 @@
     "height": 570,
     "layers": [
       {
+        "blend_mode": "normal",
         "clip": null,
         "effects": [],
         "locked": false,
@@ -17,6 +18,7 @@
         "name": "default",
         "objects": [
           {
+            "blend_mode": "normal",
             "clip": null,
             "corner_radius": 24.0,
             "effects": [],
@@ -29,6 +31,7 @@
                   "y": 225.0
                 },
                 "space": "object",
+                "spread": "pad",
                 "start": {
                   "x": 35.0,
                   "y": 55.0
@@ -62,11 +65,19 @@
                     "position": 1
                   }
                 ],
+                "transform": {
+                  "pivot": null,
+                  "rotation": 0.0,
+                  "scale_x": 1.0,
+                  "scale_y": 1.0,
+                  "translation_x": 0.0,
+                  "translation_y": 0.0
+                },
                 "type": "linear"
               }
             },
             "height": 170.0,
-            "id": "e18ef824-6954-4462-a502-4e2ae4719963",
+            "id": "029265b8-e758-46a4-98a5-9b545d0597d7",
             "locked": false,
             "mask": null,
             "metadata": {},
@@ -87,6 +98,7 @@
               "line_type": "AA",
               "miter_limit": 4.0,
               "opacity": 1.0,
+              "space": "screen",
               "width": 3.0
             },
             "tags": [],
@@ -107,6 +119,7 @@
             "z_index": 0
           },
           {
+            "blend_mode": "normal",
             "clip": null,
             "effects": [],
             "fill": {
@@ -119,6 +132,7 @@
                 },
                 "radius": 120,
                 "space": "object",
+                "spread": "pad",
                 "stops": [
                   {
                     "color": {
@@ -148,12 +162,23 @@
                     "position": 1
                   }
                 ],
+                "transform": {
+                  "pivot": null,
+                  "rotation": 0.0,
+                  "scale_x": 1.0,
+                  "scale_y": 1.0,
+                  "translation_x": 0.0,
+                  "translation_y": 0.0
+                },
                 "type": "radial"
               }
             },
             "fill_rule": "even_odd",
-            "id": "3a85c367-d8fb-4830-8050-4206be5cd804",
+            "id": "a189d3d1-3f12-428c-8868-ee5fe6fb7640",
             "locked": false,
+            "marker_end": null,
+            "marker_mid": null,
+            "marker_start": null,
             "mask": null,
             "metadata": {},
             "name": "Editable curves and hole",
@@ -173,6 +198,7 @@
               "line_type": "AA",
               "miter_limit": 4.0,
               "opacity": 1.0,
+              "space": "screen",
               "width": 4.0
             },
             "subpaths": [
@@ -258,6 +284,7 @@
             "z_index": 0
           },
           {
+            "blend_mode": "normal",
             "clip": {
               "height": 145.0,
               "type": "rect",
@@ -276,6 +303,7 @@
                   "y": 205.0
                 },
                 "space": "world",
+                "spread": "pad",
                 "start": {
                   "x": 640.0,
                   "y": 65.0
@@ -309,11 +337,19 @@
                     "position": 1
                   }
                 ],
+                "transform": {
+                  "pivot": null,
+                  "rotation": 0.0,
+                  "scale_x": 1.0,
+                  "scale_y": 1.0,
+                  "translation_x": 0.0,
+                  "translation_y": 0.0
+                },
                 "type": "linear"
               }
             },
             "height": 140.0,
-            "id": "ccfa10ee-d52e-40ef-92f8-df9add39f06d",
+            "id": "76304ab7-9d14-47f0-9272-83b526bb190d",
             "locked": false,
             "mask": null,
             "metadata": {},
@@ -337,6 +373,7 @@
               "line_type": "AA",
               "miter_limit": 4.0,
               "opacity": 1.0,
+              "space": "screen",
               "width": 5.0
             },
             "tags": [],
@@ -357,10 +394,11 @@
             "z_index": 0
           },
           {
+            "blend_mode": "normal",
             "clip": null,
             "closed": false,
             "effects": [],
-            "id": "afc0e700-46b1-49b2-8df0-0e4fc28e45f2",
+            "id": "3ca9243e-379b-488f-9081-e89a701f01da",
             "locked": false,
             "mask": null,
             "metadata": {},
@@ -398,6 +436,7 @@
               "line_type": "AA",
               "miter_limit": 4.0,
               "opacity": 1.0,
+              "space": "screen",
               "width": 12.0
             },
             "tags": [],
@@ -415,10 +454,11 @@
             "z_index": 0
           },
           {
+            "blend_mode": "normal",
             "clip": null,
             "closed": false,
             "effects": [],
-            "id": "d2129037-6fbe-49ee-a743-de12e97fef91",
+            "id": "c7ccf0ad-99b9-4baa-a0e8-f20d024c7b50",
             "locked": false,
             "mask": null,
             "metadata": {},
@@ -456,6 +496,7 @@
               "line_type": "AA",
               "miter_limit": 4.0,
               "opacity": 1.0,
+              "space": "screen",
               "width": 12.0
             },
             "tags": [],
@@ -473,10 +514,11 @@
             "z_index": 0
           },
           {
+            "blend_mode": "normal",
             "clip": null,
             "closed": false,
             "effects": [],
-            "id": "35636021-79b9-4441-89d3-c8005189e5ec",
+            "id": "90917f15-2793-4688-8d7a-f4aeecd0c4ca",
             "locked": false,
             "mask": null,
             "metadata": {},
@@ -514,6 +556,7 @@
               "line_type": "AA",
               "miter_limit": 4.0,
               "opacity": 1.0,
+              "space": "screen",
               "width": 12.0
             },
             "tags": [],
@@ -531,8 +574,10 @@
             "z_index": 0
           },
           {
+            "blend_mode": "normal",
             "children": [
               {
+                "blend_mode": "normal",
                 "center": {
                   "x": 410.0,
                   "y": 360.0
@@ -549,7 +594,7 @@
                   "enabled": true,
                   "opacity": 1.0
                 },
-                "id": "2e1eaf13-22e6-4516-8774-57c2cf3d4d7b",
+                "id": "78f6cebc-d55f-493e-a34c-8d15f585a011",
                 "locked": false,
                 "mask": null,
                 "metadata": {},
@@ -573,6 +618,7 @@
                 "z_index": 0
               },
               {
+                "blend_mode": "normal",
                 "center": {
                   "x": 470.0,
                   "y": 390.0
@@ -589,7 +635,7 @@
                   "enabled": true,
                   "opacity": 1.0
                 },
-                "id": "36778689-015c-47a8-87a5-e9b3d3bd9015",
+                "id": "3dd2fb79-9808-4294-8c16-afdcd6955207",
                 "locked": false,
                 "mask": null,
                 "metadata": {},
@@ -615,7 +661,7 @@
             ],
             "clip": null,
             "effects": [],
-            "id": "67209a89-131b-46e9-a6d2-2b7cc0520f32",
+            "id": "854bb41a-8287-4bf5-b505-0a03012a0589",
             "locked": false,
             "mask": null,
             "metadata": {},
@@ -637,6 +683,7 @@
             "z_index": 0
           },
           {
+            "blend_mode": "normal",
             "center": {
               "x": 750.0,
               "y": 375.0
@@ -673,6 +720,7 @@
                 },
                 "radius": 115,
                 "space": "object",
+                "spread": "pad",
                 "stops": [
                   {
                     "color": {
@@ -702,14 +750,22 @@
                     "position": 1
                   }
                 ],
+                "transform": {
+                  "pivot": null,
+                  "rotation": 0.0,
+                  "scale_x": 1.0,
+                  "scale_y": 1.0,
+                  "translation_x": 0.0,
+                  "translation_y": 0.0
+                },
                 "type": "radial"
               }
             },
-            "id": "a13784c0-cc50-411a-bce3-6317615ef6dd",
+            "id": "0c4a1b16-5897-4c4d-8b62-c432729267e7",
             "locked": false,
             "mask": null,
             "metadata": {},
-            "name": "Raster fallback: effects",
+            "name": "SVG filter: effects",
             "opacity": 0.8,
             "radius": 65.0,
             "render_progress": 1.0,
@@ -732,6 +788,7 @@
             "alignment": "left",
             "background_fill": null,
             "background_radius": 0.0,
+            "blend_mode": "normal",
             "clip": null,
             "color": {
               "a": 1.0,
@@ -742,7 +799,7 @@
             "effects": [],
             "font_family": "simplex",
             "font_scale": 0.42,
-            "id": "aabe046a-a979-4b17-a6f2-6663f3171383",
+            "id": "bb999ed5-7be8-48de-8872-514215200449",
             "locked": false,
             "mask": null,
             "metadata": {},
@@ -774,6 +831,7 @@
             "alignment": "left",
             "background_fill": null,
             "background_radius": 0.0,
+            "blend_mode": "normal",
             "clip": null,
             "color": {
               "a": 1.0,
@@ -784,7 +842,7 @@
             "effects": [],
             "font_family": "simplex",
             "font_scale": 0.42,
-            "id": "3ef3e62e-8850-44eb-870d-04a5199ac7c2",
+            "id": "626aaea4-3d75-4348-b47b-63f226d10ce1",
             "locked": false,
             "mask": null,
             "metadata": {},
@@ -816,6 +874,7 @@
             "alignment": "left",
             "background_fill": null,
             "background_radius": 0.0,
+            "blend_mode": "normal",
             "clip": null,
             "color": {
               "a": 1.0,
@@ -826,7 +885,7 @@
             "effects": [],
             "font_family": "simplex",
             "font_scale": 0.42,
-            "id": "afc186c2-e80f-4963-868e-d60537c8b357",
+            "id": "543989f3-75e5-47cc-8ff9-f047bb94fcb4",
             "locked": false,
             "mask": null,
             "metadata": {},
@@ -858,6 +917,7 @@
             "alignment": "left",
             "background_fill": null,
             "background_radius": 0.0,
+            "blend_mode": "normal",
             "clip": null,
             "color": {
               "a": 1.0,
@@ -868,7 +928,7 @@
             "effects": [],
             "font_family": "simplex",
             "font_scale": 0.42,
-            "id": "8dec6211-9bde-41f9-b33f-c01cb491a559",
+            "id": "17996acb-bce8-4e8b-9329-0fcf61b3ea32",
             "locked": false,
             "mask": null,
             "metadata": {},
@@ -900,6 +960,7 @@
             "alignment": "left",
             "background_fill": null,
             "background_radius": 0.0,
+            "blend_mode": "normal",
             "clip": null,
             "color": {
               "a": 1.0,
@@ -910,7 +971,7 @@
             "effects": [],
             "font_family": "simplex",
             "font_scale": 0.42,
-            "id": "b5b5daa8-6a15-4418-8b91-9963ca441544",
+            "id": "7887b070-4ed3-48cf-af26-f5c1a99ab4c5",
             "locked": false,
             "mask": null,
             "metadata": {},
@@ -942,6 +1003,7 @@
             "alignment": "left",
             "background_fill": null,
             "background_radius": 0.0,
+            "blend_mode": "normal",
             "clip": null,
             "color": {
               "a": 1.0,
@@ -952,11 +1014,11 @@
             "effects": [],
             "font_family": "simplex",
             "font_scale": 0.42,
-            "id": "870aacba-4f7e-458f-b0d2-bdc4c9336c92",
+            "id": "54944c0e-e048-4433-ac23-b8f196e26189",
             "locked": false,
             "mask": null,
             "metadata": {},
-            "name": "PNG FALLBACK / BLUR + SHADOW",
+            "name": "SVG FILTER / BLUR + SHADOW",
             "opacity": 1.0,
             "padding": 0.0,
             "position": {
@@ -965,7 +1027,7 @@
             },
             "render_progress": 1.0,
             "tags": [],
-            "text": "PNG FALLBACK / BLUR + SHADOW",
+            "text": "SVG FILTER / BLUR + SHADOW",
             "thickness": 1,
             "timing": null,
             "transform": {
@@ -984,6 +1046,7 @@
             "alignment": "left",
             "background_fill": null,
             "background_radius": 0.0,
+            "blend_mode": "normal",
             "clip": null,
             "color": {
               "a": 1.0,
@@ -994,7 +1057,7 @@
             "effects": [],
             "font_family": "simplex",
             "font_scale": 0.5,
-            "id": "a240749d-ff98-4be8-a239-02d216782a4c",
+            "id": "7c6350a5-362c-48bc-b722-9789c1fb1695",
             "locked": false,
             "mask": null,
             "metadata": {},
@@ -1007,7 +1070,7 @@
             },
             "render_progress": 1.0,
             "tags": [],
-            "text": "Editable paths and paints. Embedded PNGs preserve unsupported rendering.",
+            "text": "Editable paths, paints and filters. Hershey labels use embedded PNGs.",
             "thickness": 1,
             "timing": null,
             "transform": {
@@ -1033,5 +1096,6 @@
     },
     "width": 900
   },
-  "version": "1.4"
+  "schema_version": "1.14",
+  "version": "1.14"
 }

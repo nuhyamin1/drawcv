@@ -7,7 +7,7 @@ import pytest
 
 from drawcv import (Path, Point, Rectangle, Group, Color, FillStyle, VectorMask,
                     BoundingBox, Transform, Scene, OpenCVRenderer, Mask,
-                    LinearGradient, GradientStop, ValidationError, BlurEffect, RenderError)
+                    LinearGradient, GradientStop, ValidationError, BlurEffect, RenderError, SharpenEffect)
 from drawcv.effects.clipping import ClipRect
 
 
@@ -95,7 +95,7 @@ def test_live_artwork_json_clone_state_and_source_parent_preserved():
 
 
 def test_mask_artwork_effects_and_svg_fallback():
-    art=artwork();art.effects=[BlurEffect(kernel_size=5)]
+    art=artwork();art.effects=[SharpenEffect()]
     node=host(VectorMask(art,BoundingBox(0,0,100,80)))
     assert render(node)[30,30,3]==255
     scene=Scene(160,120);scene.add(node)

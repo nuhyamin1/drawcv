@@ -164,10 +164,7 @@ def test_parent_opacity_and_marker_effect_bounds():
     marker = list(marker_instances(p))[0]
     assert p.get_bounds().bottom >= marker.get_effect_bounds().bottom
     scene = Scene(180,180); scene.add(group)
-    assert scene.export_svg().fallbacks
-    from drawcv import RenderError
-    with pytest.raises(RenderError):
-        scene.export_svg(strict=True)
+    assert "<filter" in scene.to_svg(strict=True)  # marker artwork blur exports natively
 
 
 def test_schema_migration_and_geometry_only_operations_exclude_markers():

@@ -640,30 +640,33 @@ class TestEffectsSerializationAndHistory:
 
 
 class TestEffectsSVGExport:
-    """Verify SVG export triggers raster fallback accounting for entities with effects."""
+    """Verify SVG export uses native filters, or reports a raster fallback when it cannot."""
 
-    def test_svg_export_raster_fallback_with_effects(self):
-        """Entities with effects trigger raster fallback in SVG export."""
+    def test_svg_export_uses_native_filters_for_effects(self):
+        """Shadow and glow stacks export as editable SVG filters, even in strict mode."""
         scene = Scene(100, 100)
         rect = Rectangle(position=Point(10, 10), width=40, height=40, fill=FillStyle(color=Color.red()))
-        rect.effects = [ShadowEffect(blur_radius=4.0)]
+        rect.effects = [ShadowEffect(blur_radius=4.0), GlowEffect(blur_radius=5.0)]
+        scene.add(rect)
+
+        svg = scene.to_svg(strict=True)
+        assert "<filter" in svg and "<image" not in svg
+
+    def test_svg_export_raster_fallback_with_unsupported_effect(self):
+        """Effects without a filter equivalent trigger a reported raster fallback."""
+        from drawcv.core.exceptions import RenderError
+        from drawcv import NoiseEffect
+
+        scene = Scene(100, 100)
+        rect = Rectangle(position=Point(10, 10), width=40, height=40, fill=FillStyle(color=Color.red()))
+        rect.effects = [ShadowEffect(blur_radius=4.0), NoiseEffect()]
         scene.add(rect)
 
         res = scene.export_svg()
         assert len(res.fallbacks) == 1
-        assert res.fallbacks[0].reason == "effects"
+        assert res.fallbacks[0].reason == "effect noise"
         assert res.fallbacks[0].entity == rect.id
         assert "<image" in res.svg
-
-    def test_svg_export_strict_mode_rejects_effects(self):
-        """Strict SVG export raises RenderError when effects require raster fallback."""
-        from drawcv.core.exceptions import RenderError
-
-        scene = Scene(100, 100)
-        rect = Rectangle(position=Point(10, 10), width=40, height=40, fill=FillStyle(color=Color.red()))
-        rect.effects = [GlowEffect(blur_radius=5.0)]
-        scene.add(rect)
-
         with pytest.raises(RenderError, match="SVG requires raster fallback"):
             scene.export_svg(strict=True)
 

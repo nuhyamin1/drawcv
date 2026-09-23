@@ -11,6 +11,7 @@ from drawcv import (Scene, Color, Point, Rectangle, Circle, Ellipse, RoundedRect
     Line, Polyline, Polygon, Path, BezierCurve, Arc, FreehandStroke, StrokePoint,
     FillStyle, StrokeStyle, LinearGradient, RadialGradient, GradientStop, Group,
     Transform, Text, ClipRect, ClipPath, Mask, BlurEffect, ShadowEffect, SVGExporter,
+    SharpenEffect, NoiseEffect, Arrow, ArrowHeadStyle,
     RenderError, ValidationError, OpenCVRenderer, CapStyle, JoinStyle, FillRule,
     ImageObject)
 
@@ -115,22 +116,22 @@ def test_gradient_independent_samples(paint):
     assert np.max(np.abs(pm(svg[40:80, 50:110])-pm(reference[40:80, 50:110]))) < 5
 
 
-@pytest.mark.parametrize('kind', ['text', 'blur', 'shadow', 'mask', 'image', 'pressure'])
+@pytest.mark.parametrize('kind', ['text', 'sharpen', 'noise', 'mask', 'image', 'sheared-circle-arrow'])
 def test_fallback_exact_png_and_strict_no_file_write(kind, tmp_path):
     obj = rect()
     if kind == 'text':
         obj = Text('Hello', position=Point(30, 40))
-    elif kind == 'blur':
-        obj.effects = [BlurEffect(kernel_size=9)]
-    elif kind == 'shadow':
-        obj.effects = [ShadowEffect()]
+    elif kind == 'sharpen':
+        obj.effects = [BlurEffect(kernel_size=9), SharpenEffect()]
+    elif kind == 'noise':
+        obj.effects = [ShadowEffect(), NoiseEffect()]
     elif kind == 'mask':
         obj.mask = Mask(np.full((160, 240), 150, np.uint8))
     elif kind == 'image':
         obj = ImageObject(np.full((20, 30, 4), (0, 0, 255, 100), np.uint8), position=Point(20, 20))
     else:
-        obj = FreehandStroke(points=[StrokePoint(10, 20), StrokePoint(90, 50)],
-            stroke=StrokeStyle(width=8), variable_width=True)
+        obj = Arrow(start=Point(20, 30), end=Point(150, 90), head_style=ArrowHeadStyle.CIRCLE,
+            stroke=StrokeStyle(width=4), transform=Transform.from_matrix(np.array([[1, .4, 0], [0, 1, 0], [0, 0, 1.]])))
     obj.opacity = .6
     s = scene(obj)
     before = s.to_json()
@@ -146,7 +147,7 @@ def test_fallback_exact_png_and_strict_no_file_write(kind, tmp_path):
 
 def test_nested_fallback_does_not_bake_ancestor_opacity():
     child = rect(opacity=.7)
-    child.effects = [BlurEffect(kernel_size=5)]
+    child.effects = [SharpenEffect()]
     group = Group(children=[child], opacity=.4)
     s = scene(group)
     s.layers[0].opacity = .5
@@ -164,7 +165,7 @@ def test_group_and_layer_fallback_isolated_as_unit():
     group.mask = Mask(np.full((160, 240), 200, np.uint8))
     np.testing.assert_array_equal(fallback_pixels(s.export_svg()), OpenCVRenderer().render(s, alpha=True).buffer)
     group.mask = None
-    s.layers[0].effects = [BlurEffect(kernel_size=7)]
+    s.layers[0].effects = [BlurEffect(kernel_size=7), SharpenEffect()]
     s.layers[0].opacity = .5
     result = s.export_svg()
     assert len(result.fallbacks) == 1 and result.fallbacks[0].entity == 'default'
@@ -234,7 +235,7 @@ def test_temporal_svg_restores_identity_and_state_on_failure():
     result = s.render_at_time(.5, renderer=SVGExporter(strict=True))
     assert 'opacity="0.75"' in result.svg
     assert s.to_json() == before and s.get(obj.id) is obj
-    obj.effects = [BlurEffect(kernel_size=5)]
+    obj.effects = [SharpenEffect()]
     before = s.to_json()
     with pytest.raises(RenderError):
         s.render_at_time(.5, renderer=SVGExporter(strict=True))

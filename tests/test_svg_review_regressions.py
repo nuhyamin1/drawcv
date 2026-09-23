@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import pytest
 
-from drawcv import OpenCVRenderer, SVGImporter, Scene
+from drawcv import OpenCVRenderer, Rectangle, SVGImporter, Scene
 
 
 def reference(svg, **kwargs):
@@ -79,15 +79,22 @@ def test_transformed_text_clip_export(transform, clip_geometry):
     assert np.max(np.abs(original.astype(int) - exported.astype(int))) <= 1
 
 
-@pytest.mark.parametrize('attribute', ['paint-order="stroke fill"',
-                                      'style="paint-order:stroke fill"',
-                                      'paint-order="normal" style="paint-order:stroke"'])
-def test_unsupported_paint_order_is_explicit(attribute):
-    from drawcv import SVGImportError
+@pytest.mark.parametrize('attribute,expected', [('paint-order="stroke fill"', 'stroke fill markers'),
+                                               ('style="paint-order:stroke fill"', 'stroke fill markers'),
+                                               ('paint-order="normal" style="paint-order:stroke"', 'stroke fill markers'),
+                                               ('paint-order="markers"', 'markers fill stroke')])
+def test_paint_order_is_imported(attribute, expected):
     svg = f'<svg width="100" height="100"><rect width="80" height="80" {attribute}/></svg>'
+    rect = SVGImporter().parse(svg).scene.find_by_type(Rectangle)[0]
+    assert rect.paint_order == expected
+
+
+def test_invalid_paint_order_is_explicit():
+    from drawcv import SVGImportError
+    svg = '<svg width="100" height="100"><rect width="80" height="80" paint-order="stroke stroke"/></svg>'
     with pytest.raises(SVGImportError) as error:
         SVGImporter().parse(svg)
-    assert error.value.diagnostic.code == 'SVG_UNSUPPORTED_PAINT_ORDER'
+    assert error.value.diagnostic.code == 'SVG_INVALID_PAINT_ORDER'
 
 
 @pytest.mark.parametrize('value', ['normal', 'fill', 'fill stroke', 'fill stroke markers'])

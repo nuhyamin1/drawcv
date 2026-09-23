@@ -19,6 +19,13 @@ alpha arithmetic, scene identity and observational animation rendering.
 4. **Avoid unused geometry queries for explicit pivots.** Coordinate and parent-bound
    mapping no longer calculate a default geometry center when a pivot is supplied.
    Dynamic default pivots still derive their center from current geometry.
+5. **Resolve path pivots once per flatten/bounds call.** `Path.flatten_world` and
+   `Path.get_bounds` previously called `to_world` per point, recomputing the geometry
+   bounds of the path and every ancestor for their default pivots, which is quadratic
+   in path size. `Drawable._world_mapper` resolves those pivots once and applies the
+   same `transform_point` calls in the same order, so results are identical. An
+   imported 315-command outline inside SVG viewport groups rendered in 29.6 s before
+   and 0.14 s after; the full test suite went from about 70 s to 30 s.
 
 There is no cache between render calls and no new invalidation protocol. Edits,
 cloning, history, masks/effects, progressive geometry and animation continue to

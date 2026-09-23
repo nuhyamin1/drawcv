@@ -49,6 +49,7 @@ class ImageObject(Drawable):
         timing: Any | None = None,
         render_progress: float = 1.0,
         label: Any | None = None,
+        paint_order: str = "normal",
         **kwargs: Any,
     ):
         super_kwargs: dict[str, Any] = {
@@ -62,6 +63,7 @@ class ImageObject(Drawable):
             "timing": timing,
             "render_progress": float(render_progress),
             "label": label,
+            "paint_order": paint_order,
         }
         if id is not None:
             super_kwargs["id"] = id
@@ -263,6 +265,7 @@ class ImageObject(Drawable):
             effects=copy.deepcopy(self.effects),
             interpolation=self.interpolation,
             label=copy.deepcopy(self.label),
+            paint_order=self.paint_order,
         )
 
     def _get_shape_state(self) -> dict[str, Any]:

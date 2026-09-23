@@ -16,6 +16,7 @@ from drawcv.core.color import Color
 from drawcv.core.enums import ArcClosure, BlendMode, FillRule, ImageInterpolation, TextAlignment
 from drawcv.core.exceptions import RenderError, ValidationError
 from drawcv.core.geometry import Point
+from drawcv.core.paint_order import paint_steps
 from drawcv.core.geometry_utils import transform_elliptical_arc
 from drawcv.effects.clipping import ClipPath, ClipRect, get_clip_point_mapper
 from drawcv.group import Group
@@ -174,6 +175,69 @@ def _baseline_label(text: Text) -> Text:
     return result
 
 
+def _arrow_parts(arrow):
+    """Shaft and head shapes that render like the arrow, or None if none can.
+
+    Parts share the arrow's world matrix and use its local coordinates, so both
+    stroke spaces and object paint mappings behave exactly as in the raster.
+    """
+    from drawcv.core.transform import Transform
+    from drawcv.shapes.arrow import Arrow
+    from drawcv.core.enums import ArrowHeadStyle
+    assert isinstance(arrow, Arrow)
+    stroke = arrow.stroke
+    if stroke is None or stroke.width <= 0:
+        return []
+    matrix = arrow.world_matrix
+    if abs(np.linalg.det(matrix[:2, :2])) < 1e-12:
+        return None
+    inverse = np.linalg.inv(matrix)
+
+    def local(point):
+        x, y, _ = inverse @ np.array([point.x, point.y, 1.0])
+        return Point(float(x), float(y))
+
+    def part(cls, suffix, **kwargs):
+        return cls(id=f"{arrow.id}-{suffix}", transform=Transform.from_matrix(matrix),
+                   paint_order=arrow.paint_order, **kwargs)
+
+    head_stroke = stroke.copy()
+    head_stroke.dash_array = ()
+    fill = arrow.fill.copy() if arrow.fill is not None else None
+    _, head = arrow.get_world_head_geometry()
+    parts = [part(Line, "shaft", start=arrow.start, end=arrow.end, stroke=stroke.copy())]
+    if arrow.head_style in (ArrowHeadStyle.TRIANGLE, ArrowHeadStyle.DIAMOND):
+        parts.append(part(Polygon, "head", vertices=[local(p) for p in head], fill=fill, stroke=head_stroke))
+    elif arrow.head_style == ArrowHeadStyle.OPEN:
+        parts.append(part(Polyline, "head", points=[local(p) for p in head], closed=False, stroke=head_stroke))
+    elif arrow.head_style == ArrowHeadStyle.CIRCLE:
+        # The head is a world-space circle; it stays a circle locally only under a similarity.
+        linear = matrix[:2, :2]
+        scale = math.sqrt(abs(np.linalg.det(linear)))
+        if not np.allclose(linear.T @ linear, scale * scale * np.eye(2), rtol=1e-9, atol=1e-9):
+            return None
+        radius = max(1, int(round(head[1].x)))  # the raster uses an integer radius
+        parts.append(part(Circle, "head", center=local(head[0]), radius=radius / scale, fill=fill, stroke=head_stroke))
+    return parts
+
+
+def _needs_parts(entity):
+    from drawcv.shapes.arrow import Arrow
+    return isinstance(entity, Arrow) or (isinstance(entity, FreehandStroke) and entity.variable_width)
+
+
+def _vector_parts(entity):
+    """Native replacement drawables for arrows and variable-width strokes, or None."""
+    if isinstance(entity, FreehandStroke):
+        outline = entity.stroke_to_path(tolerance=0.1)
+        outline.id = f"{entity.id}-outline"
+        outline.name = None
+        outline.opacity = 1.0  # the host group already applies opacity and blending
+        outline.blend_mode = BlendMode.NORMAL
+        return [outline]
+    return _arrow_parts(entity)
+
+
 class _Writer:
     def __init__(self, scene, strict):
         self.scene, self.strict = scene, strict
@@ -224,6 +288,8 @@ class _Writer:
             self.raster(entity, group)
             return
         group.set("opacity", _number(entity.opacity))
+        if entity.effects:
+            self.filter(entity, group)
         from drawcv.effects.vector_mask import VectorMask
         if isinstance(entity.mask, VectorMask):
             mask = entity.mask
@@ -302,6 +368,10 @@ class _Writer:
                 self.entity(child, group)
             if isinstance(entity, Group):
                 self.label(entity, group)
+        elif _needs_parts(entity):
+            for part in _vector_parts(entity):
+                self.entity(part, group)
+            self.label(entity, group)
         elif isinstance(entity, Text):
             text_attrs = {
                 # The enclosing group's clip is already in world coordinates.
@@ -406,12 +476,47 @@ class _Writer:
                 if stroke.dash_array:
                     attrs["stroke-dasharray"] = " ".join(map(_number, stroke.dash_array))
                     attrs["stroke-dashoffset"] = _number(stroke.dash_offset)
-            ET.SubElement(group, "path", attrs)
-            if isinstance(entity, Path):
-                from drawcv.markers import marker_instances
-                for instance in marker_instances(entity):
-                    self.entity(instance, group)
+            self.painted_path(entity, group, attrs)
             self.label(entity, group)
+
+    def filter(self, entity, group):
+        """Attach an SVG filter equivalent to the entity's effect stack."""
+        from drawcv.svg_filters import build_filter
+        bounds = entity.get_effect_bounds()
+        # DrawCV runs effects on a canvas-sized surface, so content beyond it is absent.
+        x1, y1 = max(0.0, bounds.left - 3), max(0.0, bounds.top - 3)
+        x2 = min(float(self.scene.width), bounds.right + 3)
+        y2 = min(float(self.scene.height), bounds.bottom + 3)
+        if x2 <= x1 or y2 <= y1:
+            return
+        ident = self.identifier()
+        build_filter(self.defs, ident, entity.effects, (x1, y1, x2 - x1, y2 - y1))
+        group.set("filter", f"url(#{ident})")
+
+    def painted_path(self, entity, group, attrs):
+        """Emit a path and its markers in the entity's paint order."""
+        from drawcv.markers import marker_instances
+        order = paint_steps(entity.paint_order)
+        instances = list(marker_instances(entity)) if isinstance(entity, Path) else []
+        if not instances or order[-1] == "markers":
+            if entity.paint_order != "normal":
+                attrs["paint-order"] = " ".join(order)
+            ET.SubElement(group, "path", attrs)
+            for instance in instances:
+                self.entity(instance, group)
+            return
+        # Markers between or before fill and stroke need separate elements.
+        stroke_names = [k for k in attrs if k.startswith("stroke") or k == "vector-effect"]
+        for step in order:
+            if step == "markers":
+                for instance in instances:
+                    self.entity(instance, group)
+            elif step == "fill" and attrs["fill"] != "none":
+                ET.SubElement(group, "path", {k: v for k, v in attrs.items() if k not in stroke_names})
+            elif step == "stroke" and attrs["stroke"] != "none":
+                part = {k: v for k, v in attrs.items() if not k.startswith("fill")}
+                part["fill"] = "none"
+                ET.SubElement(group, "path", part)
 
     def label(self, entity, parent):
         """Export a host label inside the host group, sharing its opacity and clip."""
@@ -452,7 +557,10 @@ class _Writer:
     @classmethod
     def fallback_reason(cls, entity):
         if entity.effects:
-            return "effects"
+            from drawcv.svg_filters import unsupported_effect_reason
+            reason = unsupported_effect_reason(entity.effects)
+            if reason:
+                return reason
         if entity.mask is not None:
             from drawcv.effects.vector_mask import VectorMask
             if not isinstance(entity.mask, VectorMask):
@@ -472,8 +580,9 @@ class _Writer:
                 return f'vector mask artwork: {reason}'
         if entity.clip is not None and not isinstance(entity.clip, (ClipRect, ClipPath, Path)):
             return "unsupported clip"
-        if isinstance(entity, FreehandStroke) and entity.variable_width:
-            return "variable-width stroke"
+        from drawcv.shapes.arrow import Arrow
+        if isinstance(entity, Arrow) and _arrow_parts(entity) is None:
+            return "circle arrowhead under a non-uniform or singular transform"
         if isinstance(entity, Text):
             return _text_native_svg_fallback_reason(entity)
         fill = getattr(entity, "fill", None)
@@ -487,7 +596,7 @@ class _Writer:
             if reason:
                 return f"stroke {reason}"
         supported = (Layer, Group, Line, Rectangle, Circle, Ellipse, Polygon, Polyline,
-                     RoundedRectangle, Arc, BezierCurve, Path, FreehandStroke, Text)
+                     RoundedRectangle, Arc, BezierCurve, Path, FreehandStroke, Text, Arrow)
         if type(entity) not in supported:
             return f"{type(entity).__name__} rendering"
         return None

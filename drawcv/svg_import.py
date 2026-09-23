@@ -21,6 +21,7 @@ from drawcv.core.drawable import Drawable
 from drawcv.core.enums import BlendMode, CapStyle, FillRule, JoinStyle
 from drawcv.core.exceptions import DrawCVError, ValidationError
 from drawcv.core.geometry import Point
+from drawcv.core.paint_order import normalize_paint_order
 from drawcv.core.transform import Transform
 from drawcv.effects.clipping import ClipRect
 from drawcv.group import Group
@@ -1140,6 +1141,7 @@ class ComputedStyle:
     color: Color = Color(0, 0, 0, 1.0)
     visibility: str = "visible"
     clip_rule: FillRule = FillRule.NON_ZERO
+    paint_order: str = "normal"
 
     # Typography properties (inherited)
     font_family: str | None = None
@@ -1178,6 +1180,7 @@ class ComputedStyle:
             color=self.color,
             visibility=self.visibility,
             clip_rule=self.clip_rule,
+            paint_order=self.paint_order,
             font_family=self.font_family,
             font_size=self.font_size,
             font_weight=self.font_weight,
@@ -1234,21 +1237,23 @@ class SVGStyleResolver:
                 return inline[name]
             return attrs.get(name)
 
-        # Drawing currently has a fixed fill/stroke order. Do not silently accept
-        # a declaration that changes the picture. Prefixes below expand to SVG's
-        # normal order; inherit/unset are safe because ancestors obey this gate.
+        # paint-order is inherited, so inherit/unset keep the parent's value.
         paint_order = get_prop("paint-order")
         if paint_order is not None:
-            normalized_order = " ".join(paint_order.lower().split())
-            if normalized_order not in ("normal", "fill", "fill stroke", "fill stroke markers",
-                                         "inherit", "initial", "unset"):
-                raise SVGImportError(
-                    f"Unsupported paint-order '{paint_order}'; DrawCV currently paints fill before stroke",
-                    diagnostic=SVGImportDiagnostic(
-                        code="SVG_UNSUPPORTED_PAINT_ORDER", severity="error",
-                        message=f"Unsupported paint-order '{paint_order}'", attribute="paint-order",
-                    ),
-                )
+            keyword = paint_order.strip().lower()
+            if keyword == "initial":
+                style.paint_order = "normal"
+            elif keyword not in ("inherit", "unset"):
+                try:
+                    style.paint_order = normalize_paint_order(paint_order)
+                except ValidationError:
+                    raise SVGImportError(
+                        f"Invalid paint-order '{paint_order}'",
+                        diagnostic=SVGImportDiagnostic(
+                            code="SVG_INVALID_PAINT_ORDER", severity="error",
+                            message=f"Invalid paint-order '{paint_order}'", attribute="paint-order",
+                        ),
+                    ) from None
 
         # 1. Color (for currentColor)
         color_val = get_prop("color")
@@ -3678,6 +3683,8 @@ class SVGImporter:
             if not isinstance(drawable, Group):
                 drawable.opacity = style.opacity
                 drawable.blend_mode = style.mix_blend_mode
+            if hasattr(drawable, "stroke"):
+                drawable.paint_order = style.paint_order
 
             # Apply Fill
             if hasattr(drawable, "fill") and style.fill and style.fill.lower() != "none":

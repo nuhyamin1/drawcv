@@ -1183,7 +1183,7 @@ class TestEffectsIntegration:
     @pytest.mark.parametrize(
         "effect",
         [
-            ConvolutionEffect(kernel=[[0.0, 1.0, 0.0], [1.0, -4.0, 1.0], [0.0, 1.0, 0.0]]),
+            ConvolutionEffect(kernel=[[0.0, 1.0, 0.0], [1.0, -4.0, 1.0], [0.0, 1.0, 0.0]], bias=0.5),
             SharpenEffect(amount=1.5, radius=1.0),
             EmbossEffect(strength=1.5, angle=135.0),
             EdgeDetectionEffect(method=EdgeDetectionMethod.SOBEL),
@@ -1196,7 +1196,7 @@ class TestEffectsIntegration:
         ],
     )
     def test_svg_export_fallback_and_strict_mode(self, effect):
-        """All new effects produce a raster fallback on export_svg() and raise RenderError in strict mode."""
+        """Effects without an SVG filter equivalent fall back to PNG and raise RenderError in strict mode."""
         scene = Scene(60, 60)
         rect = Rectangle(position=Point(10, 10), width=40, height=40, fill=FillStyle(color=Color.red()))
         rect.effects = [effect]

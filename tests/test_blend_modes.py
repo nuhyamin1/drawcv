@@ -30,6 +30,7 @@ from drawcv.core.enums import coerce_blend_mode
 from drawcv.compositing.blend import blend_rgb
 from drawcv.compositing.compositor import composite_blend
 from drawcv.effects.blur import BlurEffect
+from drawcv.effects.sharpen import SharpenEffect
 from drawcv.effects.clipping import ClipRect
 from drawcv.effects.mask import Mask
 from drawcv.renderer import _IsolatedSurface
@@ -682,14 +683,14 @@ class TestSvgExport:
         scene = Scene(200, 200, background=Color.white())
         rect = Rectangle(width=100, height=100, fill=FillStyle(color=Color.red()))
         rect.blend_mode = BlendMode.COLOR_DODGE
-        # Adding an effect triggers SVG raster fallback
-        rect.effects.append(BlurEffect(kernel_size=5))
+        # An effect without an SVG filter equivalent triggers raster fallback
+        rect.effects.append(SharpenEffect())
         scene.add(rect)
 
         result = scene.export_svg()
         assert 'mix-blend-mode: color-dodge;' in result.svg
         assert len(result.fallbacks) == 1
-        assert result.fallbacks[0].reason == "effects"
+        assert result.fallbacks[0].reason == "effect sharpen"
 
     def test_svg_resvg_comparison_if_available(self):
         resvg = pytest.importorskip("resvg_py")

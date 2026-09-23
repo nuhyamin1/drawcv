@@ -12,6 +12,7 @@ import numpy as np
 from drawcv.core.bounds import BoundingBox
 from drawcv.core.enums import BlendMode, coerce_blend_mode
 from drawcv.core.exceptions import ValidationError
+from drawcv.core.paint_order import normalize_paint_order
 from drawcv.core.validation import atomic_transforms
 from drawcv.core.geometry import Point
 from drawcv.core.transform import Transform
@@ -42,6 +43,7 @@ class Drawable(ABC):
     timing: Any | None = field(default=None)
     render_progress: float = 1.0
     label: Any | None = field(default=None, kw_only=True)
+    paint_order: str = field(default="normal", kw_only=True)
     _parent: Any | None = field(default=None, repr=False, compare=False)
     _layer: Any | None = field(default=None, repr=False, compare=False)
     _scene: Any | None = field(default=None, repr=False, compare=False)
@@ -51,6 +53,8 @@ class Drawable(ABC):
             value = coerce_blend_mode(value)
         elif name == "label":
             self._check_label(value)
+        elif name == "paint_order":
+            value = normalize_paint_order(value)
         super().__setattr__(name, value)
 
     def _check_label(self, value: Any) -> None:
@@ -104,6 +108,7 @@ class Drawable(ABC):
         if math.isnan(self.render_progress) or math.isinf(self.render_progress):
             raise ValidationError("Drawable 'render_progress' must be finite")
         self._check_label(self.label)
+        normalize_paint_order(self.paint_order)
 
     @property
     def progress(self) -> float:
@@ -239,6 +244,29 @@ class Drawable(ABC):
         if self._parent is not None:
             return self._parent.to_world(pt)
         return pt
+
+    def _world_mapper(self):
+        """to_world with every default pivot resolved once, for mapping many points.
+
+        Each point goes through the same transform_point calls in the same order,
+        so results are identical; only the repeated bounds queries are saved.
+        """
+        chain = []
+        node = self
+        while node is not None:
+            if getattr(node.to_world, "__func__", None) is not Drawable.to_world:
+                return self.to_world
+            pivot = node.transform.pivot
+            if pivot is None:
+                pivot = node.get_geometry_bounds().center
+            chain.append((node.transform, pivot))
+            node = node._parent
+
+        def mapper(point: Point) -> Point:
+            for transform, pivot in chain:
+                point = transform.transform_point(point, default_pivot=pivot)
+            return point
+        return mapper
 
     def to_local(self, world_point: Point) -> Point:
         """Map a Point from world space back to object local space via inverse matrix M^-1."""
@@ -485,6 +513,7 @@ class Drawable(ABC):
             "timing": self.timing.to_dict() if self.timing is not None else None,
             "render_progress": float(self.render_progress),
             "label": copy.deepcopy(self.label),
+            "paint_order": self.paint_order,
         }
         state.update(self._get_shape_state())
         return state
@@ -529,6 +558,7 @@ class Drawable(ABC):
             from drawcv.label import Label
             label_val = Label.from_dict(label_val)
         self.label = copy.deepcopy(label_val)
+        self.paint_order = state.get("paint_order", "normal")
 
         self._apply_shape_state(state)
 
@@ -558,6 +588,8 @@ class Drawable(ABC):
         }
         if self.label is not None:
             data["label"] = self.label.to_dict()
+        if self.paint_order != "normal":
+            data["paint_order"] = self.paint_order
         return data
 
     @classmethod
@@ -594,6 +626,8 @@ class Drawable(ABC):
         if data.get("label") is not None:
             from drawcv.label import Label
             result["label"] = Label.from_dict(data["label"])
+        if data.get("paint_order", "normal") != "normal":
+            result["paint_order"] = normalize_paint_order(data["paint_order"])
         return result
 
     @abstractmethod

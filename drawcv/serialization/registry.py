@@ -471,7 +471,7 @@ SchemaMigrator.register_migration('1.12', _migrate_1_12_to_1_13)
 
 
 def _migrate_1_13_to_1_14(data: dict[str, Any]) -> dict[str, Any]:
-    """Shape labels are additive; drawables without one are unchanged."""
+    """Shape labels and paint order are additive; drawables without them are unchanged."""
     migrated = copy.deepcopy(data)
     migrated['version'] = '1.14'
     if 'schema_version' in migrated:
