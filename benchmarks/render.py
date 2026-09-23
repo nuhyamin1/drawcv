@@ -20,7 +20,7 @@ import tracemalloc
 import cv2
 import numpy as np
 from drawcv import OpenCVRenderer
-from benchmarks.scenes import CASES, STRESS_CASES, TIMES, build_scene, describe
+from benchmarks.scenes import BGR_CASES, CASES, STRESS_CASES, TIMES, build_scene, describe
 
 
 def digest(data):
@@ -79,7 +79,7 @@ def worker(case, warmup, samples, threads):
     scene = build_scene(case)
     original = scene.to_json()
     renderer = OpenCVRenderer()
-    alpha = case != 'dense_bgr'
+    alpha = case not in BGR_CASES
     def frame(index):
         return (scene.render_at_time(TIMES[index%len(TIMES)], renderer, alpha=alpha).buffer
                 if case == 'animation' else renderer.render(scene, alpha=alpha).buffer)
@@ -107,7 +107,7 @@ def worker(case, warmup, samples, threads):
     profile = cProfile.Profile()
     profile.runcall(frame, 0)
     stats = pstats.Stats(profile)
-    top = sorted(stats.stats.items(), key=lambda item: item[1][3], reverse=True)[:15]
+    top = sorted(stats.stats.items(), key=lambda item: item[1][3], reverse=True)[:25]
     if original != scene.to_json():
         raise AssertionError('Benchmark rendering mutated authored scene state')
     return {'case': case, 'scene': describe(scene), 'scene_sha256': digest(original.encode()),
