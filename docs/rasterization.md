@@ -56,7 +56,7 @@ therefore look slightly bolder and half a pixel offset compared with this versio
 ## Performance
 
 Coverage work scales with edge length rather than pixel area. On the reference
-benchmarks (`python -m benchmarks.render`), compared with the previous release
-checkout: dense dashes 0.46×, pressure freehand 0.69×, effects and animation about
-0.75×, the lesson scene 0.92× the time, 1,200 small opaque rectangles 1.05× and
-480 small outlines 1.13×. See [performance](performance.md).
+benchmarks (`python -m benchmarks.render`), 0.11.0 renders six of eight scenes in
+0.55× to 0.78× of 0.10.0.post1's time; 1,200 small opaque rectangles take 1.09×
+and 480 small outlines 1.06×. See the [release notes](../RELEASE_NOTES.md) and
+[performance](performance.md).

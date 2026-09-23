@@ -173,7 +173,7 @@ from drawcv.core.path_processing import (
     slice_stroke_points,
 )
 
-__version__ = "0.10.0.post1"
+__version__ = "0.11.0"
 
 from drawcv.svg import SVGExporter, SVGExport, SVGFallback
 from drawcv.svg_import import (

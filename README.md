@@ -17,7 +17,18 @@ pip install -e ".[dev,typography]"
 python -m pytest -q
 ```
 
-## What's new in 0.10.0
+## What's new in 0.11.0
+
+- **Shape labels**: `shape.label = Label("Text")` centers text on both axes inside any shape, or places captions above, below or beside it; labels follow the shape through edits, transforms and animation.
+- **SVG path strings**: `Path.from_svg_path("M10 10 C ...")` and `path.to_svg_path()`.
+- **Paint order**: `paint_order="stroke"` draws strokes behind fills, like SVG `paint-order`, including SVG import and export.
+- **More native SVG export**: blur, shadow, glow, color and convolution effects export as SVG filters; arrows and pressure strokes export as vectors instead of PNGs.
+- **Area-exact rendering on the SVG pixel grid**: a 2 px line now covers exactly 2 px (previously 3.35 px), and output matches resvg. Rendered images change slightly; see [Before You Upgrade](https://github.com/nuhyamin1/drawcv/blob/master/RELEASE_NOTES.md#before-you-upgrade).
+- **Faster rendering**: most benchmark scenes render 1.3–1.8x faster than 0.10.0.
+
+See the complete [0.11.0 Release Notes](https://github.com/nuhyamin1/drawcv/blob/master/RELEASE_NOTES.md).
+
+## What was new in 0.10.0
 
 Version 0.10.0 is a major feature release adding extensive vector-geometry tools, stroke spaces, and vector styling:
 
@@ -32,7 +43,7 @@ Version 0.10.0 is a major feature release adding extensive vector-geometry tools
 - **Editable alpha & luminance vector masks**: `VectorMask(artwork, bounds, mode=...)` enables soft fades and vector masks with native SVG `<mask />` export.
 - **Rendering & SVG fidelity fixes**: Nonzero fills, clipping, root SVG attributes, transformed text clipping, and strict paint-order diagnostics.
 
-See the complete [0.10.0 Release Notes](https://github.com/nuhyamin1/drawcv/blob/master/RELEASE_NOTES.md) for full API examples and compatibility contracts.
+See the [0.10.0 Release Notes](https://github.com/nuhyamin1/drawcv/blob/master/RELEASE_NOTES.md#pydrawcv-0100) for full API examples and compatibility contracts.
 
 ## Draw and export an image
 

@@ -810,7 +810,7 @@ def test_schema_1_6_to_1_7_migration():
 
 def _check_resvg_parity(scene: Scene, interior_slice: tuple | None = None, max_mae: float = 2.0):
     """Assert native strict SVG export matches raster OpenCVRenderer with resvg."""
-    import resvg_py
+    resvg_py = pytest.importorskip("resvg_py")
     import cv2
 
     export_res = scene.export_svg(strict=True)

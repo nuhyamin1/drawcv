@@ -1,10 +1,133 @@
-# pydrawcv 0.10.0 Release Notes
+# pydrawcv 0.11.0 Release Notes
+
+`pydrawcv` 0.11.0 adds shape labels, SVG path strings, paint order, SVG filter export
+and vector export for arrows and pressure strokes, and replaces the rasterizer with
+area-exact antialiasing on the SVG pixel grid. The Python package is `pydrawcv` and
+the import name remains `drawcv`.
+
+---
+
+## Before You Upgrade
+
+- **Rendered images change.** Antialiased edges are now area-exact: a 2 px line
+  covers exactly 2 px (it covered 3.35 px) and fills are no longer about 4% too
+  large. Pixels span `[k, k + 1]` as in SVG, so shapes also move half a pixel.
+  Tests that compare against stored reference images need new references.
+- **1 px lines on whole coordinates look lighter.** As in browsers, a 1 px line
+  centered on `x = 70` covers two half pixels. Center hairlines on `.5` or use an
+  even width for crisp lines. See [rasterization](https://github.com/nuhyamin1/drawcv/blob/master/docs/rasterization.md).
+- **Scene files use schema 1.14.** 0.11.0 reads every older schema, but 0.10.x
+  cannot open files saved by 0.11.0. Upgrade every reader before sharing files.
+- **Effects export as SVG filters.** Blur, shadow, glow, color and convolution
+  effects no longer produce PNG fallbacks, so `SVGExport.fallbacks` and strict
+  export behave differently for scenes that use them.
+
+---
+
+## What's New in 0.11.0
+
+### 1. Shape Labels
+
+Attach text to any shape, laid out inside or around it. Labels follow moves,
+resizes, rotation and animation, and export as native SVG text when they use a
+retained font.
+
+```python
+from drawcv import Rectangle, Line, Point, Label, StrokeStyle
+
+card = Rectangle(position=Point(40, 30), width=200, height=120)
+card.label = Label("Centered on both axes", font_scale=0.8)
+card.label.vertical_align = "bottom"   # top / middle / bottom; align: left / center / right
+
+link = Line(start=Point(40, 200), end=Point(240, 200), stroke=StrokeStyle(width=4))
+link.label = Label("HTTPS", placement="above", padding=6)  # captions outside the shape
+```
+
+### 2. SVG Path Strings
+
+```python
+from drawcv import Path, FillStyle, Color
+
+badge = Path.from_svg_path("M10 10 h60 a10 10 0 0 1 10 10 v20 h-70 z",
+                           fill=FillStyle(color=Color(50, 140, 200)))
+badge.to_svg_path()  # "M 10 10 L 70 10 A 10 10 0 0 1 80 20 ..."
+```
+
+All SVG path commands are accepted, absolute and relative, including arcs.
+
+### 3. Paint Order
+
+`shape.paint_order = "stroke"` draws the stroke before the fill, like SVG
+`paint-order`. It is saved, undoable, exported to SVG and read from imported SVG,
+which previously rejected it.
+
+### 4. Vector Export for Arrows, Pressure Strokes and Effects
+
+- Arrows export as native shaft and head shapes; pressure and velocity freehand
+  strokes export as their filled outline.
+- Blur, shadow, glow, brightness/contrast, saturation, grayscale, sepia, hue shift,
+  color matrix and convolution effects export as SVG filters computing the same
+  operation. Sharpen, emboss, edge detection, noise, displacement and biased
+  convolution keep reported PNG fallbacks.
+
+### 5. Area-Exact Rasterization
+
+Strokes, fills, paths and clips share a new rasterizer whose coverage equals the
+geometric area, with nonzero and even-odd fill rules and seam-free stroke unions.
+Rendering matches resvg on DrawCV's own SVG export (area ratio 1.000 to 1.005,
+previously 0.80 to 0.89). Most benchmark scenes also render faster.
+
+### 6. Performance
+
+Large paths and paths inside nested groups no longer recompute their bounds for
+every point; an imported 315-command outline went from 29.6 s to 0.14 s. Median
+frame times on the reference benchmarks (`python -m benchmarks.render`, Windows,
+one OpenCV thread) against 0.10.0.post1:
+
+| Scene | 0.10.0.post1 | 0.11.0 |
+| --- | ---: | ---: |
+| Dense dash patterns | 339 ms | 187 ms |
+| 6,000 pressure samples | 232 ms | 149 ms |
+| Six nested opacity/transform groups | 110 ms | 68 ms |
+| 72 small gradients | 66 ms | 44 ms |
+| 24 objects / 48 animation tracks | 55 ms | 37 ms |
+| 16 masked and effected objects | 93 ms | 72 ms |
+| 480 small outlines | 266 ms | 281 ms |
+| 1,200 opaque rectangles | 205 ms | 224 ms |
+
+---
+
+## Compatibility and Migration
+
+- **JSON schema 1.14** adds labels and paint order. Schemas 1.0 through 1.13
+  migrate forward on load; drawables without labels or paint order serialize as before.
+- **Aliased strokes** (`LineType.LINE_4`, `LINE_8`), Hershey text and retained font
+  text rasterize as before.
+- **Gradients** sample pixel centers, like image paints and SVG viewers.
+- **SVG import** keeps `paint-order` and reports malformed values as
+  `SVG_INVALID_PAINT_ORDER`; `SVG_UNSUPPORTED_PAINT_ORDER` is no longer raised.
+
+---
+
+## Documentation Index
+
+- [Shape Labels](https://github.com/nuhyamin1/drawcv/blob/master/docs/labels.md)
+- [Paint Order](https://github.com/nuhyamin1/drawcv/blob/master/docs/paint-order.md)
+- [Rasterization and the Pixel Grid](https://github.com/nuhyamin1/drawcv/blob/master/docs/rasterization.md)
+- [SVG Export, Filters & Import](https://github.com/nuhyamin1/drawcv/blob/master/docs/svg.md)
+- [Measured Performance](https://github.com/nuhyamin1/drawcv/blob/master/docs/performance.md)
+
+---
+
+# Earlier Releases
+
+## pydrawcv 0.10.0
 
 `pydrawcv` 0.10.0 is a major feature release adding extensive vector path manipulation, stroke geometry transformations, reusable markers, pattern paints, and vector masks. The Python package is `pydrawcv` and the import name remains `drawcv`.
 
 ---
 
-## What's New in 0.10.0
+### What's New in 0.10.0
 
 ### 1. Rendering and SVG Correctness Fixes
 - **Nonzero Fills and Clipping**: Fixed rendering, clipping, and hit testing for self-intersecting paths with non-zero fill rules.
@@ -153,7 +276,7 @@ shape.mask = VectorMask(mask_art, bounds=BoundingBox(0, 0, 100, 100), mode="alph
 
 ---
 
-## Compatibility and Migration
+### Compatibility and Migration
 
 - **JSON Document Schema Version**: New documents are authored in **schema 1.13**. Package version (0.10.0) and document schema version (1.13) are distinct.
 - **Forward Migration**: Older documents (schemas 1.0 through 1.12) migrate forward automatically on load.
@@ -172,7 +295,7 @@ shape.mask = VectorMask(mask_art, bounds=BoundingBox(0, 0, 100, 100), mode="alph
 
 ---
 
-## Documentation Index
+### Documentation Index
 
 - [Stroke Spaces & Styles](https://github.com/nuhyamin1/drawcv/blob/master/docs/strokes.md)
 - [Shape-to-Path Conversion](https://github.com/nuhyamin1/drawcv/blob/master/docs/path-conversion.md)
