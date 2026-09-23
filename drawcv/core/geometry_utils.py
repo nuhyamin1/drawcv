@@ -431,64 +431,15 @@ def evaluate_fill_rule_mask(
     height: int,
     supersample: int = 2
 ) -> np.ndarray:
-    """Generate a high-fidelity alpha coverage mask using EVEN_ODD or NON_ZERO rule.
-    
-    Architectural Contract:
-      1. Keeps anti-aliasing and fill-rule topology strictly separate.
-         The topological interior is evaluated on an integer grid at `supersample` x
-         resolution to prevent XOR grayscale edge-intensity artifacts.
-      2. Downsampling via cv2.INTER_AREA derives true geometric sub-pixel edge coverage.
-      3. NON_ZERO resolves winding before quantization, including self-intersections
-         and repeated or opposing contour traversal.
+    """Area-exact antialiased coverage of contours under the EVEN_ODD or NON_ZERO rule.
+
+    Winding is evaluated along exact edge crossings, so self-intersections and
+    repeated or opposing traversals follow the fill rule without a boolean
+    resolution pass. ``supersample`` is accepted for compatibility and ignored.
     """
-    if not subpath_contours or width <= 0 or height <= 0:
-        return np.zeros((height, width), dtype=np.uint8)
-
-    scale = max(1, supersample)
-    sw = width * scale
-    sh = height * scale
-
-    if fill_rule == FillRule.NON_ZERO:
-        subpath_contours = resolve_nonzero_contours(subpath_contours)
-
-    # Scale Point contours to supersampled coordinate space
-    cv_contours: list[np.ndarray] = []
-    for contour in subpath_contours:
-        if len(contour) < 3:
-            continue
-        arr = np.array(
-            [[int(round(p.x * scale)), int(round(p.y * scale))] for p in contour],
-            dtype=np.int32
-        ).reshape((-1, 1, 2))
-        cv_contours.append(arr)
-
-    if not cv_contours:
-        return np.zeros((height, width), dtype=np.uint8)
-
-    # Evaluate purely binary topological interior on supersampled grid
-    if fill_rule == FillRule.EVEN_ODD:
-        # Parity-based XOR accumulation across individual closed contours
-        topological_mask = np.zeros((sh, sw), dtype=np.uint8)
-        for c in cv_contours:
-            sub_mask = np.zeros((sh, sw), dtype=np.uint8)
-            cv2.fillPoly(sub_mask, [c], 255)
-            topological_mask = cv2.bitwise_xor(topological_mask, sub_mask)
-    else:  # FillRule.NON_ZERO
-        # Resolved contours are simple boundaries with consistently oriented holes.
-        winding_accum = np.zeros((sh, sw), dtype=np.int32)
-        for c in cv_contours:
-            oriented_area = cv2.contourArea(c, oriented=True)
-            w = 1 if oriented_area >= 0 else -1
-            sub_mask = np.zeros((sh, sw), dtype=np.uint8)
-            cv2.fillPoly(sub_mask, [c], 1)
-            winding_accum += w * sub_mask.astype(np.int32)
-
-        topological_mask = (winding_accum != 0).astype(np.uint8) * 255
-
-    # Derive smooth anti-aliased edge coverage via area downsampling
-    if scale > 1:
-        return cv2.resize(topological_mask, (width, height), interpolation=cv2.INTER_AREA)
-    return topological_mask
+    from drawcv.core.coverage import coverage_mask
+    contours = [[(p.x, p.y) for p in contour] for contour in subpath_contours if len(contour) >= 3]
+    return coverage_mask(contours, width, height, even_odd=fill_rule == FillRule.EVEN_ODD)
 
 
 _FONT_FAMILY_TO_CV = {

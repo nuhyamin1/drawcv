@@ -35,8 +35,8 @@ def render_conic(conic_paint, width=100, height=100, move_entity=(0, 0)):
 
 
 def test_conic_quadrant_sampling():
-    # Center at (50, 50), start_angle = 0
-    paint = ConicGradient(Point(50, 50), STOPS_4)
+    # Center on pixel (50, 50)'s center, start_angle = 0; probes lie exactly on the axes.
+    paint = ConicGradient(Point(50.5, 50.5), STOPS_4)
     buf = render_conic(paint)
 
     # Center singular point should be valid color (stop 0: red)
@@ -57,7 +57,7 @@ def test_conic_quadrant_sampling():
 
 def test_conic_start_angle():
     # Rotating start_angle by +90 degrees moves stop 0 (red) to South (90 deg)
-    paint = ConicGradient(Point(50, 50), STOPS_4, start_angle=90.0)
+    paint = ConicGradient(Point(50.5, 50.5), STOPS_4, start_angle=90.0)
     buf = render_conic(paint)
 
     # East (0 deg in world) is now (0 - 90) % 360 = 270 deg -> Yellow
@@ -68,7 +68,7 @@ def test_conic_start_angle():
 
 def test_conic_paint_transform():
     # Rotate paint around center (50, 50) by 90 degrees via paint transform
-    paint = ConicGradient(Point(50, 50), STOPS_4, transform=Transform(rotation=90, pivot=Point(50, 50)))
+    paint = ConicGradient(Point(50.5, 50.5), STOPS_4, transform=Transform(rotation=90, pivot=Point(50.5, 50.5)))
     buf = render_conic(paint)
 
     # Paint rotation of +90 deg rotates visual output clockwise by 90 deg:
@@ -77,8 +77,8 @@ def test_conic_paint_transform():
 
 
 def test_conic_object_vs_world_space():
-    paint_obj = ConicGradient(Point(50, 50), STOPS_4, space="object")
-    paint_world = ConicGradient(Point(50, 50), STOPS_4, space="world")
+    paint_obj = ConicGradient(Point(50.5, 50.5), STOPS_4, space="object")
+    paint_world = ConicGradient(Point(50.5, 50.5), STOPS_4, space="world")
 
     # Move rectangle by (20, 0)
     buf_obj = render_conic(paint_obj, move_entity=(20, 0))

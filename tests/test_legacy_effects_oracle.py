@@ -1,9 +1,8 @@
 """Authoritative legacy regression tests and canvas-boundary policy tests.
 
 This test module verifies:
-1. Strict numerical equivalence (byte-exact identical rendered buffers) between the
-   generalized effects architecture and the pre-milestone HEAD baseline across
-   representative legacy scenes positioned away from canvas boundaries.
+1. Byte-exact regression locks for representative legacy effect scenes positioned
+   away from canvas boundaries (see TestLegacyRegressionReferences for their history).
 2. The intentional Milestone 6 border compatibility policy: spatial effects now consistently
    use cv2.BORDER_CONSTANT (transparent zero) in both BGR and BGRA output, rather than
    the legacy BGR-specific cv2.BORDER_DEFAULT (reflected border).
@@ -38,12 +37,13 @@ def buffer_hash(buf: np.ndarray) -> str:
 
 
 class TestLegacyRegressionReferences:
-    """Strict byte-identical regression checks against pre-milestone HEAD output.
+    """Strict byte-identical regression checks for representative effect scenes.
 
-    Each reference hash was established by running the exact pre-refactor renderer
-    (extracted from git HEAD:drawcv/renderer.py) on identical scene configurations.
-    Away from canvas boundaries, the generalized effects executor produces 100%
-    byte-identical pixel output (max_diff == 0) to historical rendering.
+    The hashes were first established against the pre-refactor renderer, proving
+    the generalized effects executor byte-identical to historical rendering away
+    from canvas boundaries. They were re-established once when shape coverage
+    became area-exact (pixel k spans [k, k + 1]); the effect processors were
+    unchanged by that switch, only the rasterized shapes they receive.
     """
 
     def test_single_blur_away_from_canvas_boundary(self):
@@ -54,7 +54,7 @@ class TestLegacyRegressionReferences:
         scene.add(rect)
 
         buf = render_scene(scene, alpha=False)
-        expected_sha256 = "10f2bc1e06eb8b55d978cc56b09a5c708dff8c1b39c3334352a4cd727c062c51"
+        expected_sha256 = "5d1d839e728347e8ebb90d42ac68e9ab07f7308bf539acc29a9497a71a4441c7"
         assert buffer_hash(buf) == expected_sha256
 
     def test_single_shadow_positive_offset(self):
@@ -65,7 +65,7 @@ class TestLegacyRegressionReferences:
         scene.add(rect)
 
         buf = render_scene(scene, alpha=False)
-        expected_sha256 = "9ecfac41b85443439747c21276bd92deed59218350b4e37713484496e5e09eef"
+        expected_sha256 = "38de8e9712de9711ea6c332fae0ffccaac8c0b409fc3df0368e20c2ca69174a5"
         assert buffer_hash(buf) == expected_sha256
 
     def test_single_shadow_negative_offset(self):
@@ -76,7 +76,7 @@ class TestLegacyRegressionReferences:
         scene.add(rect)
 
         buf = render_scene(scene, alpha=False)
-        expected_sha256 = "f51ee373c645906d438045dd83cd32ddedefdefffb61f4d06bba3379fa7929b2"
+        expected_sha256 = "ffc45640c5921fb32c62fd60cc415a70a916b8a6cbdbb712586f4eea969d4100"
         assert buffer_hash(buf) == expected_sha256
 
     def test_translucent_blur(self):
@@ -87,7 +87,7 @@ class TestLegacyRegressionReferences:
         scene.add(rect)
 
         buf = render_scene(scene, alpha=False)
-        expected_sha256 = "0ddb1b2b5d6a72f280ca8f85d058e3947874fc40449f060c2ba8835a878ea4fc"
+        expected_sha256 = "9a13b7d8f3dd4cd4aed9fba0c70113bd981b97be685205a91c759234e926fe07"
         assert buffer_hash(buf) == expected_sha256
 
     def test_transparent_bgra_blur(self):
@@ -98,7 +98,7 @@ class TestLegacyRegressionReferences:
         scene.add(c)
 
         buf = render_scene(scene, alpha=True)
-        expected_sha256 = "613ec98b85e5eb9a0a5bf9c30e85e7392d860a50b97177ad4d35dca3386d7936"
+        expected_sha256 = "5a808b3cfbb059d9d9d062a9298935047b879f9ddbd43c89414111dcf6d55ae8"
         assert buffer_hash(buf) == expected_sha256
 
     def test_transformed_object_shadow(self):
@@ -115,7 +115,7 @@ class TestLegacyRegressionReferences:
         scene.add(rect)
 
         buf = render_scene(scene, alpha=False)
-        expected_sha256 = "23d751813e864d2b0ab7549b14b5fb4f3b65b3baf3f1d2debc603238f85ecdc8"
+        expected_sha256 = "efcde7324a45965391e50ade52676e78645b4197b13c15a0a36f2e95bf140dce"
         assert buffer_hash(buf) == expected_sha256
 
 

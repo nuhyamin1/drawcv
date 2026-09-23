@@ -50,9 +50,9 @@ def test_arrow_parts_render_like_the_arrow(head, space, dash, transform):
 
 
 @pytest.mark.parametrize("transform", ["none", "rotate", "scale"])
-def test_circle_head_parts_match_up_to_the_raster_integer_center(transform):
+def test_circle_head_parts_match_the_arrow(transform):
     shape = arrow(ArrowHeadStyle.CIRCLE, transform=transform)
-    assert iou(alpha(shape), alpha(*_vector_parts(shape))) > 0.98
+    assert iou(alpha(shape), alpha(*_vector_parts(shape))) > 0.99
 
 
 def test_circle_head_under_shear_keeps_reported_fallback():
@@ -63,8 +63,7 @@ def test_circle_head_under_shear_keeps_reported_fallback():
 
 def test_pressure_stroke_outline_matches_the_stroke():
     stroke = pressure_stroke()
-    # The raster stroke is ~1px wider than its exact outline, costing a few percent.
-    assert iou(alpha(stroke), alpha(*_vector_parts(stroke))) > 0.93
+    assert iou(alpha(stroke), alpha(*_vector_parts(stroke))) > 0.99
 
 
 @pytest.mark.parametrize("make", [lambda: arrow(ArrowHeadStyle.TRIANGLE, dash=(10, 6), transform="rotate"),

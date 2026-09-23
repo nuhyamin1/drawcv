@@ -96,9 +96,9 @@ def _evaluate_axes(
         except np.linalg.LinAlgError:
             return None, None
     if any(inv[0, 1] != 0.0 or inv[1, 0] != 0.0 for inv in inverses):
-        return _evaluate_coordinates(paint, matrix, width, height, origin)
-    x = np.arange(width, dtype=float)[None, :] + origin[0]
-    y = np.arange(height, dtype=float)[:, None] + origin[1]
+        return _evaluate_coordinates(paint, matrix, width, height, origin, pixel_center=True)
+    x = np.arange(width, dtype=float)[None, :] + (origin[0] + 0.5)
+    y = np.arange(height, dtype=float)[:, None] + (origin[1] + 0.5)
     for inv in inverses:
         x = inv[0, 0] * x + inv[0, 2]
         y = inv[1, 1] * y + inv[1, 2]

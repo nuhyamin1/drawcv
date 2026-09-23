@@ -174,6 +174,7 @@ python -m examples.transparent_output
 - [Path length, positions and tangent directions](https://github.com/nuhyamin1/drawcv/blob/master/docs/path-measurement.md).
 - [Curve-preserving trimming and splitting](https://github.com/nuhyamin1/drawcv/blob/master/docs/path-editing.md).
 - [Filled-region offsets: expansion, contraction, holes and joins](https://github.com/nuhyamin1/drawcv/blob/master/docs/path-offsets.md).
+- [Rasterization: area-exact coverage on the SVG pixel grid](https://github.com/nuhyamin1/drawcv/blob/master/docs/rasterization.md).
 - [Paint order: stroke behind fill, markers first](https://github.com/nuhyamin1/drawcv/blob/master/docs/paint-order.md).
 - [Shape labels: text aligned inside or around any shape](https://github.com/nuhyamin1/drawcv/blob/master/docs/labels.md); [runnable gallery](https://github.com/nuhyamin1/drawcv/blob/master/examples/shape_labels.py).
 - [Reusable path markers and custom arrowheads](https://github.com/nuhyamin1/drawcv/blob/master/docs/markers.md).
@@ -199,7 +200,7 @@ python -m examples.transparent_output
 
 | Area | Available | Limits / next work |
 | --- | --- | --- |
-| Geometry | Lines, polygons, circles/ellipses, arcs, rectangles, arrows, quadratic/cubic curves, compound paths, vector booleans (union, intersection, difference, XOR) | Curves rasterize as approximations during OpenCV rendering |
+| Geometry | Lines, polygons, circles/ellipses, arcs, rectangles, arrows, quadratic/cubic curves, compound paths, vector booleans (union, intersection, difference, XOR); area-exact antialiasing on the SVG pixel grid | Curves are flattened to 0.1 px before rasterization |
 | Strokes | Butt/round/square caps, round/bevel/miter joins, miter limits, dashed and variable-width outlines | Screen/object stroke spaces; arrowhead outlines stay solid |
 | Paint | Solid, linear/radial/conic gradients, gradient strokes, RGBA stops, repeat/reflect spread, image tiles, editable vector patterns, fill rules, blend modes | Nested vector patterns inside pattern artwork remain unsupported |
 | Freehand | Raw editable samples; pressure/velocity widths; simplification, smoothing, interpolation | No textured brush system |

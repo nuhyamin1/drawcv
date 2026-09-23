@@ -21,10 +21,11 @@ def build_scene():
         label(cap.value, x, 115)
         scene.add(Line(start=Point(x, 170), end=Point(x+170, 170),
                        stroke=StrokeStyle(color=accent, width=28, cap_style=cap)))
-        # Thin guides mark the authored endpoints.
+        # Guides mark the authored endpoints. Pixels span [k, k + 1], so a 2 px
+        # line centered on a whole coordinate fills exactly two pixel columns.
         for gx in (x, x+170):
             scene.add(Line(start=Point(gx, 146), end=Point(gx, 194),
-                           stroke=StrokeStyle(color=Color(235, 100, 80), width=1)))
+                           stroke=StrokeStyle(color=Color(235, 100, 80), width=2)))
 
     label("JOINS", 35, 220)
     for i, join in enumerate(JoinStyle):

@@ -884,9 +884,9 @@ class TestDisplacementMapEffect:
         mean_x = xx.mean()
         orig_center_x = 39.5
         if expected_shift_dir > 0:
-            assert mean_x > orig_center_x + 1.0, f"Expected positive shift, got mean_x={mean_x}"
+            assert mean_x > orig_center_x + 0.5, f"Expected positive shift, got mean_x={mean_x}"
         elif expected_shift_dir < 0:
-            assert mean_x < orig_center_x - 1.0, f"Expected negative shift, got mean_x={mean_x}"
+            assert mean_x < orig_center_x - 0.5, f"Expected negative shift, got mean_x={mean_x}"
         else:
             assert abs(mean_x - orig_center_x) <= 1.0, f"Expected neutral shift, got mean_x={mean_x}"
 
@@ -902,7 +902,8 @@ class TestDisplacementMapEffect:
             rect.effects = [
                 DisplacementMapEffect(
                     map=map_paint,
-                    scale_x=2.5,
+                    # 2.3 px: a half-pixel shift of a crisp edge ties linear and cubic at 0.5.
+                    scale_x=2.3,
                     scale_y=0.0,
                     interpolation=interp,
                 )

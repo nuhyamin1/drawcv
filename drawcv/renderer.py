@@ -27,6 +27,7 @@ from drawcv.core.enums import (
 from drawcv.core.exceptions import RenderError, ValidationError
 from drawcv.core.geometry import Point
 from drawcv.core.paint_order import paint_steps
+from drawcv.core.coverage import coverage_mask
 from drawcv.core.alpha import (
     clamp_premultiplied, premultiply, source_over, spread_channels, tint, unpremultiply,
 )
@@ -419,13 +420,8 @@ class OpenCVRenderer:
             return
 
         world_corners = [rect.to_world(c) for c in rect.corners]
-        pts = np.array(
-            [[int(round(c.x)), int(round(c.y))] for c in world_corners],
-            dtype=np.int32
-        ).reshape((-1, 1, 2))
-        bounds = rect.get_bounds()
 
-        self._paint(rect, lambda: self._fill_polygon(rect, canvas, pts),
+        self._paint(rect, lambda: self._fill_polygon(rect, canvas, world_corners),
                     lambda: self._stroke_contours(rect, canvas, [(world_corners, True)]))
 
     def _render_circle(self, circle: Circle, canvas: Canvas | _IsolatedSurface) -> None:
@@ -434,10 +430,8 @@ class OpenCVRenderer:
         sampled = flatten_arc(circle.center, circle.radius, circle.radius, 0, 360,
                               tolerance=self._curve_tolerance(circle))
         world_pts = self._world_points(circle, sampled)
-        pts = np.rint([[p.x, p.y] for p in world_pts]).astype(np.int32)
-        bounds = circle.get_bounds()
 
-        self._paint(circle, lambda: self._fill_polygon(circle, canvas, pts),
+        self._paint(circle, lambda: self._fill_polygon(circle, canvas, world_pts),
                     lambda: self._stroke_contours(circle, canvas, [(world_pts, True)]))
 
     def _render_ellipse(self, ellipse: Ellipse, canvas: Canvas | _IsolatedSurface) -> None:
@@ -447,10 +441,8 @@ class OpenCVRenderer:
         sampled = flatten_arc(ellipse.center, ellipse.radius_x, ellipse.radius_y, 0.0, 360.0,
                               tolerance=self._curve_tolerance(ellipse))
         world_pts = self._world_points(ellipse, sampled)
-        pts = np.array([[int(round(p.x)), int(round(p.y))] for p in world_pts], dtype=np.int32).reshape((-1, 1, 2))
-        bounds = ellipse.get_bounds()
 
-        self._paint(ellipse, lambda: self._fill_polygon(ellipse, canvas, pts),
+        self._paint(ellipse, lambda: self._fill_polygon(ellipse, canvas, world_pts),
                     lambda: self._stroke_contours(ellipse, canvas, [(world_pts, True)]))
 
     def _render_polygon(self, polygon: Polygon, canvas: Canvas | _IsolatedSurface) -> None:
@@ -458,10 +450,8 @@ class OpenCVRenderer:
             return
 
         world_pts = self._world_points(polygon, polygon.vertices)
-        pts = np.array([[int(round(p.x)), int(round(p.y))] for p in world_pts], dtype=np.int32).reshape((-1, 1, 2))
-        bounds = polygon.get_bounds()
 
-        self._paint(polygon, lambda: self._fill_polygon(polygon, canvas, pts),
+        self._paint(polygon, lambda: self._fill_polygon(polygon, canvas, world_pts),
                     lambda: self._stroke_contours(polygon, canvas, [(world_pts, True)]))
 
     def _render_polyline(self, polyline, canvas):
@@ -470,21 +460,17 @@ class OpenCVRenderer:
     def _render_rounded_rectangle(self, rect: RoundedRectangle, canvas: Canvas | _IsolatedSurface) -> None:
         local_pts = rect.get_contour_points(tolerance=self._curve_tolerance(rect))
         world_pts = self._world_points(rect, local_pts)
-        pts = np.array([[int(round(p.x)), int(round(p.y))] for p in world_pts], dtype=np.int32).reshape((-1, 1, 2))
-        bounds = rect.get_bounds()
 
-        self._paint(rect, lambda: self._fill_polygon(rect, canvas, pts),
+        self._paint(rect, lambda: self._fill_polygon(rect, canvas, world_pts),
                     lambda: self._stroke_contours(rect, canvas, [(world_pts, True)]))
 
     def _render_arc(self, arc: Arc, canvas: Canvas | _IsolatedSurface) -> None:
         local_pts = arc.get_contour_points(tolerance=self._curve_tolerance(arc))
         world_pts = self._world_points(arc, local_pts)
-        pts = np.array([[int(round(p.x)), int(round(p.y))] for p in world_pts], dtype=np.int32).reshape((-1, 1, 2))
-        bounds = arc.get_bounds()
         is_closed = (arc.closure != ArcClosure.OPEN)
 
         # Only CHORD and PIE closures are filled.
-        self._paint(arc, (lambda: self._fill_polygon(arc, canvas, pts)) if is_closed else None,
+        self._paint(arc, (lambda: self._fill_polygon(arc, canvas, world_pts)) if is_closed else None,
                     lambda: self._stroke_contours(arc, canvas, [(world_pts, is_closed)]))
 
     def _render_arrow(self, arrow: Arrow, canvas: Canvas | _IsolatedSurface) -> None:
@@ -498,7 +484,6 @@ class OpenCVRenderer:
 
         w_start = arrow.to_world(arrow.start)
         w_end, head_pts = arrow.get_world_head_geometry()
-        bounds = arrow.get_bounds()
 
         marker_stroke = stroke.copy()
         marker_stroke.dash_array = ()
@@ -509,8 +494,7 @@ class OpenCVRenderer:
 
         head_fill = head_stroke = None
         if arrow.head_style in (ArrowHeadStyle.TRIANGLE, ArrowHeadStyle.DIAMOND):
-            pts_head = np.array([[int(round(p.x)), int(round(p.y))] for p in head_pts], dtype=np.int32).reshape((-1, 1, 2))
-            head_fill = lambda: self._fill_polygon(arrow, canvas, pts_head)
+            head_fill = lambda: self._fill_polygon(arrow, canvas, head_pts)
             head_stroke = lambda: self._stroke_contours(arrow, canvas, [(head_pts, True)], style=marker_stroke)
 
         elif arrow.head_style == ArrowHeadStyle.OPEN:
@@ -519,17 +503,8 @@ class OpenCVRenderer:
         elif arrow.head_style == ArrowHeadStyle.CIRCLE:
             c = head_pts[0]
             r = max(1, int(round(head_pts[1].x)))
-            c_int = (int(round(c.x)), int(round(c.y)))
-
-            def head_fill():
-                if fill is not None and fill.enabled and fill.opacity > 0:
-                    if isinstance(fill.paint, Color) and self._is_direct_draw(canvas, fill.color.a * fill.opacity * self._get_render_opacity(arrow)):
-                        cv2.circle(canvas.buffer, c_int, r, fill.color.to_bgr(), -1, cv2.LINE_AA)
-                    else:
-                        mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-                        cv2.circle(mask, c_int, r, 255, -1, cv2.LINE_AA)
-                        self._fill_mask(arrow, canvas, mask)
             ring = flatten_arc(c, r, r, 0, 360, tolerance=0.25)
+            head_fill = lambda: self._fill_polygon(arrow, canvas, ring)
             head_stroke = lambda: self._stroke_contours(arrow, canvas, [(ring, True)], style=marker_stroke)
 
         if arrow.paint_order == "normal":
@@ -553,7 +528,6 @@ class OpenCVRenderer:
         if not world_contours:
             return
 
-        bounds = path.get_bounds()
 
         def fill_path():
             # Fill using topological fill rule evaluator
@@ -684,6 +658,8 @@ class OpenCVRenderer:
             [img_obj.to_world(Point(gx, gy + gh)).x, img_obj.to_world(Point(gx, gy + gh)).y],
         ])
         M_warp = cv2.getAffineTransform(src_pts, dst_pts)
+        # warpAffine works on pixel indices; pixel k spans [k, k + 1], so map centers.
+        M_warp[:, 2] += M_warp[:, :2].sum(axis=1) * 0.5 - 0.5
         warped = cv2.warpAffine(
             pm_bgra, M_warp, (canvas.width, canvas.height),
             flags=cv_interp, borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0)
@@ -890,19 +866,20 @@ class OpenCVRenderer:
         return False
 
     def _fill_polygon(self, drawable, canvas, points):
+        """Fill world-space vertices with area-exact coverage (even-odd, like fillPoly)."""
         fill = drawable.fill
         if fill is None or not fill.enabled or fill.opacity <= 0:
             return
-        if isinstance(fill.paint, Color):
-            alpha = fill.color.a * fill.opacity * self._get_render_opacity(drawable)
-            if alpha <= 0:
-                return
-            if self._is_direct_draw(canvas, alpha):
-                cv2.fillPoly(canvas.buffer, [points], fill.color.to_bgr(), cv2.LINE_AA)
-                return
-        mask = np.zeros((canvas.height, canvas.width), dtype=np.uint8)
-        cv2.fillPoly(mask, [points], 255, cv2.LINE_AA)
-        self._fill_mask(drawable, canvas, mask)
+        if isinstance(fill.paint, Color) and fill.color.a * fill.opacity * self._get_render_opacity(drawable) <= 0:
+            return
+        vertices = np.array([(p.x, p.y) for p in points], dtype=np.float64)
+        mask = coverage_mask([vertices], canvas.width, canvas.height, even_odd=True)
+        # The vertices bound the coverage exactly; avoid re-deriving drawable bounds.
+        (left, top), (right, bottom) = vertices.min(axis=0), vertices.max(axis=0)
+        bbox = BoundingBox(left, top, right - left, bottom - top)
+        opacity = fill.opacity * self._get_render_opacity(drawable)
+        matrix = None if isinstance(fill.paint, Color) else drawable.world_matrix
+        self._composite_paint(canvas, mask, fill.paint, opacity, matrix, bbox)
 
     def _composite_paint(self, canvas, mask, paint, opacity, world_matrix, bbox=None):
         if opacity <= 0.0:
@@ -930,10 +907,12 @@ class OpenCVRenderer:
         self._composite_paint(canvas, mask, fill.paint, opacity, drawable.world_matrix, drawable.get_bounds())
 
     def _curve_tolerance(self, drawable):
+        # 0.1 px chord error keeps flattened curves within a few levels of exact
+        # coverage; the rasterizer's cost follows edge length, not vertex count.
         scale = float(np.linalg.norm(drawable.world_matrix[:2, :2], ord=2))
-        tolerance = 0.25 / max(scale, 1e-12)
+        tolerance = 0.1 / max(scale, 1e-12)
         stroke = getattr(drawable, "stroke", None)
-        return min(0.25, tolerance) if stroke is not None and stroke.space == "object" else tolerance
+        return min(0.1, tolerance) if stroke is not None and stroke.space == "object" else tolerance
 
     def _stroke_contours(self, drawable, canvas, contours, widths=None, style=None):
         stroke = style if style is not None else getattr(drawable, "stroke", None)
@@ -972,7 +951,9 @@ class OpenCVRenderer:
                            for points, closed in samples]
         mask = stroke_mask(canvas.width, canvas.height, samples, stroke,
                            self._get_cv_line_type(stroke.line_type), transform=transform)
-        self._composite_paint(canvas, mask, stroke.paint, opacity, drawable.world_matrix, drawable.get_bounds())
+        # The mask bounds its own coverage; solid colors need no paint matrix.
+        matrix = None if isinstance(stroke.paint, Color) else drawable.world_matrix
+        self._composite_paint(canvas, mask, stroke.paint, opacity, matrix)
 
     def _get_cv_line_type(self, line_type: LineType) -> int:
         """Map LineType enum to OpenCV line connectivity constant."""

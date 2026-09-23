@@ -5,7 +5,6 @@ import copy
 from dataclasses import dataclass
 import math
 from typing import Any, Callable, Sequence, TYPE_CHECKING
-import cv2
 import numpy as np
 
 from drawcv.core.bounds import BoundingBox
@@ -301,12 +300,11 @@ def evaluate_clip_coverage(clip: Any, owner: Any, width: int, height: int, toler
         return np.zeros((max(0, height), max(0, width)), dtype=np.float32)
 
     if isinstance(clip, (ClipRect, ClipPath)):
-        clip_mask = np.zeros((height, width), dtype=np.uint8)
+        from drawcv.core.coverage import coverage_mask
         mapper = get_clip_point_mapper(clip, owner)
         points = clip.corners if isinstance(clip, ClipRect) else clip.points
-        pts_world = [mapper(p) for p in points]
-        pts = np.array([[int(round(p.x)), int(round(p.y))] for p in pts_world], dtype=np.int32).reshape((-1, 1, 2))
-        cv2.fillPoly(clip_mask, [pts], 255)
+        vertices = [(p.x, p.y) for p in (mapper(p) for p in points)]
+        clip_mask = coverage_mask([vertices], width, height, even_odd=True)
         return clip_mask.astype(np.float32) / 255.0
 
     elif _is_retained_path(clip):

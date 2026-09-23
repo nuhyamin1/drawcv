@@ -89,9 +89,8 @@ class SVGExporter:
     """Export the current frame; strict mode rejects any required PNG fallback.
 
     Coordinates are baked into world space, leaving screen-space stroke widths
-    and dash lengths unchanged. Curved arc primitives become editable polylines
-    using the raster renderer's 0.25 pixel target tolerance and sampling cap;
-    Path/Bezier commands retain their curves.
+    and dash lengths unchanged. Circle, ellipse, rounded-rectangle and arc
+    primitives become exact arc commands; Path/Bezier commands retain their curves.
     Instances hold configuration only and can be reused after failed exports.
     """
     def __init__(self, *, strict: bool = False):

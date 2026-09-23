@@ -86,8 +86,7 @@ dashes stay in their authored space, and fill/stroke paint mappings are adjusted
 independently. Outer clipping remains in world coordinates. Group structure remains,
 but authored transform decomposition does not. Bezier commands remain curves, so SVG dash
 lengths can differ slightly from DrawCV's flattened curve lengths.
-Arc sampling targets 0.25 scene-pixel chord error, with the existing renderer's
-two-degree minimum angular step. The target is not guaranteed for very large curves.
+Circles, ellipses, rounded rectangles and arcs export as exact arc commands.
 
 Object-space gradients use `userSpaceOnUse` and the object's world matrix as their
 `gradientTransform`; world-space gradients omit that transform. Stop order, duplicate
@@ -101,11 +100,12 @@ preserves subtree isolation. Fallbacks use the premultiplied alpha renderer, enc
 as straight-alpha PNG data URLs at the scene's resolution and canvas clipping.
 Upscaling cannot recover vector detail from them. No external image paths are emitted.
 
-SVG antialiasing, curve flattening, integer-boundary coverage and pixel-center sampling
-differ from OpenCV. `LINE_4`/`LINE_8` connectivity is not reproduced. Strict mode means
-no raster fallback, not pixel identity. The tested SVG engine samples gradients at
-half-pixel centers; DrawCV samples integer centers. Clip edges receive the viewer's
-antialiasing. Use PNG export for exact raster reproduction.
+DrawCV and SVG viewers share a pixel grid (pixel k spans [k, k + 1], paints sample
+centers) and both compute area coverage, so exported shapes typically match resvg
+within a few levels at edges; see [rasterization](rasterization.md). Viewers flatten
+curves and sub-sample rows differently, and `LINE_4`/`LINE_8` connectivity is not
+reproduced. Strict mode means no raster fallback, not pixel identity. Use PNG export
+for exact raster reproduction.
 
 ## Persistence, import and animation
 

@@ -16,7 +16,7 @@ In DrawCV, solid colors and spatial paints have fundamentally distinct coordinat
 
 ### 1.2 Unified Coverage-to-Paint Compositing Pipeline
 All spatial paints (fills and strokes) share a unified sampling and compositing pipeline in `OpenCVRenderer._composite_paint(...)`:
-1. The primitive renders its geometric coverage into an antialiased 8-bit coverage mask (e.g. via `cv2.fillPoly` or `stroke_mask`).
+1. The primitive renders its area-exact geometric coverage into an 8-bit mask (`drawcv.core.coverage`, directly or through `stroke_mask`); see [rasterization](rasterization.md).
 2. The bounding box of the non-zero mask pixels is calculated to strictly limit sampling work.
 3. The paint is sampled over the bounding box via `sample_paint(paint, world_matrix, width, height, origin=(x, y))`.
 4. The premultiplied source buffer is modulated by the coverage mask and effective opacity.

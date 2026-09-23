@@ -23,6 +23,8 @@ STOPS = (
 )
 
 
+# Pixel k is the square [k, k + 1] and paints sample its center k + 0.5.
+# Geometry sits on pixel centers so each probed pixel samples the named position.
 def render_rect(fill_paint, width=200, height=100):
     rect = Rectangle(position=Point(0, 0), width=width, height=height, fill=FillStyle(paint=fill_paint))
     scene = Scene(width, height, background=Color(0, 0, 0, 0))
@@ -32,7 +34,7 @@ def render_rect(fill_paint, width=200, height=100):
 
 def test_linear_spread_pad_default():
     # Gradient from x=50 to x=100
-    paint = LinearGradient(Point(50, 0), Point(100, 0), STOPS, spread="pad")
+    paint = LinearGradient(Point(50.5, 0), Point(100.5, 0), STOPS, spread="pad")
     buf = render_rect(paint)
     # Before start (x < 50): clamped to red (BGR: 0, 0, 255)
     assert tuple(buf[50, 10]) == (0, 0, 255, 255)
@@ -46,7 +48,7 @@ def test_linear_spread_pad_default():
 
 def test_linear_spread_repeat():
     # Gradient span is 50px (x=0 to x=50)
-    paint = LinearGradient(Point(0, 0), Point(50, 0), STOPS, spread="repeat")
+    paint = LinearGradient(Point(0.5, 0), Point(50.5, 0), STOPS, spread="repeat")
     buf = render_rect(paint)
     # Cycle 0 (0 to 50): starts red, mid purple, ends blue
     assert tuple(buf[50, 0]) == (0, 0, 255, 255)
@@ -61,7 +63,7 @@ def test_linear_spread_repeat():
 
 def test_linear_spread_reflect():
     # Gradient span is 50px (x=0 to x=50)
-    paint = LinearGradient(Point(0, 0), Point(50, 0), STOPS, spread="reflect")
+    paint = LinearGradient(Point(0.5, 0), Point(50.5, 0), STOPS, spread="reflect")
     buf = render_rect(paint)
     # Cycle 0 (0 to 50): red at 0 -> blue at 50
     assert tuple(buf[50, 0]) == (0, 0, 255, 255)
@@ -77,7 +79,7 @@ def test_linear_spread_reflect():
 
 def test_radial_spread_repeat_and_reflect():
     # Center at (50, 50), radius 20
-    paint_repeat = RadialGradient(Point(50, 50), 20, STOPS, spread="repeat")
+    paint_repeat = RadialGradient(Point(50.5, 50.5), 20, STOPS, spread="repeat")
     buf_rep = render_rect(paint_repeat, width=100, height=100)
     # Center: r=0 -> red
     assert tuple(buf_rep[50, 50]) == (0, 0, 255, 255)
@@ -88,7 +90,7 @@ def test_radial_spread_repeat_and_reflect():
     # r=30 -> purple
     assert tuple(buf_rep[50, 80]) == (128, 0, 128, 255)
 
-    paint_reflect = RadialGradient(Point(50, 50), 20, STOPS, spread="reflect")
+    paint_reflect = RadialGradient(Point(50.5, 50.5), 20, STOPS, spread="reflect")
     buf_ref = render_rect(paint_reflect, width=100, height=100)
     # Center: r=0 -> red
     assert tuple(buf_ref[50, 50]) == (0, 0, 255, 255)

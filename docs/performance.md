@@ -8,9 +8,9 @@ alpha arithmetic, scene identity and observational animation rendering.
 
 1. **Blend only the covered region.** Stroke/text masks that previously blended
    against the entire canvas now use the mask's nonzero bounding rectangle.
-   Rasterizing the coverage mask is unchanged, including antialiasing and clipping.
+   Coverage masks have since become area-exact; see [rasterization](rasterization.md).
 2. **Sample gradients only where coverage exists.** The paint sampler receives a
-   region origin and reconstructs the same global integer pixel coordinates.
+   region origin and reconstructs the same global pixel-center coordinates.
    Object/world transforms and gradient interpolation keep their existing arithmetic.
 3. **Resolve freehand transforms once per render call.** Geometry bounds and matrices
    are invariant while mapping one stroke's points. Matrix-vector operations and
@@ -26,6 +26,13 @@ alpha arithmetic, scene identity and observational animation rendering.
    same `transform_point` calls in the same order, so results are identical. An
    imported 315-command outline inside SVG viewport groups rendered in 29.6 s before
    and 0.14 s after; the full test suite went from about 70 s to 30 s.
+6. **Area-exact coverage.** Replacing OpenCV's antialiased `fillPoly` (which inflated
+   every edge by about 0.7 px) with the [exact rasterizer](rasterization.md) was made
+   cost-neutral by building stroke pieces as arrays, an exact axis-aligned rectangle
+   shortcut and skipping unused bounds queries. Medians against the previous commit:
+   dense dashes 410→191 ms, pressure freehand 237→164 ms, masks/effects 97→73 ms,
+   animation 53→39 ms; 1,200 opaque rectangles 215→226 ms and 480 small outlines
+   261→295 ms are the only slower cases. Output changes by design.
 
 There is no cache between render calls and no new invalidation protocol. Edits,
 cloning, history, masks/effects, progressive geometry and animation continue to

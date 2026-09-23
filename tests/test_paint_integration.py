@@ -113,8 +113,8 @@ def test_conic_gradient_with_shadow_effect():
     scene.add(circle)
 
     buf = OpenCVRenderer().render(scene).buffer
-    # Shadow region should darken background
-    shadow_sample = buf[90, 90]
+    # Inside the offset shadow disk (center (60, 60), r=30) but outside the circle.
+    shadow_sample = buf[80, 80]
     assert shadow_sample[0] < 255 or shadow_sample[1] < 255 or shadow_sample[2] < 255
 
 

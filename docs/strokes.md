@@ -118,9 +118,10 @@ for those discrete changes. Numeric easing must stay inside property constraints
   omitted stroke space defaults to `"screen"`. Older
   readers reject 1.14 rather than silently discarding new styling. Keep old readers
   updated when sharing scenes. Package release/version publication is separate.
-- Existing round styles may have different boundary pixels because outlines now
-  use tessellated coverage instead of OpenCV thick-line defaults. Stroke opacity
-  no longer accumulates at crossings within one compound Path.
+- Stroke pieces are rasterized as one area-exact union on the SVG pixel grid, so a
+  stroke covers exactly its width and opacity never accumulates where pieces or
+  compound subpaths overlap. A 1 px line on a whole coordinate spans two
+  half-covered pixels, as in SVG; see [rasterization](rasterization.md).
 - Bounds for miter/square styles are conservative rather than tight. Bounds-based
   anchors, mask fitting, and selection boxes may therefore be larger.
 - Object stroke bounds use the maximum affine stretch as a conservative allowance.
@@ -132,9 +133,9 @@ for those discrete changes. Numeric easing must stay inside property constraints
 - Hit testing retains its existing geometric/tolerance behavior: it may select a
   dashed gap and is not exact cap/join pixel coverage. It is intended for selecting
   editable paths, not querying rendered alpha.
-- Curves are flattened approximations, rasterization uses OpenCV subpixel coverage,
-  and extremely small dashes/large coordinates remain limited by numeric precision.
-  There is no claim of resolution-independent analytical antialiasing.
+- Curves are flattened to 0.1 px, coverage is exact horizontally and sampled on
+  four sub-rows vertically, and extremely small dashes/large coordinates remain
+  limited by numeric precision. `LINE_4` and `LINE_8` keep OpenCV's aliased output.
 - Masks remain canvas-sized. Dense dashes add geometry work; performance changes
   need the representative benchmarks in the roadmap.
 

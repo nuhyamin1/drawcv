@@ -10,8 +10,10 @@ from drawcv import Ellipse, RoundedRectangle, Polygon, Arc, ArcClosure, Arrow, A
 STOPS = (GradientStop(0, Color.red()), GradientStop(1, Color.blue()))
 
 
+# Pixel k is the square [k, k + 1] and paints sample its center k + 0.5.
+# Endpoints on pixel centers make pixel 20 the start, 60 the midpoint, 100 the end.
 def linear(space="object", stops=STOPS):
-    return LinearGradient(Point(20, 20), Point(100, 20), stops, space)
+    return LinearGradient(Point(20.5, 20), Point(100.5, 20), stops, space)
 
 
 def shape(paint):
@@ -65,12 +67,14 @@ def test_nested_affine_matrix_maps_gradient_in_local_space():
     obj.transform = Transform(translation_x=10)
     group = Group(children=[obj], transform=Transform.from_matrix(
         np.array([[0, -1, 160], [2, .5, 0], [0, 0, 1.]])))
-    # Local (60,40) -> child (70,40) -> world (120,160).
-    assert tuple(pixels(group)[160, 120]) == (128, 0, 128, 255)
+    # Local (60,40) -> child (70,40) -> world (120,160). The world pixel center
+    # (120.5, 160.5) maps back to local x=60.375, a hair before the midpoint.
+    assert np.all(np.abs(pixels(group)[160, 120].astype(int) - (128, 0, 128, 255)) <= 1)
 
 
 def test_radial_center_radius_padding_and_nonuniform_scale():
-    paint = RadialGradient(Point(40, 40), 40, STOPS)
+    # With x scaled by 2, world pixel centers (x + 0.5, y + 0.5) are local ((x + 0.5) / 2, y + 0.5).
+    paint = RadialGradient(Point(40.25, 40.5), 40, STOPS)
     obj = shape(paint)
     obj.transform = Transform(scale_x=2, pivot=Point(0, 0))
     data = pixels(obj)
@@ -115,7 +119,7 @@ def test_png_blur_and_external_backgrounds(tmp_path):
 
 def test_transparent_gradient_controls_shadow_silhouette():
     obj = Rectangle(position=Point(0, 0), width=100, height=40,
-        fill=FillStyle(paint=LinearGradient(Point(0, 0), Point(100, 0),
+        fill=FillStyle(paint=LinearGradient(Point(0.5, 0), Point(100.5, 0),
             (GradientStop(0, Color.red()), GradientStop(1, Color(255, 0, 0, 0))))),
         effects=[ShadowEffect(offset_x=0, offset_y=60, blur_radius=0, color=Color.blue())])
     data = pixels(obj)
@@ -133,7 +137,7 @@ def test_compound_hole_and_progressive_fill_suppression():
     assert np.all(pixels(obj) == 0)
 
 
-@pytest.mark.parametrize("field,bad", [("start", Point(100, 20)), ("space", "screen"),
+@pytest.mark.parametrize("field,bad", [("start", Point(100.5, 20)), ("space", "screen"),
     ("stops", ()), ("stops", tuple(reversed(STOPS))), ("stops", (Color.red(), Color.blue()))])
 def test_invalid_gradient_mutation_is_atomic(field, bad):
     paint = linear()

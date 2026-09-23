@@ -43,9 +43,9 @@ Both gradient types accept `space="object"` (default) or `space="world"`.
   nested group transforms carry the paint along with the geometry.
 - World coordinates remain fixed in the scene. Moving or scaling the object moves
   its coverage through the gradient; it does not move the gradient itself.
-- Raster samples are at integer pixel coordinates, matching the existing renderer.
-  Coverage antialiasing and gradient sampling are separate; this is not analytic
-  integration of a gradient over every pixel footprint.
+- Raster samples are at pixel centers (x + 0.5, y + 0.5), like image paints and
+  SVG viewers. Coverage antialiasing and gradient sampling are separate; this is not
+  analytic integration of a gradient over every pixel footprint.
 - Linear `start` and `end` must be distinct Points. Projection onto that vector
   determines position. Radial `center` is a Point and `radius` is positive and
   finite. Distance divided by radius determines position. An object-local radial
