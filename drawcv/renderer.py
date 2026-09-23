@@ -1,6 +1,7 @@
 """OpenCV raster rendering engine for DrawCV scenes."""
 
 from __future__ import annotations
+import copy
 import math
 import cv2
 import numpy as np
@@ -187,6 +188,13 @@ class OpenCVRenderer:
                 object.__setattr__(sliced.transform, "pivot", drawable.get_geometry_bounds().center)
             sliced._parent, sliced._layer = drawable._parent, drawable._layer
             sliced.render_progress = 1.0  # Invariant: prevent recursive slicing
+            if drawable.label is not None and drawable.label.box is None:
+                # Lay the label out against the complete shape, not the revealed part.
+                pinned = copy.copy(drawable.label)
+                object.__setattr__(pinned, "box", drawable.label.resolve_box(drawable))
+                sliced.label = pinned
+            else:
+                sliced.label = drawable.label
             self._render_single(sliced, canvas)
             return
 
@@ -222,6 +230,7 @@ class OpenCVRenderer:
 
         for _, child in sorted_children:
             self._render_single(child, canvas)
+        self._render_label(group, canvas)
 
     def _render_single_primitive(self, drawable: Drawable, canvas: Canvas | _IsolatedSurface) -> None:
         """Dispatch rendering for a leaf drawable without re-checking drawable-level isolation."""
@@ -255,6 +264,16 @@ class OpenCVRenderer:
             self._render_text(drawable, canvas)
         else:
             raise RenderError(f"Unsupported drawable type: {type(drawable).__name__}")
+        self._render_label(drawable, canvas)
+
+    def _render_label(self, host: Drawable, canvas: Canvas | _IsolatedSurface) -> None:
+        """Render host's label as part of the host's compositing unit."""
+        if host.label is None:
+            return
+        from drawcv.label import label_instance
+        text = label_instance(host)
+        text.opacity *= self._get_render_opacity(host)
+        self._render_single(text, canvas)
 
     # -------------------------------------------------------------------------
     # Isolated Offscreen Compositing Engine & Effects Pipeline
@@ -837,6 +856,9 @@ class OpenCVRenderer:
             return True
         # Font text, like gradient paint, uses the corrected pipeline in BGR too.
         if isinstance(entity, Text) and entity.fonts is not None:
+            return True
+        label = getattr(entity, "label", None)
+        if label is not None and self._requires_alpha_pipeline(label.content):
             return True
         for name in ("fill", "background_fill"):
             fill = getattr(entity, name, None)

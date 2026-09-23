@@ -90,8 +90,8 @@ state. Use `scene.edit` for compound changes and geometry edits, and `scene.batc
 for multiple recorded commands. See [reliable edits](https://github.com/nuhyamin1/drawcv/blob/master/docs/reliability.md) for
 rollback guarantees and the limits of raw attribute/list mutation.
 
-New scenes use schema **1.13**, including vector masks, vector patterns, reusable path markers, retained text runs, path clips, paints, and effects.
-Schemas 1.0 through 1.12 load with compatible defaults. Older readers reject 1.13;
+New scenes use schema **1.14**, including shape labels, vector masks, vector patterns, reusable path markers, retained text runs, path clips, paints, and effects.
+Schemas 1.0 through 1.13 load with compatible defaults. Older readers reject 1.14;
 update readers before sharing new documents with them.
 
 ## Organize and position objects
@@ -115,6 +115,23 @@ Stroke widths and dashes stay in **screen pixels** by default. Set
 transform with the object. See [stroke spaces](https://github.com/nuhyamin1/drawcv/blob/master/docs/strokes.md).
 Colors are authored as **RGB** integers 0–255 with alpha 0–1; OpenCV buffers use BGR.
 Alpha compositing uses source-over with premultiplied internal surfaces for isolation.
+
+## Label shapes and write SVG path data
+
+```python
+from drawcv import Label, Path
+
+node.label = Label("API", color=Color.white(), font_scale=0.8)       # centered on both axes
+connection.label = Label("HTTPS", placement="above", padding=6)       # caption above the line
+node.label.vertical_align = "top"
+
+badge = Path.from_svg_path("M0 0 H60 V24 H0 Z", fill=FillStyle(color=Color(50, 140, 200)))
+print(badge.to_svg_path())
+```
+
+Labels follow their shape through moves, resizes, rotation and animation, and
+export to SVG as native text when they use a retained font. See
+[shape labels](https://github.com/nuhyamin1/drawcv/blob/master/docs/labels.md).
 
 ## Animate a drawing
 
@@ -153,6 +170,7 @@ python -m examples.transparent_output
 - [Path length, positions and tangent directions](https://github.com/nuhyamin1/drawcv/blob/master/docs/path-measurement.md).
 - [Curve-preserving trimming and splitting](https://github.com/nuhyamin1/drawcv/blob/master/docs/path-editing.md).
 - [Filled-region offsets: expansion, contraction, holes and joins](https://github.com/nuhyamin1/drawcv/blob/master/docs/path-offsets.md).
+- [Shape labels: text aligned inside or around any shape](https://github.com/nuhyamin1/drawcv/blob/master/docs/labels.md); [runnable gallery](https://github.com/nuhyamin1/drawcv/blob/master/examples/shape_labels.py).
 - [Reusable path markers and custom arrowheads](https://github.com/nuhyamin1/drawcv/blob/master/docs/markers.md).
 - [Editable vector-pattern paints](https://github.com/nuhyamin1/drawcv/blob/master/docs/vector-patterns.md).
 - [Editable alpha and luminance vector masks](https://github.com/nuhyamin1/drawcv/blob/master/docs/vector-masks.md).
@@ -183,7 +201,7 @@ python -m examples.transparent_output
 | Scene | Groups, layers, lookup, selection, relative positioning, affine transforms | Bounds may be conservative; hit testing is geometric and can select dash gaps |
 | Compositing | Opt-in straight BGRA/PNG output; premultiplied images, raster masks, editable alpha/luminance vector masks, blur, shadows, isolated opacity, blend modes, raster effects | Alpha export currently PNG only |
 | Typography | Hershey compatibility; optional TTF/OTF, Latin/Thai/Arabic shaping, ICU bidi, explicit fallback, wrapping and metrics | Other scripts, emoji, advanced format controls and glyph strokes remain unsupported |
-| Persistence | JSON 1.13; forward migration; cloning; undo/redo | Direct edits require transaction discipline; older readers need updating |
+| Persistence | JSON 1.14; forward migration; cloning; undo/redo | Direct edits require transaction discipline; older readers need updating |
 | Animation | Timing, easing, numeric/value tracks, progressive drawing, video | No built-in enum/dash-array interpolation; codec availability varies |
 | Interchange | Native retained SVG import & export with text interchange and reported PNG fallbacks; raster images, editable JSON, video | PDF export remains future work |
 | Performance | Profiled benchmarks; coverage-region blending/gradients; cheaper transform resolution | Full-canvas masks/effect surfaces remain; no dirty-region redraw |

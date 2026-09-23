@@ -10,6 +10,7 @@ from drawcv.typography import (
 )
 from drawcv.canvas import Canvas
 from drawcv.markers import Marker
+from drawcv.label import Label
 from drawcv.styles.pattern import VectorPattern
 from drawcv.effects.vector_mask import VectorMask
 from drawcv.styles.paint import (
@@ -265,6 +266,7 @@ __all__ = [
     "ImagePaint",
     "InvalidFormatError",
     "JoinStyle",
+    "Label",
     "Layer",
     "lerp",
     "lerp_bounds",

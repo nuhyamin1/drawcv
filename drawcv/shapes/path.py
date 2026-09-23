@@ -401,6 +401,36 @@ class Path(Drawable):
         return self
 
     # -------------------------------------------------------------------------
+    # SVG Path Data
+    # -------------------------------------------------------------------------
+
+    @classmethod
+    def from_svg_path(cls, d: str, *, fill_rule: FillRule | str = FillRule.NON_ZERO, **kwargs: Any) -> Path:
+        """Build a Path from SVG path data such as ``"M10 10 C 20 0, 40 0, 50 10 Z"``.
+
+        All SVG commands are accepted, absolute and relative, including H/V, the
+        S/T shorthands and elliptical arcs. The fill rule defaults to SVG's
+        ``nonzero``; other keyword arguments (stroke, fill, name, ...) are passed
+        to Path. Malformed data raises SVGImportError.
+        """
+        from drawcv.svg_import import SVGPathParser
+        if not isinstance(d, str):
+            raise ValidationError(f"SVG path data must be a string, got {type(d).__name__}")
+        if isinstance(fill_rule, str):
+            names = {"nonzero": FillRule.NON_ZERO, "non_zero": FillRule.NON_ZERO,
+                     "evenodd": FillRule.EVEN_ODD, "even_odd": FillRule.EVEN_ODD}
+            if fill_rule.strip().lower() not in names:
+                raise ValidationError(f"Invalid fill rule '{fill_rule}'; use 'nonzero' or 'evenodd'")
+            fill_rule = names[fill_rule.strip().lower()]
+        parsed = SVGPathParser.parse(d, fill_rule)
+        return cls(subpaths=parsed.subpaths, fill_rule=fill_rule, **kwargs)
+
+    def to_svg_path(self) -> str:
+        """Return SVG path data for this path's local geometry, excluding its transform."""
+        from drawcv.svg import _Writer
+        return _Writer.geometry(self, local=True)
+
+    # -------------------------------------------------------------------------
     # Vector Path Boolean Operations
     # -------------------------------------------------------------------------
 

@@ -41,6 +41,7 @@ class Drawable(ABC):
     effects: list[Any] = field(default_factory=list)
     timing: Any | None = field(default=None)
     render_progress: float = 1.0
+    label: Any | None = field(default=None, kw_only=True)
     _parent: Any | None = field(default=None, repr=False, compare=False)
     _layer: Any | None = field(default=None, repr=False, compare=False)
     _scene: Any | None = field(default=None, repr=False, compare=False)
@@ -48,7 +49,20 @@ class Drawable(ABC):
     def __setattr__(self, name: str, value: Any) -> None:
         if name == "blend_mode":
             value = coerce_blend_mode(value)
+        elif name == "label":
+            self._check_label(value)
         super().__setattr__(name, value)
+
+    def _check_label(self, value: Any) -> None:
+        if value is None:
+            return
+        from drawcv.label import Label
+        if not isinstance(value, Label):
+            raise ValidationError(f"Drawable 'label' must be a Label or None, got {type(value).__name__}")
+        from drawcv.shapes.text import Text
+        if isinstance(self, Text):
+            raise ValidationError("Text cannot carry a label; style the Text itself")
+        value._validate()
 
     def __post_init__(self):
         self._validate_common()
@@ -89,6 +103,7 @@ class Drawable(ABC):
             raise ValidationError("Drawable 'render_progress' must be numeric")
         if math.isnan(self.render_progress) or math.isinf(self.render_progress):
             raise ValidationError("Drawable 'render_progress' must be finite")
+        self._check_label(self.label)
 
     @property
     def progress(self) -> float:
@@ -109,7 +124,14 @@ class Drawable(ABC):
 
     def get_effect_input_bounds(self) -> BoundingBox:
         """Visual bounds of pixels entering this entity's own effect pipeline."""
-        return self.get_bounds()
+        return self._with_label_bounds(self.get_bounds())
+
+    def _with_label_bounds(self, bounds: BoundingBox) -> BoundingBox:
+        """Union attached label ink with visual bounds; geometry bounds exclude it."""
+        if self.label is None:
+            return bounds
+        from drawcv.label import label_instance
+        return bounds.union(label_instance(self).get_bounds())
 
     def get_effect_bounds(self) -> BoundingBox:
         """Calculate authoritative world-space visual bounds propagated through attached post-processing effects."""
@@ -462,6 +484,7 @@ class Drawable(ABC):
             "effects": [copy.deepcopy(e) for e in self.effects],
             "timing": self.timing.to_dict() if self.timing is not None else None,
             "render_progress": float(self.render_progress),
+            "label": copy.deepcopy(self.label),
         }
         state.update(self._get_shape_state())
         return state
@@ -501,6 +524,11 @@ class Drawable(ABC):
         else:
             self.timing = timing_val
         self.render_progress = float(state.get("render_progress", 1.0))
+        label_val = state.get("label")
+        if isinstance(label_val, dict):
+            from drawcv.label import Label
+            label_val = Label.from_dict(label_val)
+        self.label = copy.deepcopy(label_val)
 
         self._apply_shape_state(state)
 
@@ -511,7 +539,7 @@ class Drawable(ABC):
     def _base_to_dict(self) -> dict[str, Any]:
         """Serialize common retained-mode attributes to plain JSON-compatible primitives."""
         from drawcv.effects.clipping import clip_to_dict
-        return {
+        data = {
             "id": self.id,
             "name": self.name,
             "visible": bool(self.visible),
@@ -528,6 +556,9 @@ class Drawable(ABC):
             "timing": self.timing.to_dict() if self.timing is not None else None,
             "render_progress": float(self.render_progress),
         }
+        if self.label is not None:
+            data["label"] = self.label.to_dict()
+        return data
 
     @classmethod
     def _base_from_dict(cls, data: dict[str, Any]) -> dict[str, Any]:
@@ -543,7 +574,7 @@ class Drawable(ABC):
         from drawcv.animation.timing import Timing
         timing_val = Timing.from_dict(timing_data) if isinstance(timing_data, dict) else None
 
-        return {
+        result = {
             "id": data.get("id", str(uuid.uuid4())),
             "name": data.get("name"),
             "visible": bool(data.get("visible", True)),
@@ -560,6 +591,10 @@ class Drawable(ABC):
             "timing": timing_val,
             "render_progress": float(data.get("render_progress", 1.0)),
         }
+        if data.get("label") is not None:
+            from drawcv.label import Label
+            result["label"] = Label.from_dict(data["label"])
+        return result
 
     @abstractmethod
     def to_dict(self) -> dict[str, Any]:

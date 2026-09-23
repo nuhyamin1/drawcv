@@ -305,6 +305,8 @@ class Text(Drawable):
             value = tuple(value)
         if name == "runs" and isinstance(value, (list, tuple)):
             value = tuple(value)
+        if name == "label":
+            self._check_label(value)
         if getattr(self, "_font_initialized", False) and name in (
             "fonts", "font_size", "font_family_name", "font_weight", "font_style",
             "runs", "text_origin", "text_anchor", "fill_opacity", "fill_none", "is_font_substituted",

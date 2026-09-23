@@ -11,7 +11,7 @@ from drawcv.core.exceptions import (
     UnsupportedVersionError,
 )
 
-CURRENT_SCHEMA_VERSION = "1.13"
+CURRENT_SCHEMA_VERSION = "1.14"
 CURRENT_FORMAT_IDENTIFIER = "drawcv"
 
 _DRAWABLE_REGISTRY: dict[str, type] = {}
@@ -468,3 +468,15 @@ def _migrate_1_12_to_1_13(data: dict[str, Any]) -> dict[str, Any]:
 
 
 SchemaMigrator.register_migration('1.12', _migrate_1_12_to_1_13)
+
+
+def _migrate_1_13_to_1_14(data: dict[str, Any]) -> dict[str, Any]:
+    """Shape labels are additive; drawables without one are unchanged."""
+    migrated = copy.deepcopy(data)
+    migrated['version'] = '1.14'
+    if 'schema_version' in migrated:
+        migrated['schema_version'] = '1.14'
+    return migrated
+
+
+SchemaMigrator.register_migration('1.13', _migrate_1_13_to_1_14)

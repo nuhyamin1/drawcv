@@ -41,6 +41,7 @@ class Group(Drawable):
         timing: Any | None = None,
         render_progress: float = 1.0,
         blend_mode: BlendMode | str = BlendMode.NORMAL,
+        label: Any | None = None,
         **kwargs: Any,
     ):
         super_kwargs: dict[str, Any] = {
@@ -54,6 +55,7 @@ class Group(Drawable):
             "mask": mask,
             "timing": timing,
             "render_progress": float(render_progress),
+            "label": label,
         }
         if id is not None:
             super_kwargs["id"] = id
@@ -237,13 +239,13 @@ class Group(Drawable):
     def get_effect_input_bounds(self) -> BoundingBox:
         """Visual bounds of pixels entering this group's own effect pipeline (children with child effects)."""
         if not self._children:
-            return self.get_bounds()
+            return self._with_label_bounds(self.get_bounds())
         union_box: BoundingBox | None = None
         for child in self._children:
             if child.visible:
                 cb = child.get_effect_bounds()
                 union_box = cb if union_box is None else union_box.union(cb)
-        return union_box if union_box is not None else self.get_bounds()
+        return self._with_label_bounds(union_box if union_box is not None else self.get_bounds())
 
     def get_effect_bounds(self) -> BoundingBox:
         """Calculate authoritative world-space visual bounds enclosing all children (with child effects) and group effects."""
@@ -332,6 +334,7 @@ class Group(Drawable):
             clip=copy.deepcopy(self.clip),
             mask=copy.deepcopy(self.mask),
             effects=copy.deepcopy(self.effects),
+            label=copy.deepcopy(self.label),
         )
 
         for child in self._children:

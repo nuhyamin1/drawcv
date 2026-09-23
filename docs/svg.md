@@ -39,6 +39,7 @@ at each rasterized subtree root. A drawable that OpenCV cannot render raises
 | Masks, blur, shadows | Cropped transparent PNG of the affected subtree |
 | Text | Native text/tspan for the supported font-resolved subset; reported PNG fallback for Hershey, wrapping, and other unsupported layouts |
 | ImageObject | Cropped transparent PNG after DrawCV transforms/interpolation |
+| Shape labels | Native text inside the host group for single-line font labels; reported `<host id>-label` PNG fallback otherwise |
 | Arrow and variable-width freehand | Cropped transparent PNG |
 
 Native exported text remains editable. No fonts are embedded in SVG, so the viewer
@@ -79,7 +80,7 @@ antialiasing. Use PNG export for exact raster reproduction.
 
 ## Persistence, import and animation
 
-JSON remains the primary editable DrawCV format at schema 1.13 (with migration from older schemas). DrawCV also provides a native,
+JSON remains the primary editable DrawCV format at schema 1.14 (with migration from older schemas). DrawCV also provides a native,
 high-fidelity retained SVG importer (`SVGImporter`) for supported SVG vector documents:
 
 ```python

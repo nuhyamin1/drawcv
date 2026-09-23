@@ -48,6 +48,7 @@ class ImageObject(Drawable):
         interpolation: ImageInterpolation = ImageInterpolation.LINEAR,
         timing: Any | None = None,
         render_progress: float = 1.0,
+        label: Any | None = None,
         **kwargs: Any,
     ):
         super_kwargs: dict[str, Any] = {
@@ -60,6 +61,7 @@ class ImageObject(Drawable):
             "mask": mask,
             "timing": timing,
             "render_progress": float(render_progress),
+            "label": label,
         }
         if id is not None:
             super_kwargs["id"] = id
@@ -260,6 +262,7 @@ class ImageObject(Drawable):
             mask=copy.deepcopy(self.mask),
             effects=copy.deepcopy(self.effects),
             interpolation=self.interpolation,
+            label=copy.deepcopy(self.label),
         )
 
     def _get_shape_state(self) -> dict[str, Any]:

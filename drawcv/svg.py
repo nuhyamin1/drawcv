@@ -13,7 +13,7 @@ import numpy as np
 
 from drawcv.core.alpha import unpremultiply
 from drawcv.core.color import Color
-from drawcv.core.enums import ArcClosure, BlendMode, FillRule, ImageInterpolation
+from drawcv.core.enums import ArcClosure, BlendMode, FillRule, ImageInterpolation, TextAlignment
 from drawcv.core.exceptions import RenderError, ValidationError
 from drawcv.core.geometry import Point
 from drawcv.core.geometry_utils import transform_elliptical_arc
@@ -152,6 +152,28 @@ def _text_native_svg_fallback_reason(text: Text) -> str | None:
     return None
 
 
+def _baseline_label(text: Text) -> Text:
+    """Equivalent baseline-origin form of a laid-out single-line font label.
+
+    Native SVG text needs a baseline origin; other labels keep their layout and
+    take the reported raster fallback.
+    """
+    if (text.fonts is None or text.wrap_width is not None or text.padding > 0
+            or "\n" in text.text or not text.text):
+        return text
+    metrics = text.measure()
+    if len(metrics.lines) != 1:
+        return text
+    line, box = metrics.lines[0], metrics.layout_bounds
+    slack = box.width - line.advance_width
+    x = box.x + {TextAlignment.LEFT: 0.0, TextAlignment.CENTER: slack / 2, TextAlignment.RIGHT: slack}[text.alignment]
+    result = text.clone(new_id=False)
+    result.text_origin = "baseline"
+    result.alignment = TextAlignment.LEFT
+    result.position = Point(x, line.baseline)
+    return result
+
+
 class _Writer:
     def __init__(self, scene, strict):
         self.scene, self.strict = scene, strict
@@ -278,6 +300,8 @@ class _Writer:
             children = entity.objects if isinstance(entity, Layer) else entity.children
             for _, child in sorted(enumerate(children), key=lambda pair: (pair[1].z_index, pair[0])):
                 self.entity(child, group)
+            if isinstance(entity, Group):
+                self.label(entity, group)
         elif isinstance(entity, Text):
             text_attrs = {
                 # The enclosing group's clip is already in world coordinates.
@@ -387,6 +411,14 @@ class _Writer:
                 from drawcv.markers import marker_instances
                 for instance in marker_instances(entity):
                     self.entity(instance, group)
+            self.label(entity, group)
+
+    def label(self, entity, parent):
+        """Export a host label inside the host group, sharing its opacity and clip."""
+        from drawcv.label import label_instance
+        text = label_instance(entity)
+        if text is not None:
+            self.entity(_baseline_label(text), parent)
 
     @classmethod
     def _paint_fallback_reason(cls, paint):

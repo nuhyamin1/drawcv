@@ -112,6 +112,32 @@ outline.move_to(70, 70).line_to(140, 70).line_to(140, 120).line_to(70, 120).clos
 scene.add(outline)
 ```
 
+The same kind of path can be written as SVG path data. Every SVG command is
+accepted, absolute or relative, including H/V, S/T and arcs. The fill rule
+defaults to SVG's `nonzero`, and other keyword arguments go to `Path`:
+
+```python
+heart = Path.from_svg_path("M0 -16 C-20 -44 -68 -24 -52 16 C-40 44 0 64 0 76 "
+                           "C0 64 40 44 52 16 C68 -24 20 -44 0 -16 Z",
+                           fill=FillStyle(color=Color(230, 80, 100)))
+heart.to_svg_path()  # "M 0 -16 C -20 -44 ..." in local coordinates, without the transform
+```
+
+Malformed data raises `SVGImportError`. Other shapes can use
+`shape.to_path().to_svg_path()`.
+
+## Label a shape
+
+```python
+from drawcv import Label
+
+card = Rectangle(position=Point(40, 30), width=200, height=120)
+card.label = Label("Centered on both axes", font_scale=0.8)
+card.label.vertical_align = "top"
+```
+
+Labels follow their host's edits and transforms. See [shape labels](labels.md).
+
 ## Capture pressure samples
 
 ```python
