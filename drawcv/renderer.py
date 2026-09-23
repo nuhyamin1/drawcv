@@ -25,7 +25,9 @@ from drawcv.core.enums import (
 )
 from drawcv.core.exceptions import RenderError, ValidationError
 from drawcv.core.geometry import Point
-from drawcv.core.alpha import premultiply, unpremultiply, clamp_premultiplied
+from drawcv.core.alpha import (
+    clamp_premultiplied, premultiply, source_over, spread_channels, tint, unpremultiply,
+)
 from drawcv.compositing import composite_blend
 from drawcv.core.transform import Transform
 from drawcv.core.stroking import stroke_mask
@@ -413,7 +415,7 @@ class OpenCVRenderer:
             return
         sampled = flatten_arc(circle.center, circle.radius, circle.radius, 0, 360,
                               tolerance=self._curve_tolerance(circle))
-        world_pts = [circle.to_world(p) for p in sampled]
+        world_pts = self._world_points(circle, sampled)
         pts = np.rint([[p.x, p.y] for p in world_pts]).astype(np.int32)
         bounds = circle.get_bounds()
 
@@ -428,7 +430,7 @@ class OpenCVRenderer:
 
         sampled = flatten_arc(ellipse.center, ellipse.radius_x, ellipse.radius_y, 0.0, 360.0,
                               tolerance=self._curve_tolerance(ellipse))
-        world_pts = [ellipse.to_world(p) for p in sampled]
+        world_pts = self._world_points(ellipse, sampled)
         pts = np.array([[int(round(p.x)), int(round(p.y))] for p in world_pts], dtype=np.int32).reshape((-1, 1, 2))
         bounds = ellipse.get_bounds()
 
@@ -441,7 +443,7 @@ class OpenCVRenderer:
         if len(polygon.vertices) < 3:
             return
 
-        world_pts = [polygon.to_world(p) for p in polygon.vertices]
+        world_pts = self._world_points(polygon, polygon.vertices)
         pts = np.array([[int(round(p.x)), int(round(p.y))] for p in world_pts], dtype=np.int32).reshape((-1, 1, 2))
         bounds = polygon.get_bounds()
 
@@ -455,7 +457,7 @@ class OpenCVRenderer:
 
     def _render_rounded_rectangle(self, rect: RoundedRectangle, canvas: Canvas | _IsolatedSurface) -> None:
         local_pts = rect.get_contour_points(tolerance=self._curve_tolerance(rect))
-        world_pts = [rect.to_world(p) for p in local_pts]
+        world_pts = self._world_points(rect, local_pts)
         pts = np.array([[int(round(p.x)), int(round(p.y))] for p in world_pts], dtype=np.int32).reshape((-1, 1, 2))
         bounds = rect.get_bounds()
 
@@ -466,7 +468,7 @@ class OpenCVRenderer:
 
     def _render_arc(self, arc: Arc, canvas: Canvas | _IsolatedSurface) -> None:
         local_pts = arc.get_contour_points(tolerance=self._curve_tolerance(arc))
-        world_pts = [arc.to_world(p) for p in local_pts]
+        world_pts = self._world_points(arc, local_pts)
         pts = np.array([[int(round(p.x)), int(round(p.y))] for p in world_pts], dtype=np.int32).reshape((-1, 1, 2))
         bounds = arc.get_bounds()
         is_closed = (arc.closure != ArcClosure.OPEN)
@@ -875,14 +877,14 @@ class OpenCVRenderer:
             return
         region = np.s_[y:y+height, x:x+width]
         source = sample_gradient(paint, world_matrix, width, height, origin=(x, y))
-        source *= (mask[region].astype(np.float32) / 255 * opacity)[..., None]
-        a = source[..., 3:4]
+        np.multiply(source, spread_channels(mask[region].astype(np.float32) / 255 * opacity, 4), out=source)
         destination = canvas.buffer[region]
         if getattr(canvas, "is_isolated", False):
-            destination[..., :3] = source[..., :3] + destination[..., :3]*(1-a)
-            destination[..., 3:4] = a + destination[..., 3:4]*(1-a)
+            source_over(destination, source)
         else:
-            destination[:] = np.rint(source[..., :3] + destination*(1-a)).clip(0, 255).astype(np.uint8)
+            blended = destination * spread_channels(1 - source[..., 3], 3)
+            blended += source[..., :3]
+            destination[:] = np.rint(blended).clip(0, 255).astype(np.uint8)
 
     def _fill_mask(self, drawable, canvas, mask):
         fill = drawable.fill
@@ -1002,22 +1004,27 @@ class OpenCVRenderer:
             return
 
         sub_mask = mask[y1:y2, x1:x2]
-        if not np.any(sub_mask):
+        covered = cv2.countNonZero(sub_mask)
+        if not covered:
             return
 
+        # Uncovered pixels are unchanged (dst * 1 + 0), so a sparse mask such as a
+        # thin outline only blends the pixels it covers.
+        target = canvas.buffer[y1:y2, x1:x2]
+        rows = None
+        if 4 * covered < sub_mask.size:
+            rows, cols = np.nonzero(sub_mask)
+            sub_mask = sub_mask[rows, cols]
+            target = target[rows, cols]
         coverage = (sub_mask.astype(np.float32) / 255.0) * float(alpha)
-        color_vec = np.array(color_bgr, dtype=np.float32)
+        source = tint(coverage, color_bgr)
 
         if getattr(canvas, "is_isolated", False):
-            sub_buf = canvas.buffer[y1:y2, x1:x2]
-            src_a = coverage
-            src_rgb = color_vec * src_a[:, :, None]
-            dst_rgb = sub_buf[:, :, :3]
-            dst_a = sub_buf[:, :, 3:4]
-
-            sub_buf[:, :, :3] = src_rgb + dst_rgb * (1.0 - src_a[:, :, None])
-            sub_buf[:, :, 3] = (src_a[:, :, None] + dst_a * (1.0 - src_a[:, :, None]))[:, :, 0]
+            source_over(target, source)
         else:
-            sub_dst = canvas.buffer[y1:y2, x1:x2].astype(np.float32)
-            blended = sub_dst * (1.0 - coverage[:, :, None]) + color_vec * coverage[:, :, None]
-            canvas.buffer[y1:y2, x1:x2] = np.clip(np.round(blended), 0, 255).astype(np.uint8)
+            blended = target.astype(np.float32)
+            np.multiply(blended, spread_channels(1.0 - coverage, 3), out=blended)
+            blended += source[..., :3]
+            target[:] = np.clip(np.round(blended), 0, 255).astype(np.uint8)
+        if rows is not None:
+            canvas.buffer[y1:y2, x1:x2][rows, cols] = target

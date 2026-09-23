@@ -1,6 +1,7 @@
 """Renderer-side sampling of retained paints at integer pixel centers."""
 
 from __future__ import annotations
+import functools
 import cv2
 import numpy as np
 
@@ -31,6 +32,8 @@ def _sample_stops(stops, t: np.ndarray) -> np.ndarray:
     """Sample ordered gradient color stops at parameter t in [0, 1]."""
     positions = np.array([s.position for s in stops], dtype=float)
     colors = np.array([[s.color.b, s.color.g, s.color.r, s.color.a] for s in stops], dtype=float)
+    if len(stops) == 2 and positions[1] > positions[0]:
+        return _sample_two_stops(positions, colors, t)
     right = np.searchsorted(positions, t, side="right")
     lo = np.clip(right - 1, 0, len(positions) - 1)
     hi = np.clip(right, 0, len(positions) - 1)
@@ -41,6 +44,65 @@ def _sample_stops(stops, t: np.ndarray) -> np.ndarray:
     samples = colors[lo] * (1.0 - mix) + colors[hi] * mix
     samples[..., :3] *= samples[..., 3:4]
     return samples.astype(np.float32)
+
+
+def _sample_two_stops(positions: np.ndarray, colors: np.ndarray, t: np.ndarray) -> np.ndarray:
+    """Exact equivalent of the general path for two distinct stops, per channel.
+
+    Outside [p0, p1] the general path selects the end color through a zero span;
+    here the clipped mix of 0 or 1 selects the same color, since c*0 + e*1 == e.
+    Every in-range sample uses the same float64 operations in the same order.
+    """
+    mix = t - positions[0]
+    mix /= positions[1] - positions[0]
+    np.clip(mix, 0.0, 1.0, out=mix)
+    keep = 1.0 - mix
+    samples = np.empty(t.shape + (4,), dtype=np.float32)
+    alpha = colors[0, 3] * keep
+    alpha += colors[1, 3] * mix
+    channel = np.empty_like(mix)
+    for c in range(3):
+        np.multiply(keep, colors[0, c], out=channel)
+        channel += colors[1, c] * mix
+        channel *= alpha
+        samples[..., c] = channel
+    samples[..., 3] = alpha
+    return samples
+
+
+def _evaluate_axes(
+    paint: Paint,
+    matrix: np.ndarray,
+    width: int,
+    height: int,
+    origin: tuple[int, int],
+) -> tuple[np.ndarray | None, np.ndarray | None]:
+    """Like _evaluate_coordinates, but returns broadcastable arrays when possible.
+
+    For axis-aligned inverse maps (no rotation or skew) x depends only on the
+    column and y only on the row, so they are evaluated as a (1, W) row and an
+    (H, 1) column. The dropped cross terms are exact zeros, leaving each pixel's
+    value unchanged; other maps fall back to the full grid.
+    """
+    inverses = []
+    if paint.space == "object":
+        try:
+            inverses.append(np.linalg.inv(matrix))
+        except np.linalg.LinAlgError:
+            return None, None
+    if paint.transform is not None and not paint.transform.is_identity():
+        try:
+            inverses.append(np.linalg.inv(paint.transform.get_matrix(default_pivot=Point(0.0, 0.0))))
+        except np.linalg.LinAlgError:
+            return None, None
+    if any(inv[0, 1] != 0.0 or inv[1, 0] != 0.0 for inv in inverses):
+        return _evaluate_coordinates(paint, matrix, width, height, origin)
+    x = np.arange(width, dtype=float)[None, :] + origin[0]
+    y = np.arange(height, dtype=float)[:, None] + origin[1]
+    for inv in inverses:
+        x = inv[0, 0] * x + inv[0, 2]
+        y = inv[1, 1] * y + inv[1, 2]
+    return x, y
 
 
 def _evaluate_coordinates(
@@ -108,8 +170,29 @@ def _prepare_source_image(src_img: np.ndarray) -> np.ndarray:
     return premultiply(source)
 
 
+# Gradients are sampled in row blocks of about this many pixels so the float64
+# temporaries stay in cache. Every pixel depends only on its own coordinate, and
+# a block's origin reproduces the same integer coordinates, so blocks are exact.
+_BLOCK_PIXELS = 16384
+
+
+def _row_blocks(sample):
+    @functools.wraps(sample)
+    def sample_in_blocks(paint, matrix, width, height, origin=(0, 0)):
+        rows = max(1, _BLOCK_PIXELS // max(width, 1))
+        if height <= rows:
+            return sample(paint, matrix, width, height, origin)
+        result = np.empty((height, width, 4), dtype=np.float32)
+        for top in range(0, height, rows):
+            block = min(rows, height - top)
+            result[top:top + block] = sample(paint, matrix, width, block, (origin[0], origin[1] + top))
+        return result
+    return sample_in_blocks
+
+
+@_row_blocks
 def sample_linear(paint: LinearGradient, matrix: np.ndarray, width: int, height: int, origin: tuple[int, int] = (0, 0)) -> np.ndarray:
-    x, y = _evaluate_coordinates(paint, matrix, width, height, origin)
+    x, y = _evaluate_axes(paint, matrix, width, height, origin)
     if x is None:
         return np.zeros((height, width, 4), dtype=np.float32)
 
@@ -117,7 +200,7 @@ def sample_linear(paint: LinearGradient, matrix: np.ndarray, width: int, height:
     dy = paint.end.y - paint.start.y
     len_sq = dx * dx + dy * dy
     if len_sq == 0.0:
-        t = np.zeros_like(x)
+        t = np.zeros((height, width))
     else:
         t = ((x - paint.start.x) * dx + (y - paint.start.y) * dy) / len_sq
 
@@ -126,11 +209,12 @@ def sample_linear(paint: LinearGradient, matrix: np.ndarray, width: int, height:
     opacity = getattr(paint, "opacity", 1.0)
     if opacity < 1.0:
         samples *= float(opacity)
-    return samples.astype(np.float32)
+    return samples
 
 
+@_row_blocks
 def sample_radial(paint: RadialGradient, matrix: np.ndarray, width: int, height: int, origin: tuple[int, int] = (0, 0)) -> np.ndarray:
-    x, y = _evaluate_coordinates(paint, matrix, width, height, origin)
+    x, y = _evaluate_axes(paint, matrix, width, height, origin)
     if x is None:
         return np.zeros((height, width, 4), dtype=np.float32)
 
@@ -143,11 +227,12 @@ def sample_radial(paint: RadialGradient, matrix: np.ndarray, width: int, height:
     opacity = getattr(paint, "opacity", 1.0)
     if opacity < 1.0:
         samples *= float(opacity)
-    return samples.astype(np.float32)
+    return samples
 
 
+@_row_blocks
 def sample_conic(paint: ConicGradient, matrix: np.ndarray, width: int, height: int, origin: tuple[int, int] = (0, 0)) -> np.ndarray:
-    x, y = _evaluate_coordinates(paint, matrix, width, height, origin)
+    x, y = _evaluate_axes(paint, matrix, width, height, origin)
     if x is None:
         return np.zeros((height, width, 4), dtype=np.float32)
 
@@ -163,7 +248,7 @@ def sample_conic(paint: ConicGradient, matrix: np.ndarray, width: int, height: i
     opacity = getattr(paint, "opacity", 1.0)
     if opacity < 1.0:
         samples *= float(opacity)
-    return samples.astype(np.float32)
+    return samples
 
 
 def sample_image(paint: ImagePaint, matrix: np.ndarray, width: int, height: int, origin: tuple[int, int] = (0, 0)) -> np.ndarray:

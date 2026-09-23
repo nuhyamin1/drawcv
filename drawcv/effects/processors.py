@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 
 from drawcv.core.bounds import BoundingBox
-from drawcv.core.alpha import clamp_premultiplied
+from drawcv.core.alpha import clamp_premultiplied, spread_channels, tint
 from drawcv.core.exceptions import ValidationError
 from drawcv.core.enums import (
     BlurType,
@@ -200,22 +200,18 @@ def process_shadow(effect: ShadowEffect, buffer: np.ndarray, ctx: RasterEffectSt
     else:
         blurred_alpha = shifted_alpha
 
-    sh_b, sh_g, sh_r = effect.color.to_bgr()
-    sh_color_vec = np.array([sh_b, sh_g, sh_r], dtype=np.float32)
-    sh_rgb_pm = sh_color_vec * blurred_alpha[..., None]
-
-    base_rgb = sub_out[..., :3]
-    base_a = sub_out[..., 3:4]
-    sh_a = blurred_alpha[..., None]
-
-    # Porter-Duff: base OVER shadow
-    merged_rgb = base_rgb + sh_rgb_pm * (1.0 - base_a)
-    merged_a = base_a + sh_a * (1.0 - base_a)
-
-    sub_out[..., :3] = merged_rgb
-    sub_out[..., 3] = merged_a[..., 0]
-    buffer[oy1:oy2, ox1:ox2] = sub_out
+    # Porter-Duff: base OVER shadow, i.e. base + shadow * (1 - base_alpha).
+    _add_under(sub_out, tint(blurred_alpha, effect.color.to_bgr()))
     return buffer
+
+
+def _add_under(base: np.ndarray, under: np.ndarray) -> None:
+    """In place ``base += under * (1 - base_alpha)`` for premultiplied BGRA."""
+    if under.dtype != base.dtype:
+        base[...] = base + under * (1.0 - base[..., 3:4])
+        return
+    np.multiply(under, spread_channels(1.0 - base[..., 3], 4), out=under)
+    np.add(base, under, out=base)
 
 
 def process_glow(effect: GlowEffect, buffer: np.ndarray, ctx: RasterEffectStageContext) -> np.ndarray:
@@ -264,21 +260,11 @@ def process_glow(effect: GlowEffect, buffer: np.ndarray, ctx: RasterEffectStageC
     outer_alpha = np.maximum(0.0, blurred_alpha - aligned_alpha) * float(effect.color.a * effect.opacity)
     np.clip(outer_alpha, 0.0, 1.0, out=outer_alpha)
 
-    glow_b, glow_g, glow_r = effect.color.to_bgr()
-    glow_color_vec = np.array([glow_b, glow_g, glow_r], dtype=np.float32)
-    glow_rgb_pm = glow_color_vec * outer_alpha[..., None]
-    glow_a = outer_alpha[..., None]
-
-    base_rgb = sub_out[..., :3]
-    base_a = sub_out[..., 3:4]
-
     # Porter-Duff: base OVER glow
-    merged_rgb = base_rgb + glow_rgb_pm * (1.0 - base_a)
-    merged_a = base_a + glow_a * (1.0 - base_a)
-
-    sub_out[..., :3] = np.clip(merged_rgb, 0.0, 255.0)
-    sub_out[..., 3] = np.clip(merged_a[..., 0], 0.0, 1.0)
-    buffer[oy1:oy2, ox1:ox2] = sub_out
+    _add_under(sub_out, tint(outer_alpha, effect.color.to_bgr()))
+    for channel in range(3):
+        np.clip(sub_out[..., channel], 0.0, 255.0, out=sub_out[..., channel])
+    np.clip(sub_out[..., 3], 0.0, 1.0, out=sub_out[..., 3])
     return buffer
 
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 import numpy as np
 
+from drawcv.core.alpha import source_over, spread_channels
 from drawcv.core.enums import BlendMode
 from drawcv.compositing.blend import blend_rgb
 
@@ -30,14 +31,11 @@ def composite_blend(
     # Fast-path for BlendMode.NORMAL: strictly preserves existing renderer numerical semantics
     if mode == BlendMode.NORMAL:
         if is_destination_isolated:
-            sub_dst = dst_buffer[y1:y2, x1:x2]
-            dst_rgb = sub_dst[:, :, :3]
-            dst_a = sub_dst[:, :, 3:4]
-            sub_dst[:, :, :3] = src_rgb + dst_rgb * (1.0 - src_a)
-            sub_dst[:, :, 3] = (src_a + dst_a * (1.0 - src_a))[:, :, 0]
+            source_over(dst_buffer[y1:y2, x1:x2], sub_src)
         else:
-            sub_dst = dst_buffer[y1:y2, x1:x2].astype(np.float32)
-            blended = sub_dst * (1.0 - src_a) + src_rgb
+            blended = dst_buffer[y1:y2, x1:x2].astype(np.result_type(np.float32, sub_src.dtype))
+            np.multiply(blended, spread_channels(1.0 - sub_src[..., 3], 3), out=blended)
+            blended += src_rgb
             dst_buffer[y1:y2, x1:x2] = np.clip(np.round(blended), 0, 255).astype(np.uint8)
         return
 
