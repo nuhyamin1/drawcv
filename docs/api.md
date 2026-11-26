@@ -159,7 +159,8 @@ parameters; see the freehand source and runnable example for combinations.
 
 `Text(..., fonts=[FontAsset.from_file(path)], font_size=32, wrap_width=400)`
 opts into font shaping. `Text.measure()` distinguishes advance, layout, paragraph
-and ink bounds. See [typography contracts and installation](typography.md).
+and ink bounds. Use `text.world_ink_bounds()` for an axis-aligned ink box in scene
+coordinates. See [typography contracts and installation](typography.md).
 
 ## SVG export
 

@@ -3,7 +3,11 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any
+from functools import lru_cache
+from io import BytesIO
+import os
+from pathlib import Path
+import sys
 
 from drawcv.core.exceptions import ValidationError
 from drawcv.typography.assets import FontAsset
@@ -161,3 +165,102 @@ class DictFontResolver(FontResolver):
             )
 
         return None
+
+def _system_font_dirs():
+    home = Path.home()
+    if sys.platform == "win32":
+        return [Path(os.environ.get("WINDIR", "C:/Windows")) / "Fonts",
+                Path(os.environ.get("LOCALAPPDATA", home / "AppData/Local")) / "Microsoft/Windows/Fonts"]
+    if sys.platform == "darwin":
+        return [home / "Library/Fonts", Path("/Library/Fonts"), Path("/System/Library/Fonts")]
+    data_home = Path(os.environ.get("XDG_DATA_HOME", home / ".local/share"))
+    data_dirs = os.environ.get("XDG_DATA_DIRS", "/usr/local/share:/usr/share").split(os.pathsep)
+    return [home / ".fonts", data_home / "fonts", *(Path(d) / "fonts" for d in data_dirs if d)]
+
+
+class SystemFontResolver(FontResolver):
+    """Discover local OpenType families on first use. Custom directories override OS defaults."""
+
+    _generic = {
+        "sans-serif": ("Segoe UI", "Helvetica Neue", "Arial", "DejaVu Sans", "Liberation Sans", "Noto Sans"),
+        "serif": ("Times New Roman", "Times", "DejaVu Serif", "Liberation Serif", "Noto Serif"),
+        "cursive": ("Segoe Print", "Apple Chancery", "Comic Sans MS", "URW Chancery L", "Z003"),
+        "monospace": ("Consolas", "Menlo", "DejaVu Sans Mono", "Liberation Mono", "Courier New"),
+    }
+
+    def __init__(self, directories=None):
+        self.directories = tuple(map(Path, directories)) if directories is not None else tuple(_system_font_dirs())
+        self._index = None
+
+    def _discover(self):
+        try:
+            from fontTools.ttLib import TTCollection, TTFont, TTLibError
+        except ImportError as exc:
+            raise ValidationError('SystemFontResolver requires pydrawcv[typography]') from exc
+        index = {}
+        for directory in self.directories:
+            for path in sorted(directory.rglob("*")):
+                suffix = path.suffix.lower()
+                if suffix not in (".ttf", ".otf", ".ttc", ".otc"):
+                    continue
+                try:
+                    collection = suffix in (".ttc", ".otc")
+                    source = TTCollection(path, lazy=True) if collection else TTFont(path, lazy=True)
+                    with source:
+                        for i, face in enumerate(source.fonts if collection else [source]):
+                            names = face["name"]
+                            family = names.getBestFamilyName()
+                            if not family:
+                                continue
+                            flags = face["head"].macStyle
+                            weight = "bold" if flags & 1 else "normal"
+                            style = "italic" if flags & 2 else "normal"
+                            for alias in (family, names.getDebugName(1)):
+                                if alias:
+                                    index.setdefault((_normalize_family_name(alias), weight, style),
+                                                     (family, path, i if collection else None))
+                except (OSError, TTLibError, KeyError):
+                    continue
+        return index
+
+    @staticmethod
+    @lru_cache(maxsize=32)
+    def _asset(path, face_index):
+        if face_index is None:
+            return FontAsset.from_file(path)
+        from fontTools.ttLib import TTFont
+        with TTFont(path, fontNumber=face_index) as face:
+            data = BytesIO()
+            face.save(data)
+            return FontAsset(f"{path.stem}-{face_index}.ttf", data.getvalue())
+
+    def resolve(self, family, weight=None, style=None):
+        if self._index is None:
+            self._index = self._discover()
+        requested = [_normalize_family_name(f) for f in (family or "sans-serif").split(",")]
+        w, s = _normalize_weight(weight), _normalize_style(style)
+        if w.isdecimal():
+            w = "bold" if int(w) >= 600 else "normal"
+        if s == "oblique":
+            s = "italic"
+        assets = []
+        primary = None
+        for candidate in requested:
+            for alias in self._generic.get(candidate, (candidate,)):
+                name = _normalize_family_name(alias)
+                match = self._index.get((name, w, s))
+                substituted = match is None
+                if match is None:
+                    match = self._index.get((name, "normal", "normal"))
+                if match is None:
+                    continue
+                canonical, path, face_index = match
+                asset = self._asset(path, face_index)
+                if primary is None:
+                    primary = canonical, substituted
+                if asset not in assets:
+                    assets.append(asset)
+                break
+        if primary is None:
+            return None
+        return ResolvedFontDescriptor(primary[0], tuple(assets), primary[1])

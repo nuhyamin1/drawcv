@@ -137,3 +137,26 @@ def test_queries_leave_semantic_state_unchanged():
     before = path.to_dict()
     path.length(); path.point_at(.3); path.tangent_at(.7)
     assert path.to_dict() == before
+
+
+def test_batch_reuses_arc_table_and_tracks_direct_command_and_transform_edits(monkeypatch):
+    import drawcv.core.path_measurement as module
+    curve = Path().move_to(0, 0).cubic_to(Point(0, 100), Point(100, 100), Point(100, 0))
+    builds = 0
+    original = module._ArcTable.__init__
+    def count(self, *args):
+        nonlocal builds
+        builds += 1
+        original(self, *args)
+    monkeypatch.setattr(module._ArcTable, "__init__", count)
+    samples = curve.points_at(i/999 for i in range(1000))
+    assert curve.points_at([1, 0, 0.5, 0.5]) == [samples[-1], samples[0], curve.point_at(.5), curve.point_at(.5)]
+    assert curve.length() == pytest.approx(200) and builds == 1
+    curve.subpaths[0].commands[1] = LineTo(Point(300, 0))
+    assert curve.points_at([.5]) == [Point(150, 0)]
+    group = Group(children=[curve])
+    assert curve.points_at([1], space="world") == [Point(300, 0)]
+    group.transform.translation_x = 4
+    assert curve.points_at([1], space="world") == [Point(304, 0)]
+    with pytest.raises(ValidationError):
+        curve.points_at([0.2, 2])

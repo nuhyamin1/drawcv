@@ -207,17 +207,22 @@ class Group(Drawable):
         Evaluated bottom-up as the union of all children's bounds in group space.
         Its center serves as the default pivot for group rotation/scaling.
         """
-        if not self._children:
-            return BoundingBox(0.0, 0.0, 0.0, 0.0)
+        # Children expose mutable point lists, styles and transforms. Snapshot the
+        # actual inputs so edits through any public reference invalidate the union.
+        inputs = tuple(child._parent_bounds_key() for child in self._children)
+        cached = getattr(self, "_geometry_cache", None)
+        if cached is None or cached[0] != inputs:
+            boxes = (key if isinstance(key, BoundingBox) else child.get_bounds_in_parent()
+                     for child, key in zip(self._children, inputs))
+            bounds = next(boxes, BoundingBox(0, 0, 0, 0))
+            for box in boxes:
+                bounds = bounds.union(box)
+            self._geometry_cache = (inputs, bounds, bounds.center)
+        return self._geometry_cache[1]
 
-        union_box: BoundingBox | None = None
-        for child in self._children:
-            cb = child.get_bounds_in_parent()
-            if union_box is None:
-                union_box = cb
-            else:
-                union_box = union_box.union(cb)
-        return union_box if union_box is not None else BoundingBox(0.0, 0.0, 0.0, 0.0)
+    def _geometry_pivot(self):
+        self.get_geometry_bounds()
+        return self._geometry_cache[2]
 
     def get_local_bounds(self) -> BoundingBox:
         """Visual bounds of the group at identity transform."""

@@ -13,7 +13,7 @@ import numpy as np
 
 from drawcv.core.alpha import unpremultiply
 from drawcv.core.color import Color
-from drawcv.core.enums import ArcClosure, BlendMode, FillRule, ImageInterpolation, TextAlignment
+from drawcv.core.enums import ArcClosure, BlendMode, FillRule, ImageInterpolation
 from drawcv.core.exceptions import RenderError, ValidationError
 from drawcv.core.geometry import Point
 from drawcv.core.paint_order import paint_steps
@@ -33,7 +33,7 @@ from drawcv.shapes.polygon import Polygon
 from drawcv.shapes.polyline import Polyline
 from drawcv.shapes.rectangle import Rectangle
 from drawcv.shapes.rounded_rectangle import RoundedRectangle
-from drawcv.shapes.text import Text, TextAnchor, TextRun
+from drawcv.shapes.text import Text, TextAnchor
 from drawcv.styles.paint import (
     ConicGradient,
     ImagePaint,
@@ -112,8 +112,6 @@ def _text_native_svg_fallback_reason(text: Text) -> str | None:
         return "Hershey font text"
     if text.font_family_name is None:
         return "missing font family name"
-    if text.text_origin != "baseline":
-        return f"text origin {text.text_origin}"
     if text.direction not in ("ltr", "rtl", "auto"):
         return f"text direction {text.direction}"
     if text.direction == "auto":
@@ -122,12 +120,6 @@ def _text_native_svg_fallback_reason(text: Text) -> str | None:
             return "text direction auto with RTL text"
     if text.background_fill is not None and text.background_fill.enabled and text.background_fill.opacity > 0.0:
         return "background plate"
-    if text.padding > 0.0:
-        return "text padding"
-    if text.wrap_width is not None:
-        return "wrapped text"
-    if "\n" in text.text:
-        return "multiline text"
     if text.runs is not None:
         for r in text.runs:
             if r.is_font_substituted:
@@ -150,28 +142,6 @@ def _text_native_svg_fallback_reason(text: Text) -> str | None:
                 if not has_semantic_font_override:
                     return "run font asset override without SVG semantic descriptor"
     return None
-
-
-def _baseline_label(text: Text) -> Text:
-    """Equivalent baseline-origin form of a laid-out single-line font label.
-
-    Native SVG text needs a baseline origin; other labels keep their layout and
-    take the reported raster fallback.
-    """
-    if (text.fonts is None or text.wrap_width is not None or text.padding > 0
-            or "\n" in text.text or not text.text):
-        return text
-    metrics = text.measure()
-    if len(metrics.lines) != 1:
-        return text
-    line, box = metrics.lines[0], metrics.layout_bounds
-    slack = box.width - line.advance_width
-    x = box.x + {TextAlignment.LEFT: 0.0, TextAlignment.CENTER: slack / 2, TextAlignment.RIGHT: slack}[text.alignment]
-    result = text.clone(new_id=False)
-    result.text_origin = "baseline"
-    result.alignment = TextAlignment.LEFT
-    result.position = Point(x, line.baseline)
-    return result
 
 
 def _arrow_parts(arrow):
@@ -376,8 +346,8 @@ class _Writer:
                 # The enclosing group's clip is already in world coordinates.
                 # Transform only the text, leaving that clip in the same space.
                 "transform": _matrix(entity.world_matrix),
-                "x": _number(entity.position.x),
-                "y": _number(entity.position.y),
+                "x": _number(entity.position.x + entity.padding),
+                "y": _number(entity.position.y + entity.padding),
                 "font-size": _number(entity.font_size),
             }
             if entity.fill_none:
@@ -401,14 +371,34 @@ class _Writer:
             if entity.direction == "rtl":
                 text_attrs["direction"] = "rtl"
             text_node = ET.SubElement(group, "text", text_attrs)
-            if entity.runs:
+            if entity.runs is None and (entity.text_origin == "top_left" or entity._baseline_paragraph()):
+                metrics = entity.measure()
+                text_node.set("xml:space", "preserve")
+                text_node.attrib.pop("text-anchor", None)
+                previous = metrics.lines[0].baseline
+                text_node.set("y", _number(previous))
+                for line in metrics.lines:
+                    if not line.text:
+                        continue
+                    slack = metrics.layout_bounds.width - line.advance_width
+                    x = metrics.layout_bounds.x + {"left": 0, "center": slack/2,
+                                                   "right": slack}[entity._paragraph_alignment()]
+                    if entity.direction == "rtl":
+                        x += line.advance_width
+                    tspan = ET.SubElement(text_node, "tspan", {"x": _number(x), "dy": _number(line.baseline-previous)})
+                    tspan.text = line.text
+                    previous = line.baseline
+            elif entity.runs:
+                ascent = entity._font_layout().ascent if entity.text_origin == "top_left" else 0.
+                text_node.set("x", _number(entity.position.x + entity.padding))
+                text_node.set("y", _number(entity.position.y + ascent + entity.padding))
                 eff_root_dir = "rtl" if entity.direction == "rtl" else "ltr"
-                for r in entity.runs:
+                for r in entity._positioned_runs():
                     tspan_attrs = {}
                     if r.x is not None:
-                        tspan_attrs["x"] = _number(r.x)
+                        tspan_attrs["x"] = _number(r.x + entity.padding)
                     if r.y is not None:
-                        tspan_attrs["y"] = _number(r.y)
+                        tspan_attrs["y"] = _number(r.y + ascent + entity.padding)
                     if r.dx != 0.0:
                         tspan_attrs["dx"] = _number(r.dx)
                     if r.dy != 0.0:
@@ -522,7 +512,7 @@ class _Writer:
         from drawcv.label import label_instance
         text = label_instance(entity)
         if text is not None:
-            self.entity(_baseline_label(text), parent)
+            self.entity(text, parent)
 
     @classmethod
     def _paint_fallback_reason(cls, paint):

@@ -2,6 +2,7 @@
 
 from drawcv.typography import (
     DictFontResolver,
+    SystemFontResolver,
     FontAsset,
     FontResolver,
     ResolvedFontDescriptor,
@@ -173,7 +174,7 @@ from drawcv.core.path_processing import (
     slice_stroke_points,
 )
 
-__version__ = "0.11.0"
+__version__ = "0.12.0"
 
 from drawcv.svg import SVGExporter, SVGExport, SVGFallback
 from drawcv.svg_import import (
@@ -194,7 +195,7 @@ __all__ = [
     "SVGImportError",
     "SVGImportLimits",
     "FontAsset", "TextMetrics", "TextLineMetrics",
-    "FontResolver", "DictFontResolver", "ResolvedFontDescriptor",
+    "FontResolver", "DictFontResolver", "SystemFontResolver", "ResolvedFontDescriptor",
     "GradientStop", "LinearGradient", "RadialGradient",
     "AddObjectCommand",
     "align_bottom",

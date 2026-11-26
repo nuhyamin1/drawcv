@@ -73,6 +73,11 @@ class Transform:
             and self.scale_y == 1.0
         )
 
+    def _bounds_key(self):
+        if self._matrix is not None:
+            return self._matrix.tobytes()
+        return (self.translation_x, self.translation_y, self.rotation, self.scale_x, self.scale_y, self.pivot)
+
     def get_effective_pivot(self, default_pivot: Point) -> Point:
         """Resolve pivot: returns explicit pivot if configured, otherwise default_pivot."""
         if self.pivot is not None:

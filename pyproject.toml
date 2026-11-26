@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pydrawcv"
-version = "0.11.0"
+version = "0.12.0"
 description = "A highly manipulable 2D retained-mode drawing library built on OpenCV and NumPy."
 readme = "README.md"
 authors = [{ name = "DrawCV Contributors" }]
@@ -33,6 +33,7 @@ Issues = "https://github.com/nuhyamin1/drawcv/issues"
 
 [project.optional-dependencies]
 typography = [
+    "fonttools>=4.40,<5",
     "uharfbuzz>=0.56.1,<0.57",
     "freetype-py>=2.5.1,<3",
     "pyicu-wheels==2.15.2; sys_platform != 'darwin'",

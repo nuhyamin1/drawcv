@@ -441,8 +441,8 @@ class Path(Drawable):
         coordinate space. World space includes ancestors. Optionally select one
         subpath by index. Empty paths have length zero; styles are ignored.
         """
-        from drawcv.core.path_measurement import Measurement
-        return Measurement(self, tolerance=tolerance, space=space, subpath=subpath).length
+        from drawcv.core.path_measurement import measurement_for
+        return measurement_for(self, tolerance, space, subpath).length
 
     def point_at(self, progress, *, tolerance=0.1, space="local", subpath=None) -> Point:
         """Position at normalized arc-length progress [0, 1], not curve parameter.
@@ -452,8 +452,14 @@ class Path(Drawable):
         positions. Empty paths raise ValidationError; zero-length paths return
         their first position. Queries never mutate or cache mutable path state.
         """
-        from drawcv.core.path_measurement import Measurement
-        return Measurement(self, tolerance=tolerance, space=space, subpath=subpath).query(progress)
+        from drawcv.core.path_measurement import measurement_for
+        return measurement_for(self, tolerance, space, subpath).query(progress)
+
+    def points_at(self, progresses, *, tolerance=0.1, space="local", subpath=None) -> list[Point]:
+        """Sample normalized arc lengths in input order using one measurement."""
+        from drawcv.core.path_measurement import measurement_for
+        measurement = measurement_for(self, tolerance, space, subpath)
+        return [measurement.query(value) for value in progresses]
 
     def tangent_at(self, progress, *, tolerance=0.1, space="local", subpath=None) -> Point:
         """Unit direction at normalized arc-length progress in the selected space.
@@ -463,8 +469,8 @@ class Path(Drawable):
         points use a one-sided derivative. Empty/zero-length paths raise
         ValidationError because no direction exists.
         """
-        from drawcv.core.path_measurement import Measurement
-        return Measurement(self, tolerance=tolerance, space=space, subpath=subpath).query(progress, tangent=True)
+        from drawcv.core.path_measurement import measurement_for
+        return measurement_for(self, tolerance, space, subpath).query(progress, tangent=True)
 
     def trim(self, start, end, *, tolerance=0.1, space="local", subpath=None,
              preserve_world_transform=False) -> Path:
@@ -544,7 +550,8 @@ class Path(Drawable):
         """Derive flattened point contours mapped directly into world space.
         
         Evaluates de Casteljau adaptive subdivision on transformed control points
-        so the tolerance (in screen pixels) remains scale-invariant.
+        so the tolerance (in screen pixels) remains scale-invariant. Returns lists
+        of points, or (points, closed) pairs when include_closed=True.
         """
         to_world = self._world_mapper()
         world_contours: list[list[Point]] = []
@@ -632,7 +639,7 @@ class Path(Drawable):
                         cmd.large_arc,
                         cmd.sweep,
                         tolerance=tolerance,
-                        map_point=self.to_world,
+                        map_point=to_world,
                     )
                     contour.extend(arc_pts[1:])
                     current_w = arc_pts[-1]
@@ -662,7 +669,8 @@ class Path(Drawable):
         """Derive flattened point contours transformed through a custom point mapper.
 
         Evaluates de Casteljau adaptive subdivision on mapped control points
-        so the tolerance (in screen pixels) remains scale-invariant.
+        so the tolerance (in screen pixels) remains scale-invariant. Returns lists
+        of points, or (points, closed) pairs when include_closed=True.
         """
         world_contours: list[list[Point]] = []
         closed_flags: list[bool] = []

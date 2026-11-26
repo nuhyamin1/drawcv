@@ -1,4 +1,48 @@
-# pydrawcv 0.11.0 Release Notes
+# pydrawcv 0.12.0 release notes
+
+Released November 26, 2026. Existing scenes use schema 1.14.
+
+- Retained text measures and renders Greek, Cyrillic and mixed-script mathematics.
+  Font fallback selects a face for each grapheme cluster. Adjacent clusters that use
+  the same face shape together. This can change line widths and wrapping in scenes
+  with multiple font assets.
+- Group bounds and dynamic pivots are cached. Polyline and polygon queries resolve
+  ancestor transforms once per group of points. Text, transform and point-list
+  edits are reflected in the next bounds query.
+- `Path.points_at(progresses)` samples normalized arc length in input order.
+  Scalar and batch queries reuse a per-path table and respond to geometry and
+  world-transform edits.
+- `Text.world_ink_bounds()` returns a world-space box for glyph ink, or `None` for
+  whitespace. Imported text updates its bounds after edits.
+- Top-left text, explicit line breaks, wrapped text and font labels export as
+  native SVG text with positioned spans. Both text origins accept LF and CRLF.
+  Viewers need matching fonts for the same appearance.
+- `SVGImporter(strict=False)` retains supported artwork and returns structured
+  warnings for skipped SVG features. `SystemFontResolver()` enables optional
+  local font discovery, including generic families and installed bold/italic
+  variants. The typography extra now includes fontTools.
+
+## Whiteboard timings on Windows
+
+| Operation | 0.11.0 | 0.12.0 |
+| --- | ---: | ---: |
+| First bounds query, 20 baseline text labels and two 600-point polylines | 11.29 s | 222 ms |
+| Sample 1,000 normalized distances on one cubic, including table construction | 12.11 s | 38 ms |
+
+These single-run timings used Python 3.12.2 on an Intel i7-1165G7 and the bundled
+Noto Sans test font. Sampling used repeated `point_at()` in 0.11.0 and one
+`points_at()` call in 0.12.0. Reproduce the fixture with
+`python -m benchmarks.whiteboard`.
+
+All 19 default rendering workloads produced identical frame hashes across the two
+versions. In this full run, 18 reported higher median frame times on 0.12.0.
+A back-to-back repeat of single shadow, five color effects and animation gave
+lower 0.12.0 medians in all three cases (42.9 vs 63.8 ms, 110.1 vs 140.0 ms
+and 48.4 vs 48.9 ms, respectively). General frame timings varied between runs.
+
+---
+
+## pydrawcv 0.11.0 release notes
 
 `pydrawcv` 0.11.0 adds shape labels, SVG path strings, paint order, SVG filter export
 and vector export for arrows and pressure strokes, and replaces the rasterizer with

@@ -84,7 +84,7 @@ class Polygon(Drawable):
 
     def get_bounds(self) -> BoundingBox:
         """World-space visual AABB in the selected stroke space."""
-        w_pts = [self.to_world(p) for p in self.vertices]
+        w_pts = list(map(self._world_mapper(), self.vertices))
         xs = [p.x for p in w_pts]
         ys = [p.y for p in w_pts]
         min_x, max_x = min(xs), max(xs)

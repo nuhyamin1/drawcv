@@ -99,6 +99,10 @@ class Polyline(Drawable):
         min_y, max_y = min(ys), max(ys)
         return BoundingBox(min_x, min_y, max_x - min_x, max_y - min_y)
 
+    def _parent_bounds_key(self):
+        return (tuple(self.points), self.stroke.bounds_padding if self.stroke else 0.,
+                self.transform._bounds_key())
+
     def get_local_bounds(self) -> BoundingBox:
         """Visual bounds in local space (including stroke width expansion)."""
         half_stroke = (self.stroke.bounds_padding) if self.stroke else 0.0
@@ -106,7 +110,7 @@ class Polyline(Drawable):
 
     def get_bounds(self) -> BoundingBox:
         """World-space visual AABB in the selected stroke space."""
-        w_pts = [self.to_world(p) for p in self.points]
+        w_pts = list(map(self._world_mapper(), self.points))
         xs = [p.x for p in w_pts]
         ys = [p.y for p in w_pts]
         min_x, max_x = min(xs), max(xs)
@@ -165,7 +169,7 @@ class Polyline(Drawable):
         half_stroke = (self.stroke.world_width(self.world_matrix) / 2.0) if self.stroke else 1.0
         tolerance = max(5.0, half_stroke)
 
-        w_pts = [self.to_world(p) for p in self.points]
+        w_pts = list(map(self._world_mapper(), self.points))
         n = len(w_pts)
         for i in range(n - 1):
             if distance_point_to_segment(world_point, w_pts[i], w_pts[i + 1]) <= tolerance:

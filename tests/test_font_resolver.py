@@ -96,3 +96,30 @@ def test_dict_font_resolver_without_default():
     resolver = DictFontResolver()
     assert resolver.resolve("Unknown") is None
     assert resolver.resolve(None) is None
+
+
+def test_system_resolver_discovers_fixture_family_without_registration():
+    pytest.importorskip("fontTools")
+    from pathlib import Path
+    from drawcv import SystemFontResolver, SVGImporter, Text
+    resolver = SystemFontResolver([Path(__file__).parent / "assets/fonts"])
+    face = resolver.resolve("sans-serif")
+    assert face.semantic_family == "Noto Sans" and not face.is_substituted
+    assert resolver.resolve("Missing, Source Sans 3").fonts[0].name == "sourcesans3.otf"
+    svg = '<svg width="100" height="50"><text font-family="sans-serif">Σ</text></svg>'
+    text = SVGImporter(font_resolver=resolver).parse(svg).scene.find_by_type(Text)[0]
+    assert text.fonts == face.fonts
+
+
+def test_windows_system_resolver_generic_families_and_variants():
+    import sys
+    if sys.platform != "win32":
+        pytest.skip("Windows font installation")
+    pytest.importorskip("fontTools")
+    from drawcv import SystemFontResolver
+    resolver = SystemFontResolver()
+    for family in ("sans-serif", "serif", "cursive", "monospace"):
+        assert resolver.resolve(family)
+    normal = resolver.resolve("Segoe UI")
+    bold_italic = resolver.resolve("Segoe UI", 700, "italic")
+    assert not bold_italic.is_substituted and bold_italic.fonts != normal.fonts

@@ -21,11 +21,18 @@ bounds transform that union with a one-local-pixel guard for bilinear resampling
 Effects do not enlarge these measurements. Ink bounds describe full glyph coverage,
 before object opacity, masks, clips, effects or color alpha.
 
-Fallback chooses the first supplied font that covers an entire script/direction
-run. This preserves joining context and can select a fallback for a whole run even
-when the primary covers some characters. Missing coverage raises ValidationError.
-There is no OS fallback or implicit replacement glyph. 4B supports Latin, Thai,
-Arabic, their combining marks, numbers and ordinary punctuation. Other scripts,
+`world_ink_bounds()` maps the local ink rectangle through the full transform chain
+and returns its world-space axis-aligned bounding box, or `None` for empty ink.
+Font size, content and other layout edits take effect on the next measurement.
+Assign `text.runs` to edit styled spans. Replacing the whole string with
+`text.text = "New title"` starts a plain paragraph using the object's font settings.
+
+Each extended grapheme cluster uses the first supplied font covering its characters.
+Adjacent clusters sharing a face, script and direction shape together, preserving
+ligatures and combining marks. In `CO₂`, a primary font missing the subscript
+can still draw `CO`. Missing coverage raises `ValidationError`.
+Supported scripts include Latin, Greek, Cyrillic, Thai and Arabic, along with
+Common and Inherited characters such as mathematical symbols. Other scripts,
 emoji, variation selectors, bidi formatting/isolate controls and join controls are
 rejected explicitly. ICU resolves paragraph levels, paired brackets and per-line visual order.
 Formatting/isolate controls remain outside the public 4B input contract.

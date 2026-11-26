@@ -96,8 +96,8 @@ scene.animate(box, "label.color", Color(0, 0, 0), Color(200, 0, 0), duration=1)
 
 ## SVG export
 
-A single-line label using retained fonts with a `font_family_name` exports as
-native, editable `<text>` inside the host's group, so it shares the host's
-opacity and clip. Multi-line, wrapped and Hershey labels use a reported PNG
-fallback whose entity is `"<host id>-label"`, and strict export rejects them. SVG
-import does not create labels; imported text stays a separate `Text`.
+Font labels with a `font_family_name` export as editable `<text>` inside the host
+group and share its opacity and clip. Wrapped and explicit lines use positioned
+`<tspan>` elements. Hershey labels and unsupported text styles use a reported PNG
+fallback with entity ID `"<host id>-label"`. Imported SVG text becomes a separate
+`Text` object.

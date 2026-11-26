@@ -17,7 +17,19 @@ pip install -e ".[dev,typography]"
 python -m pytest -q
 ```
 
-## What's new in 0.11.0
+## What's new in 0.12.0
+
+Retained text now shapes Greek and Cyrillic and selects fallback fonts per grapheme.
+Use `text.world_ink_bounds()` for collision checks and `path.points_at(progresses)`
+for evenly spaced samples. Groups reuse their geometry bounds when measuring children.
+
+Top-left, multiline, and wrapped font text and labels export as editable SVG.
+`SVGImporter(strict=False)` reports skipped features in `result.diagnostics`.
+Pass `font_resolver=SystemFontResolver()` to resolve installed font families.
+
+See the [0.12.0 release notes](https://github.com/nuhyamin1/drawcv/blob/master/RELEASE_NOTES.md).
+
+## What was new in 0.11.0
 
 - **Shape labels**: `shape.label = Label("Text")` centers text on both axes inside any shape, or places captions above, below or beside it; labels follow the shape through edits, transforms and animation.
 - **SVG path strings**: `Path.from_svg_path("M10 10 C ...")` and `path.to_svg_path()`.

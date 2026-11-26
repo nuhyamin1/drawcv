@@ -320,7 +320,20 @@ class Text(Drawable):
             candidate = copy.copy(self)
             object.__setattr__(candidate, name, value)
             candidate._validate_font_options()
+            if name == "text" and value != self.text and self.runs is not None:
+                # Replacing the complete string starts a plain paragraph.
+                object.__setattr__(self, "runs", None)
+            elif name == "runs" and value is not None:
+                object.__setattr__(self, "text", "".join(run.text for run in value))
+            elif name == "text_anchor":
+                value = candidate.text_anchor
         object.__setattr__(self, name, value)
+        if not name.startswith("_"):
+            self.__dict__.pop("_measured_metrics", None)
+            object.__setattr__(self, "_bounds_revision", object())
+
+    def _parent_bounds_key(self):
+        return self._bounds_revision, self.transform._bounds_key()
 
     def _validate(self) -> None:
         super()._validate()
@@ -361,27 +374,31 @@ class Text(Drawable):
         if self.xml_space not in ("default", "preserve"):
             raise ValidationError("xml_space must be 'default' or 'preserve'")
 
+    def _positioned_runs(self):
+        if self.runs is None:
+            if self.text_origin == "top_left" or "\n" in self.text or self.wrap_width is not None:
+                return None
+            return (TextRun(self.text),)
+        if "\n" in self.text or self.wrap_width is not None:
+            from drawcv.typography.layout import flow_text_runs
+            return flow_text_runs(self)
+        return self.runs
+
+    def _baseline_paragraph(self):
+        return (self.text_origin == "baseline" and self.runs is None
+                and ("\n" in self.text or self.wrap_width is not None))
+
+    def _paragraph_alignment(self):
+        if self._baseline_paragraph() and self.text_anchor is not None:
+            return {TextAnchor.START: "left", TextAnchor.MIDDLE: "center",
+                    TextAnchor.END: "right"}[self.text_anchor]
+        return self.alignment.value
+
     def _font_layout(self):
         self._validate_font_options()
         from drawcv.typography.layout import layout_text, layout_text_runs
-        runs = self.runs
-        if runs is not None or self.text_origin == "baseline":
-            if runs is None:
-                runs = (TextRun(
-                    text=self.text,
-                    fonts=self.fonts,
-                    font_size=self.font_size,
-                    font_family_name=self.font_family_name,
-                    font_weight=self.font_weight,
-                    font_style=self.font_style,
-                    fill=None,
-                    fill_none=self.fill_none,
-                    fill_opacity=None,
-                    text_anchor=self.text_anchor,
-                    direction=self.direction,
-                    xml_space=self.xml_space,
-                    is_font_substituted=self.is_font_substituted,
-                ),)
+        runs = self._positioned_runs()
+        if runs is not None:
             return layout_text_runs(
                 runs,
                 self.fonts,
@@ -402,7 +419,7 @@ class Text(Drawable):
             self.fonts,
             self.font_size,
             self.wrap_width,
-            self.alignment.value,
+            self._paragraph_alignment(),
             self.direction,
             self.line_spacing,
         )
@@ -411,9 +428,15 @@ class Text(Drawable):
         """Measure font text in local coordinates; Hershey retains its metric API."""
         if self.fonts is None and self.runs is None:
             raise ValidationError("measure() requires font text; use get_line_metrics() for Hershey")
+        if "_measured_metrics" in self.__dict__:
+            return self._measured_metrics
         layout = self._font_layout()
         plate_w = layout.width + 2 * self.padding
-        if self.runs is not None or self.text_origin == "baseline":
+        if self._baseline_paragraph():
+            anchor = self._paragraph_alignment()
+            x = self.position.x - {"left": 0, "center": plate_w/2, "right": plate_w}[anchor]
+            y = self.position.y - layout.ascent
+        elif self.runs is not None or self.text_origin == "baseline":
             x = self.position.x
             y = self.position.y
         else:
@@ -425,7 +448,7 @@ class Text(Drawable):
         def shifted(box):
             return BoundingBox(box.x + ox, box.y + oy, box.width, box.height) if box is not None else None
 
-        return TextMetrics(
+        self._measured_metrics = TextMetrics(
             max((l.advance_width for l in layout.lines), default=0),
             BoundingBox(ox, oy, layout.width, layout.height),
             BoundingBox(x, y, plate_w, layout.height + 2 * self.padding),
@@ -433,6 +456,20 @@ class Text(Drawable):
             tuple(TextLineMetrics(l.text, l.advance_width, l.baseline + oy,
                                   shifted(l.line_box), shifted(l.ink_bounds)) for l in layout.lines),
         )
+
+        return self._measured_metrics
+
+    def world_ink_bounds(self) -> BoundingBox | None:
+        """World AABB of the measured glyph ink. Whitespace has no ink."""
+        ink = self.measure().ink_bounds
+        if ink is None:
+            return None
+        return self._world_box(ink)
+
+    def _world_box(self, box):
+        corners = list(map(self._world_mapper(), box.corners))
+        xs, ys = zip(*((p.x, p.y) for p in corners))
+        return BoundingBox(min(xs), min(ys), max(xs)-min(xs), max(ys)-min(ys))
 
     # -------------------------------------------------------------------------
 
@@ -507,18 +544,7 @@ class Text(Drawable):
         if self.fonts is not None or self.runs is not None:
             # Bilinear resampling can contribute one local pixel beyond ink.
             gb = BoundingBox(gb.x-1, gb.y-1, gb.width+2, gb.height+2)
-        corners = [
-            Point(gb.left, gb.top),
-            Point(gb.right, gb.top),
-            Point(gb.right, gb.bottom),
-            Point(gb.left, gb.bottom),
-        ]
-        world_pts = [self.to_world(p) for p in corners]
-        xs = [p.x for p in world_pts]
-        ys = [p.y for p in world_pts]
-        min_x, max_x = min(xs), max(xs)
-        min_y, max_y = min(ys), max(ys)
-        return BoundingBox(min_x, min_y, max_x - min_x, max_y - min_y)
+        return self._world_box(gb)
 
     # -------------------------------------------------------------------------
     # Anchors, Hit-Testing & Cloning

@@ -169,3 +169,36 @@ def test_multi_run_rendering_different_colors(noto_sans):
 
     assert has_red, "Canvas should contain red pixels from run 1"
     assert has_blue, "Canvas should contain blue pixels from run 2"
+
+
+@pytest.mark.parametrize("origin", ["baseline", "top_left"])
+def test_multiline_wrapping_matches_exported_baselines(origin, noto_sans):
+    import xml.etree.ElementTree as ET
+    from drawcv import Scene
+    text = Text("a\nb b\n\nc", fonts=(noto_sans,), font_family_name="Noto Sans",
+                text_origin=origin, wrap_width=22, font_size=20, position=Point(40, 40))
+    lines = text.measure().lines
+    assert [line.text for line in lines] == ["a", "b", "b", "", "c"]
+    if origin == "baseline":
+        assert lines[0].baseline == 40
+    scene = Scene(200, 260)
+    scene.add(text)
+    root = ET.fromstring(scene.to_svg(strict=True))
+    node = root.find(".//{*}text")
+    y = float(node.get("y"))
+    for span, line in zip(node, (line for line in lines if line.text), strict=True):
+        y += float(span.get("dy"))
+        assert y == pytest.approx(line.baseline, abs=1e-4)
+        assert span.text == line.text and float(span.get("x")) == 40
+
+
+def test_rich_multiline_text_preserves_color_and_line_break(noto_sans):
+    from drawcv import Scene
+    runs = (TextRun("one\ntwo", fill=Color.red()), TextRun("!"))
+    text = Text(runs=runs, fonts=(noto_sans,), text_origin="baseline",
+                font_family_name="Noto Sans", position=Point(0, 30))
+    assert [line.text for line in text.measure().lines] == ["one", "two!"]
+    scene = Scene(160, 120)
+    scene.add(text)
+    svg = scene.to_svg(strict=True)
+    assert svg.count("rgb(255,0,0)") == 2 and "two" in svg

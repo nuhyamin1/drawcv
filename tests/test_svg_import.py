@@ -1156,10 +1156,16 @@ class TestReviewHardeningAndRegressions:
             SVGImporter().parse(svg_multi)
         assert exc_multi.value.diagnostic.code == "SVG_UNSUPPORTED_CLIP_GEOMETRY"
 
-    # 3. High: strict=False explicitly rejected as not implemented
-    def test_strict_false_raises_not_implemented(self):
-        with pytest.raises(NotImplementedError):
-            SVGImporter(strict=False)
+    def test_permissive_import_preserves_supported_siblings_and_style(self):
+        svg = """<svg width="80" height="80"><style>.x{fill:red}</style><defs><filter id="blur"/></defs>
+        <g class="x"><image href="missing.png"/><rect id="box" width="20" height="20"
+        style="fill:blue;filter:url(#blur)" unknown="abc"/></g></svg>"""
+        result = SVGImporter(strict=False).parse(svg)
+        box = result.scene.find_by_name("box")[0]
+        assert box.fill.color.b == 255
+        assert {d.attribute or d.element_tag for d in result.diagnostics} == {
+            "style", "filter", "class", "image", "unknown"}
+        assert all(d.severity == "warning" for d in result.diagnostics)
 
     # 4. High: invalid enum values strictly rejected
     def test_invalid_enums_rejected(self):

@@ -41,9 +41,9 @@ at each rasterized subtree root. A drawable that OpenCV cannot render raises
 | Raster masks | Cropped transparent PNG of the affected subtree |
 | Blur, shadow, glow, color effects, convolution | Native `<filter>` in effect order; see [effects as filters](#effects-as-svg-filters) |
 | Sharpen, emboss, edge detection, noise, displacement, biased convolution | Cropped transparent PNG of the affected subtree |
-| Text | Native text/tspan for the supported font-resolved subset; reported PNG fallback for Hershey, wrapping, and other unsupported layouts |
+| Text | Editable text and positioned tspans for both origins, explicit lines and wrapping. Hershey and unsupported styles use reported PNG fallbacks |
 | ImageObject | Cropped transparent PNG after DrawCV transforms/interpolation |
-| Shape labels | Native text inside the host group for single-line font labels; reported `<host id>-label` PNG fallback otherwise |
+| Shape labels | Native text inside the host group for single-line and wrapped font labels. Unsupported labels use a reported PNG fallback |
 | Arrow | Native shaft and head shapes in the arrow's coordinates; circle heads under a non-uniform transform use a PNG |
 | Variable-width (pressure/velocity) freehand | Native filled outline from `stroke_to_path()` |
 
@@ -124,6 +124,31 @@ importer = SVGImporter(strict=True, viewport=(400, 300))
 result = importer.parse_file("input.svg")
 scene = result.scene
 ```
+
+### Partial import and installed fonts
+
+```python
+from drawcv import SVGImporter, SystemFontResolver
+
+resolver = SystemFontResolver()
+result = SVGImporter(strict=False, font_resolver=resolver).parse_file("page.svg")
+for warning in result.diagnostics:
+    print(warning.source_id, warning.element_tag, warning.attribute, warning.message)
+```
+
+Permissive import skips unsupported subtrees such as stylesheets, images and
+filter definitions. It retains supported inline style declarations and sibling
+elements. Warnings identify discarded attributes such as `class` or `filter`.
+Malformed XML, forbidden references and resource limits can still raise
+`SVGImportError`. Each parse returns its own diagnostics.
+
+The optional system resolver scans installed font directories on first use.
+It reads family and style metadata for standalone OpenType fonts and collections
+and resolves CSS family lists, bold and italic faces, and available generic
+sans-serif, serif, cursive and monospace families. Use
+`SystemFontResolver(directories=[...])` to limit discovery to particular folders.
+Font availability depends on the host. Use `DictFontResolver` to select identical
+assets across machines. Both use the typography extra.
 
 ### Strict import invariant
 

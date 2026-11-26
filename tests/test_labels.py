@@ -264,3 +264,16 @@ def test_svg_reports_hershey_label_fallback_and_strict_rejects_it():
     assert [f.entity for f in result.fallbacks] == [f"{host.id}-label"]
     with pytest.raises(Exception):
         scene.to_svg(strict=True)
+
+
+def test_wrapped_font_label_exports_all_lines_as_native_text():
+    import xml.etree.ElementTree as ET
+    host = rect()
+    host.label = Label("one two three four five", fonts=(font(),), font_family_name="Noto Sans",
+                       font_size=28, padding=20)
+    scene = Scene(300, 200)
+    scene.add(host)
+    lines = label_instance(host).measure().lines
+    assert len(lines) > 1
+    root = ET.fromstring(scene.to_svg(strict=True))
+    assert [s.text for s in root.findall(".//{*}tspan")] == [line.text for line in lines]

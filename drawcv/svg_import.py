@@ -1965,6 +1965,96 @@ def normalize_svg_text_stream(
 # Main SVG Importer Architecture
 # -----------------------------------------------------------------------------
 
+_PRESENTATION_ATTRIBUTES = set("""
+    paint-order color fill fill-opacity fill-rule stroke stroke-opacity stroke-width
+    stroke-linecap stroke-linejoin stroke-miterlimit stroke-dasharray stroke-dashoffset
+    visibility clip-rule opacity display mix-blend-mode clip-path vector-effect overflow
+    font-family font-size font-weight font-style text-anchor direction white-space
+    stop-color stop-opacity
+""".split())
+_ELEMENT_ATTRIBUTES = {
+    "svg": "x y width height viewBox preserveAspectRatio version",
+    "symbol": "x y width height viewBox preserveAspectRatio",
+    "g": "", "defs": "", "title": "", "desc": "", "metadata": "",
+    "path": "d", "polyline": "points", "polygon": "points",
+    "rect": "x y width height rx ry", "circle": "cx cy r", "ellipse": "cx cy rx ry",
+    "line": "x1 y1 x2 y2", "text": "x y dx dy", "tspan": "x y dx dy",
+    "use": "href x y width height",
+    "lineargradient": "x1 y1 x2 y2 gradientUnits gradientTransform spreadMethod href",
+    "radialgradient": "cx cy r fx fy fr gradientUnits gradientTransform spreadMethod href",
+    "stop": "offset", "clippath": "clipPathUnits",
+}
+
+
+def _prepare_permissive(root, limits, diagnostics):
+    # Count the full input, including subtrees that will subsequently be skipped.
+    pending = [(root, 0)]
+    count = 0
+    while pending:
+        node, depth = pending.pop()
+        count += 1
+        if (count > limits.max_elements or depth > limits.max_nesting_depth
+                or any(len(v) > limits.max_attribute_length for v in node.attrib.values())):
+            message = "SVG input exceeds configured XML limits"
+            raise SVGImportError(message, diagnostic=SVGImportDiagnostic("SVG_RESOURCE_LIMIT_EXCEEDED", "error", message))
+        pending.extend((child, depth+1) for child in node)
+
+    def warn(tag, node, attribute=None):
+        message = f"Skipped unsupported {attribute!r} on <{tag}>" if attribute else f"Skipped unsupported <{tag}>"
+        diagnostics.append(SVGImportDiagnostic("SVG_UNSUPPORTED_ATTRIBUTE" if attribute else "SVG_UNSUPPORTED_ELEMENT",
+                                               "warning", message, tag, node.get("id"), attribute))
+
+    def clean(node, parent_style=None):
+        tag = extract_element_tag(node.tag)
+        allowed = set(_ELEMENT_ATTRIBUTES[tag.lower()].split()) | _PRESENTATION_ATTRIBUTES
+        allowed.update(("id", "style", "transform", "{http://www.w3.org/XML/1998/namespace}space"))
+        if "href" in allowed:
+            allowed.add(f"{{{XLINK_NS}}}href")
+        for name in list(node.attrib):
+            if name not in allowed:
+                warn(tag, node, name)
+                del node.attrib[name]
+        if "style" in node.attrib:
+            declarations = SVGStyleResolver.parse_inline_style(node.get("style"))
+            for prop in list(declarations):
+                if prop not in _PRESENTATION_ATTRIBUTES:
+                    warn(tag, node, prop)
+                    del declarations[prop]
+            node.set("style", ";".join(f"{k}:{v}" for k, v in declarations.items()))
+        while True:
+            try:
+                style = SVGStyleResolver.resolve(node, parent_style, limits=limits)
+                break
+            except SVGImportError as exc:
+                diag = exc.diagnostic
+                if diag is None or not diag.code.startswith("SVG_UNSUPPORTED_") or not diag.attribute:
+                    raise
+                declarations = SVGStyleResolver.parse_inline_style(node.get("style", ""))
+                if diag.attribute in declarations:
+                    del declarations[diag.attribute]
+                    node.set("style", ";".join(f"{k}:{v}" for k, v in declarations.items()))
+                elif diag.attribute in node.attrib:
+                    del node.attrib[diag.attribute]
+                else:
+                    raise
+                warn(tag, node, diag.attribute)
+        previous = None
+        for child in list(node):
+            child_tag = child.tag.removeprefix(f"{{{SVG_NS}}}")
+            if child_tag.lower() not in _ELEMENT_ATTRIBUTES:
+                warn(child_tag, child)
+                if child.tail:
+                    if previous is None:
+                        node.text = (node.text or "") + child.tail
+                    else:
+                        previous.tail = (previous.tail or "") + child.tail
+                node.remove(child)
+            else:
+                clean(child, style)
+                previous = child
+    clean(root)
+
+
 class SVGImporter:
     """Retained-mode SVG document importer with strict retained DrawCV mapping."""
 
@@ -1977,8 +2067,6 @@ class SVGImporter:
         limits: SVGImportLimits | None = None,
         font_resolver: FontResolver | None = None,
     ):
-        if not strict:
-            raise NotImplementedError("Permissive SVG import (strict=False) is not yet implemented in Milestone 1")
         self.strict = strict
         self.strict_fonts = strict_fonts
         self.viewport = viewport
@@ -2035,6 +2123,19 @@ class SVGImporter:
             )
 
         # ---------------------------------------------------------------------
+        diagnostics = []
+        if not self.strict:
+            _prepare_permissive(root, self.limits, diagnostics)
+
+        def skipped(error, element):
+            diag = error.diagnostic
+            if (self.strict or diag is None or diag.code == "SVG_UNSUPPORTED_EXTERNAL_REFERENCE"
+                    or not (diag.code.startswith("SVG_UNSUPPORTED_") or diag.code in
+                            ("SVG_MISSING_FONT_RESOLVER", "SVG_UNRESOLVED_FONT", "SVG_UNRESOLVED_REFERENCE"))):
+                raise error
+            diagnostics.append(SVGImportDiagnostic(diag.code, "warning", diag.message,
+                               diag.element_tag or extract_element_tag(element.tag), element.get("id"), diag.attribute))
+
         # Viewport and ViewBox Processing
         # ---------------------------------------------------------------------
         w_attr = root.attrib.get("width")
@@ -2323,8 +2424,12 @@ class SVGImporter:
                     computed_style=style,
                 )
 
-            for child in elem:
-                traverse_pass1(child, current_depth + 1, style)
+            for child in list(elem):
+                try:
+                    traverse_pass1(child, current_depth + 1, style)
+                except SVGImportError as exc:
+                    skipped(exc, child)
+                    elem.remove(child)
 
         traverse_pass1(root, 0, ComputedStyle())
 
@@ -2537,7 +2642,14 @@ class SVGImporter:
             if clip_has_arcs:
                 check_affine_singular_for_arcs(owner_ctm @ M_clip_total, element_tag="clipPath")
 
-        def build_element(
+        def build_element(elem, parent_style, cumulative_ctm, current_viewport):
+            try:
+                return build_supported_element(elem, parent_style, cumulative_ctm, current_viewport)
+            except SVGImportError as exc:
+                skipped(exc, elem)
+                return None
+
+        def build_supported_element(
             elem: ET.Element,
             parent_style: ComputedStyle,
             cumulative_ctm: np.ndarray,
@@ -3789,7 +3901,7 @@ class SVGImporter:
         # Build all top-level children
         root_style = SVGStyleResolver.resolve(root, limits=self.limits)
         if root_style.display == "none":
-            return SVGImportResult(scene=scene)
+            return SVGImportResult(scene=scene, diagnostics=tuple(diagnostics))
         root_transform = SVGTransformParser.parse_to_matrix(root.attrib.get("transform", ""), limits=self.limits)
         root_ctm = root_transform @ M_viewbox
         root_clip = ClipRect(0.0, 0.0, float(scene_w), float(scene_h)) if root_style.overflow in ("hidden", "scroll") else None
@@ -3821,4 +3933,4 @@ class SVGImporter:
         for d in root_drawables:
             scene.add(d)
 
-        return SVGImportResult(scene=scene)
+        return SVGImportResult(scene=scene, diagnostics=tuple(diagnostics))

@@ -178,17 +178,25 @@ class Drawable(ABC):
         """
         pass
 
+    def _parent_bounds_key(self):
+        """Use actual bounds for shapes without a cheaper immutable geometry key."""
+        return self.get_bounds_in_parent()
+
     def get_bounds_in_parent(self) -> BoundingBox:
         """Calculate this object's visual bounds in its immediate parent's coordinate space.
         
         Evaluated bottom-up: maps intrinsic local geometry through this object's local transform
         without traversing ancestor group transforms.
         """
-        local_pivot = self.transform.pivot
-        if local_pivot is None:
-            local_pivot = self.get_geometry_bounds().center
-        corners = self.get_local_bounds().corners
-        pts = [self.transform.transform_point(c, default_pivot=local_pivot) for c in corners]
+        box = self.get_local_bounds()
+        transform = self.transform
+        if transform._matrix is None and transform.is_translation_only():
+            if transform.translation_x == 0 and transform.translation_y == 0:
+                return box
+            return BoundingBox(box.x + transform.translation_x, box.y + transform.translation_y,
+                               box.width, box.height)
+        matrix = transform.get_matrix(self._transform_pivot())
+        pts = [Point(*(matrix @ (c.x, c.y, 1.))[:2]) for c in box.corners]
         min_x = min(p.x for p in pts)
         max_x = max(p.x for p in pts)
         min_y = min(p.y for p in pts)
@@ -224,12 +232,19 @@ class Drawable(ABC):
     # Coordinate Spaces & Transformation
     # -------------------------------------------------------------------------
 
+    def _geometry_pivot(self):
+        return self.get_geometry_bounds().center
+
+    def _transform_pivot(self):
+        transform = self.transform
+        if transform.pivot is not None or transform._matrix is not None or transform.is_translation_only():
+            return transform.pivot
+        return self._geometry_pivot()
+
     @property
     def world_matrix(self) -> np.ndarray:
         """Derive the 3x3 affine transformation matrix M mapping local space to world space."""
-        default_pivot = self.transform.pivot
-        if default_pivot is None:
-            default_pivot = self.get_geometry_bounds().center
+        default_pivot = self._transform_pivot()
         local_matrix = self.transform.get_matrix(default_pivot=default_pivot)
         if self._parent is not None:
             return self._parent.world_matrix @ local_matrix
@@ -237,9 +252,7 @@ class Drawable(ABC):
 
     def to_world(self, local_point: Point) -> Point:
         """Map a Point from object local space to world space."""
-        default_pivot = self.transform.pivot
-        if default_pivot is None:
-            default_pivot = self.get_geometry_bounds().center
+        default_pivot = self._transform_pivot()
         pt = self.transform.transform_point(local_point, default_pivot=default_pivot)
         if self._parent is not None:
             return self._parent.to_world(pt)
@@ -248,31 +261,29 @@ class Drawable(ABC):
     def _world_mapper(self):
         """to_world with every default pivot resolved once, for mapping many points.
 
-        Each point goes through the same transform_point calls in the same order,
-        so results are identical; only the repeated bounds queries are saved.
+        Apply each affine matrix in parent order to preserve rounding behavior.
         """
         chain = []
         node = self
         while node is not None:
             if getattr(node.to_world, "__func__", None) is not Drawable.to_world:
                 return self.to_world
-            pivot = node.transform.pivot
-            if pivot is None:
-                pivot = node.get_geometry_bounds().center
-            chain.append((node.transform, pivot))
+            pivot = node._transform_pivot()
+            chain.append(node.transform.get_matrix(pivot))
             node = node._parent
 
         def mapper(point: Point) -> Point:
-            for transform, pivot in chain:
-                point = transform.transform_point(point, default_pivot=pivot)
-            return point
+            coords = np.array([point.x, point.y, 1.0])
+            for matrix in chain:
+                coords = matrix @ coords
+            return Point(coords[0], coords[1])
         return mapper
 
     def to_local(self, world_point: Point) -> Point:
         """Map a Point from world space back to object local space via inverse matrix M^-1."""
         if self._parent is not None:
             world_point = self._parent.to_local(world_point)
-        default_pivot = self.get_geometry_bounds().center
+        default_pivot = self._transform_pivot()
         return self.transform.inverse_transform_point(world_point, default_pivot=default_pivot)
 
     @atomic_transforms

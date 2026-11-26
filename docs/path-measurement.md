@@ -6,6 +6,7 @@ with tangent directions along a cubic curve.
 ```python
 distance = path.length(tolerance=0.1)
 midpoint = path.point_at(0.5)
+samples = path.points_at(i / 999 for i in range(1000))
 direction = path.tangent_at(0.5)  # Point containing a unit direction vector
 
 world_midpoint = path.point_at(0.5, space="world")
@@ -18,7 +19,7 @@ parameter. A marker at 0.5 is halfway along the measured distance. Use
 DrawCV's clockwise, y-down coordinate system. Convert other shapes with
 `shape.to_path()` before querying them.
 
-All three methods accept `tolerance=0.1`, `space="local"`, and `subpath=None`.
+All four methods accept `tolerance=0.1`, `space="local"`, and `subpath=None`.
 Local measurements ignore transforms. World measurements include the path and
 its ancestors; under nonuniform scaling, halfway in world distance can differ
 from the transformed local halfway point. Stroke width, fills, clipping,
@@ -50,6 +51,17 @@ precision still applies. Tangent accuracy is not an angular tolerance.
 - Progress outside `[0, 1]`, invalid subpath indices, and nonfinite/invalid
   tolerances raise `ValidationError` rather than silently clamping.
 
-Queries do not modify the path. Each call measures current geometry and transforms,
-so edits are reflected immediately; repeated queries currently recompute the
-measurement. No serialized fields or schema changes are required.
+A path retains the arc-length table for its latest geometry, tolerance, coordinate
+space and subpath selection. World-space queries also account for ancestor transforms.
+`points_at(progresses)` reuses one table for the entire iterable and returns points
+in input order, including duplicates. Direct edits to a subpath's command list or
+closed flag take effect on the next query.
+
+For a drawing tolerance in screen pixels, `path.flatten_world(tolerance)` returns
+a list of point contours. Pass `include_closed=True` to receive `(points, closed)`
+pairs for each contour.
+
+```python
+for points, closed in path.flatten_world(0.5, include_closed=True):
+    draw_polyline(points, closed=closed)
+```

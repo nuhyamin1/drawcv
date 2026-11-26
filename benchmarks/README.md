@@ -89,3 +89,10 @@ python -m benchmarks.gallery after.json
 The contact sheet checks each image against the report's hash before drawing its
 labels. It runs separately from timing. The benchmark package is excluded from the
 published wheel; run it from the source checkout.
+
+## Whiteboard bounds and path sampling
+
+From the checkout root, run `python -m benchmarks.whiteboard` with the typography
+extra installed. It times the first bounds query on 20 labels and two 600-point
+polylines, followed by 1,000 arc-length samples on a cubic. The path timing
+includes table construction. Font loading and scene construction precede timing.

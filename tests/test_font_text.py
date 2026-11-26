@@ -93,7 +93,7 @@ def test_fallback_order_and_missing_run_error():
     data = render(t)
     assert data[..., 3].any()
     runs, _ = _runs(_resolve(t.text, 'auto'), 0, len(t.text), t.fonts, 32*64)
-    assert [a for a, pen, gs in runs] == [LATIN, THAI, LATIN]
+    assert [a for a, pen, gs in runs] == [LATIN, THAI, LATIN, LATIN]  # trailing space returns to the primary face
     t.fonts = [THAI, LATIN]
     runs, _ = _runs(_resolve(t.text, 'auto'), 0, len(t.text), t.fonts, 32*64)
     assert all(a == THAI for a, pen, gs in runs)
@@ -286,3 +286,82 @@ else:
     code = 'import sys; sys.path = ' + repr(sys.path) + '\n' + code
     result = subprocess.run([sys.executable,'-c',code],cwd=ROOT.parents[2],capture_output=True)
     assert result.returncode == 0, result.stderr.decode(errors='replace')
+
+
+@pytest.mark.parametrize("origin", ["baseline", "top_left"])
+def test_greek_cyrillic_and_common_maths_render_and_export(origin):
+    content = "Σπθ/Дж ∫ ∑ √ ≤ → ∞"
+    text = Text(content, fonts=(OTF,), font_family_name="Source Sans 3",
+                text_origin=origin, position=Point(10, 60))
+    assert text.measure().ink_bounds.width > 100
+    assert render(text)[..., 3].any()
+    svg = scene_with(text).to_svg(strict=True)
+    assert content in svg and "<text" in svg and "<image" not in svg
+
+
+@pytest.mark.parametrize("origin", ["top_left", "baseline"])
+def test_only_subscript_falls_back_in_both_shapers(origin, monkeypatch):
+    from drawcv.typography import layout
+    glyph = layout._glyph
+    used = []
+    def record(asset, *args):
+        used.append(asset)
+        return glyph(asset, *args)
+    monkeypatch.setattr(layout, "_glyph", record)
+    clear_text_cache()
+    Text("CO₂", fonts=(THAI, LATIN), text_origin=origin).measure()
+    assert used == [THAI, THAI, LATIN]
+
+
+def test_windows_segoe_grapheme_fallback():
+    fonts = [Path(os.environ.get("WINDIR", "C:/Windows")) / "Fonts" / name
+             for name in ("segoepr.ttf", "segoeui.ttf")]
+    if not all(f.exists() for f in fonts):
+        pytest.skip("Segoe Print and Segoe UI required")
+    primary, fallback = map(FontAsset.from_file, fonts)
+    content = "CO₂ e\u0301"
+    runs, _ = _runs(_resolve(content, "auto"), 0, len(content), (primary, fallback), 32*64)
+    assert [(asset, len(glyphs)) for asset, _, glyphs in runs] == [
+        (primary, 2), (fallback, 1), (primary, 1), (fallback, 1)]
+
+
+def test_grouped_graph_resolves_geometry_once_and_observes_mutation(monkeypatch):
+    from drawcv import Polyline
+    labels = [Text(str(i), fonts=(LATIN,), text_origin="baseline") for i in range(20)]
+    curves = [Polyline(points=[Point(i, (i*i)%91 + k) for i in range(600)]) for k in range(2)]
+    group = Group(children=labels + curves, transform=Transform(rotation=10))
+    calls = 0
+    original = Text.get_bounds_in_parent
+    def count(label):
+        nonlocal calls
+        calls += 1
+        return original(label)
+    monkeypatch.setattr(Text, "get_bounds_in_parent", count)
+    first = group.get_geometry_bounds()
+    assert group.get_bounds().width > 500
+    assert group.get_geometry_bounds() is first and calls == 20
+    curves[0].points[-1] = Point(950, 0)
+    assert group.get_geometry_bounds().right == 950
+    labels[0].transform.translation_x = 1100
+    assert group.get_geometry_bounds().right > 1100
+    group.remove(labels[0], preserve_world_transform=False)
+    assert group.get_geometry_bounds().right == 950
+
+
+def test_imported_font_edits_update_geometry_and_world_ink():
+    from drawcv import SVGImporter, DictFontResolver
+    resolver = DictFontResolver(default_fonts=LATIN)
+    svg = '<svg width="400" height="200"><text x="20" y="90" font-size="60">Large title</text></svg>'
+    text = SVGImporter(font_resolver=resolver).parse(svg).scene.find_by_type(Text)[0]
+    group = Group(children=[text], transform=Transform(scale_x=2, scale_y=3, pivot=Point(0, 0)))
+    before = group.get_geometry_bounds()
+    text.font_size = 20
+    assert group.get_geometry_bounds().height < before.height/2
+    ink = text.measure().ink_bounds
+    world = text.world_ink_bounds()
+    assert (world.left, world.top, world.width, world.height) == (
+        2*ink.left, 3*ink.top, 2*ink.width, 3*ink.height)
+    text.text = "I"
+    assert text.world_ink_bounds().width < world.width
+    text.text = " "
+    assert text.world_ink_bounds() is None

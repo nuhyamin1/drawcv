@@ -1,7 +1,7 @@
 """Optional horizontal paragraph layout; native engines are loaded lazily."""
 from __future__ import annotations
 from collections import OrderedDict
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import lru_cache
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -21,6 +21,8 @@ try:
     import icu
 except ImportError as exc:
     raise ValidationError('Font text requires the optional dependencies: pip install "pydrawcv[typography]"') from exc
+
+_LANGUAGES = {"Latn": "en", "Thai": "th", "Arab": "ar", "Grek": "el", "Cyrl": "ru"}
 
 _lock = threading.RLock()
 _paragraphs = OrderedDict()
@@ -95,7 +97,7 @@ def _shape_cached(text, asset, size, script, level):
     buf.add_str(text)
     buf.direction = "rtl" if level % 2 else "ltr"
     buf.script = script
-    buf.language = {"Latn": "en", "Thai": "th", "Arab": "ar"}[script]
+    buf.language = _LANGUAGES[script]
     hb.shape(font, buf)
     pen, glyphs = 0., []
     infos = buf.glyph_infos or []
@@ -132,7 +134,7 @@ def _shape_subrange(chunk_codepoints, item_offset, item_length, asset, size, scr
     buf.add_codepoints(chunk_codepoints, item_offset=item_offset, item_length=item_length)
     buf.direction = "rtl" if level % 2 else "ltr"
     buf.script = script
-    buf.language = {"Latn": "en", "Thai": "th", "Arab": "ar"}[script]
+    buf.language = _LANGUAGES[script]
     hb.shape(font, buf)
     pen, glyphs = 0., []
     infos = buf.glyph_infos or []
@@ -206,8 +208,9 @@ def _glyph(asset, size, gid, x, y):
     return ix+left, iy+top, tile
 
 
+@lru_cache(maxsize=1024)
 def _script(c):
-    for script in ("Latn", "Thai", "Arab"):
+    for script in _LANGUAGES:
         if regex.fullmatch(fr"\p{{Script={script}}}", c):
             return script
     if regex.fullmatch(r"[\p{Script=Common}\p{Script=Inherited}]", c):
@@ -246,6 +249,22 @@ def _resolve(text, direction):
     return storage
 
 
+def _font_spans(text, fonts, size, level):
+    """Keep graphemes intact and shape adjacent clusters in the same face together."""
+    spans = []
+    for cluster in regex.finditer(r"\X", text):
+        asset = next((a for a in fonts if all(
+            _faces(a, size)[0].get_nominal_glyph(ord(c)) for c in cluster[0]
+        )), None)
+        if asset is None:
+            raise ValidationError(f"No supplied font covers the cluster: {cluster[0]!r}")
+        if spans and spans[-1][0] == asset:
+            spans[-1] = (asset, spans[-1][1], cluster.end())
+        else:
+            spans.append((asset, cluster.start(), cluster.end()))
+    return reversed(spans) if level % 2 else spans
+
+
 def _runs(storage, start, end, fonts, size):
     chars = [dict(c) for c in storage['chars'][start:end]]
     if not chars:
@@ -271,12 +290,16 @@ def _runs(storage, start, end, fonts, size):
     result, pen = [], 0.
     for (script, level), span in spans:
         text = ''.join(c['ch'] for c in span)
-        asset = next((a for a in fonts if all(_faces(a, size)[0].get_nominal_glyph(ord(c)) for c in text)), None)
-        if asset is None:
-            raise ValidationError(f"No supplied font covers the complete {script} run: {text!r}")
-        glyphs, advance = _shape(text, asset, size, script, level)
-        result.append((asset, pen, glyphs))
-        pen += advance
+        codepoints = None
+        for asset, lo, hi in _font_spans(text, fonts, size, level):
+            if lo == 0 and hi == len(text):
+                glyphs, advance = _shape(text, asset, size, script, level)
+            else:
+                if codepoints is None:
+                    codepoints = list(map(ord, text))
+                glyphs, advance = _shape_subrange(codepoints, lo, hi-lo, asset, size, script, level)
+            result.append((asset, pen, glyphs))
+            pen += advance
     return result, pen
 
 
@@ -615,22 +638,17 @@ def _make_layout_runs(
                 run_size_int = max(1, round(run_size * 64))
 
                 span_text = "".join(c['ch'] for c in subspan['chars'])
-                asset = next((a for a in run_fonts if all(_faces(a, run_size_int)[0].get_nominal_glyph(ord(ch)) for ch in span_text)), None)
-                if asset is None:
-                    raise ValidationError(f"No supplied font covers the run: {span_text!r}")
-
-                item_offset = subspan['chars'][0]['index']
-                item_length = len(subspan['chars'])
-
-                if len(seg_runs) == 1:
-                    glyphs, advance = _shape(span_text, asset, run_size_int, subspan['script'], subspan['level'])
-                else:
-                    glyphs, advance = _shape_subrange(seg_codepoints, item_offset, item_length,
-                                                      asset, run_size_int, subspan['script'], subspan['level'])
-
-                for g in glyphs:
-                    chunk_positioned_glyphs.append((asset, run_size_int, g.gid, pen_x + g.x, pen_y + g.y, global_idx))
-                pen_x += advance
+                script, level = subspan['script'], subspan['level']
+                for asset, lo, hi in _font_spans(span_text, run_fonts, run_size_int, level):
+                    if len(seg_runs) == 1 and lo == 0 and hi == len(span_text):
+                        glyphs, advance = _shape(span_text, asset, run_size_int, script, level)
+                    else:
+                        start = subspan['chars'][0]['index'] + lo
+                        glyphs, advance = _shape_subrange(seg_codepoints, start, hi-lo,
+                                                          asset, run_size_int, script, level)
+                    for g in glyphs:
+                        chunk_positioned_glyphs.append((asset, run_size_int, g.gid, pen_x + g.x, pen_y + g.y, global_idx))
+                    pen_x += advance
 
         chunk_advance = pen_x
 
@@ -738,6 +756,76 @@ def _make_layout_runs(
     )
 
 
+def flow_text_runs(text):
+    """Split rich text at line breaks, retaining style and authored offsets."""
+    if len(text.text) > 20000:
+        raise ValidationError("Font text is limited to 20,000 characters per object")
+    paragraphs = [[]]
+    for run in text.runs:
+        for i, piece in enumerate(run.text.replace("\r\n", "\n").split("\n")):
+            if i:
+                paragraphs.append([])
+            if piece:
+                paragraphs[-1].append(replace(run, text=piece) if not i else
+                                      replace(run, text=piece, x=None, y=None, dx=0, dy=0))
+
+    def slice_runs(runs, start, stop):
+        offset = 0
+        for run in runs:
+            end = offset + len(run.text)
+            if offset < stop and start < end:
+                piece = run.text[max(0, start-offset):stop-offset]
+                yield replace(run, text=piece) if start <= offset else replace(
+                    run, text=piece, x=None, y=None, dx=0, dy=0)
+            offset = end
+
+    def advance(runs):
+        layout = layout_text_runs(tuple(runs), text.fonts, text.font_size, direction=text.direction)
+        return sum(line.advance_width for line in layout.lines)
+
+    lines = []
+    for runs in paragraphs:
+        content = "".join(r.text for r in runs)
+        if not content or text.wrap_width is None:
+            lines.append(runs)
+            continue
+        start = 0
+        ends = _breaks(content)
+        while start < len(content):
+            choice = None
+            for end in ends:
+                if end <= start:
+                    continue
+                trimmed = len(content[:end].rstrip(" "))
+                candidate = list(slice_runs(runs, start, trimmed))
+                if advance(candidate) > text.wrap_width:
+                    break
+                choice = end, candidate
+            if choice is None:
+                raise ValidationError("A text word exceeds wrap_width; enlarge the box or insert a line break")
+            start, line = choice
+            lines.append(line)
+            while start < len(content) and content[start] == " ":
+                start += 1
+
+    extents = [_faces(asset, max(1, round((r.font_size or text.font_size)*64)))[0].get_font_extents("ltr")
+               for r in text.runs for asset in (r.fonts or text.fonts or ())]
+    if not extents:
+        raise ValidationError("No fonts provided for text runs")
+    step = (max(e.ascender for e in extents)-min(e.descender for e in extents))/64 * text.line_spacing
+    positioned = []
+    y = text.position.y
+    for line in lines:
+        if line:
+            first, *rest = line
+            if first.y is not None:
+                y = first.y
+            positioned.append(replace(first, x=text.position.x if first.x is None else first.x, y=y))
+            positioned.extend(rest)
+        y += step
+    return tuple(positioned)
+
+
 def layout_text_runs(
     runs: tuple[Any, ...],
     default_fonts: tuple[FontAsset, ...] | None,
@@ -753,18 +841,19 @@ def layout_text_runs(
     root_fill_opacity: float = 1.0,
     root_fill_none: bool = False,
 ) -> Layout:
-    return _make_layout_runs(
-        runs,
-        default_fonts,
-        default_font_size,
-        wrap_width,
-        alignment,
-        direction,
-        line_spacing,
-        text_origin,
-        text_anchor,
-        base_x,
-        base_y,
-        root_fill_opacity=root_fill_opacity,
-        root_fill_none=root_fill_none,
-    )
+    with _lock:
+        return _make_layout_runs(
+            runs,
+            default_fonts,
+            default_font_size,
+            wrap_width,
+            alignment,
+            direction,
+            line_spacing,
+            text_origin,
+            text_anchor,
+            base_x,
+            base_y,
+            root_fill_opacity=root_fill_opacity,
+            root_fill_none=root_fill_none,
+        )
